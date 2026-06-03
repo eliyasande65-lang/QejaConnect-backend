@@ -8,11 +8,9 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const streamifier = require("streamifier");
 const cloudinary = require("cloudinary").v2;
-const OpenAI = require("openai");
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
-});
+
+
 const app = express();
 
 cloudinary.config({
