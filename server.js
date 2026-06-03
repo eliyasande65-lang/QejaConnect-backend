@@ -1280,56 +1280,6 @@ app.get("/my-messages", auth, (req, res) => {
   });
 });
 
-// =========================
-// QEJACONNECT AI
-// FIX: removed orphaned bare db.query() block that was sitting outside any
-//      route. Also fixed openai.responses.create → openai.chat.completions.create
-//      (responses.create does not exist in the OpenAI Node SDK).
-// =========================
-app.post("/ai/chat", auth, async (req, res) => {
-  try {
-    const { message } = req.body;
-
-    if (!message) {
-      return res.status(400).json({ success: false, message: "Message required" });
-    }
-
-    let propertyText = "";
-
-    if (message.toLowerCase().includes("juja")) {
-      const [properties] = await db.promise().query(
-        "SELECT title, price, location, type FROM properties WHERE location LIKE '%Juja%' LIMIT 20"
-      );
-
-      propertyText = properties
-        .map(p => `${p.title} | ${p.price} | ${p.location} | ${p.type}`)
-        .join("\n");
-    }
-
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [
-        {
-          role: "system",
-          content: `You are QejaConnect AI.${propertyText ? `\n\nAvailable properties:\n${propertyText}` : ""}`
-        },
-        {
-          role: "user",
-          content: message
-        }
-      ]
-    });
-
-    res.json({
-      success: true,
-      reply: response.choices[0].message.content
-    });
-
-  } catch (err) {
-    console.error("AI error:", err);
-    res.status(500).json({ success: false, message: "AI error" });
-  }
-});
 
 // ── GET /updates  (public — home page uses this) ─────────────
 app.get("/updates", (req, res) => {
