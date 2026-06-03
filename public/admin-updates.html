@@ -906,240 +906,245 @@
     <div class="toast" id="toast"></div>
 
     <script>
-        /* ─── Config ────────────────────────────── */
         const API = "https://qeja-backend-azkf.onrender.com";
-        const ADMIN_SECRET = prompt("Enter admin secret to continue:") || "6154";
+        const ADMIN_SECRET = prompt("Enter admin secret to continue:") || "";
 
         if (!ADMIN_SECRET) {
-        document.body.innerHTML = `
-        <div style="display:flex;align-items:center;justify-content:center;height:100vh;
-        font-family:sans-serif;background:#05080f;color:#ff4f6a;flex-direction:column;gap:12px;">
-        <div style="font-size:2rem;">🔒</div>
-        <div style="font-size:1.1rem;font-weight:600;">Access denied — no secret provided.</div>
-        </div>`;
+          document.body.innerHTML = `
+            <div style="display:flex;align-items:center;justify-content:center;height:100vh;
+              font-family:sans-serif;background:#05080f;color:#ff4f6a;flex-direction:column;gap:12px;">
+              <div style="font-size:2rem;">🔒</div>
+              <div style="font-size:1.1rem;font-weight:600;">Access denied — no secret provided.</div>
+            </div>`;
         }
 
-        /* ─── Toast helper ──────────────────────── */
         function showToast(msg, type = "ok") {
-        const t = document.getElementById("toast");
-        t.className = `toast toast-${type} show`;
-        t.innerHTML = (type === "ok" ? "✅ " : "❌ ") + msg;
-        clearTimeout(t._timer);
-        t._timer = setTimeout(() => t.classList.remove("show"), 4000);
-        }
-
-        /* ─── Type picker ───────────────────────── */
-        let selectedType = "announcement";
-
-        document.getElementById("typePicker").addEventListener("click", e => {
-        const chip = e.target.closest(".type-chip");
-        if (!chip) return;
-        document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
-        chip.classList.add("selected");
-        selectedType = chip.dataset.type;
-        });
-
-        /* ─── Image upload preview ──────────────── */
-        document.getElementById("upImage").addEventListener("change", function () {
-        const zone = document.getElementById("uploadZone");
-        const name = document.getElementById("fileName");
-        if (this.files[0]) {
-        zone.classList.add("has-file");
-        name.textContent = "✅ " + this.files[0].name;
-        } else {
-        zone.classList.remove("has-file");
-        name.textContent = "";
-        }
-        });
-
-        /* ─── Post update ───────────────────────── */
-        async function postUpdate() {
-        const title     = document.getElementById("upTitle").value.trim();
-        const body      = document.getElementById("upBody").value.trim();
-        const link      = document.getElementById("upLink").value.trim();
-        const label     = document.getElementById("upLinkLabel").value.trim();
-        const file      = document.getElementById("upImage").files[0];
-        const statusEl  = document.getElementById("postStatus");
-        const btn       = document.getElementById("postBtn");
-
-        if (!title || !body) {
-        statusEl.className = "err";
-        statusEl.textContent = "Title and body are required.";
-        return;
-        }
-
-        btn.disabled = true;
-        btn.innerHTML = "<span>⏳</span> Publishing…";
-        statusEl.textContent = "";
-
-        const fd = new FormData();
-        fd.append("title", title);
-        fd.append("body", body);
-        fd.append("type", selectedType);
-        if (link)  fd.append("cta_url", link);
-        if (label) fd.append("cta_label", label);
-        if (file)  fd.append("image", file);
-
-        try {
-        const res = await fetch(`${API}/admin/updates`, {
-        method: "POST",
-        headers: { "x-admin-secret": ADMIN_SECRET },
-        body: fd
-        });
-
-        /* ── improved error handling ── */
-        if (!res.ok) {
-        let errMsg = `HTTP ${res.status}`;
-        try {
-        const errData = await res.json();
-        errMsg = errData.message || errMsg;
-        } catch {
-        errMsg = await res.text() || errMsg;
-        }
-        statusEl.className = "err";
-        statusEl.textContent = "❌ " + errMsg;
-        showToast(errMsg, "err");
-        return;
-        }
-
-        const data = await res.json();
-
-        if (data.success) {
-        statusEl.className = "ok";
-        statusEl.textContent = "✅ Published!";
-        showToast("Update published successfully!", "ok");
-        clearForm();
-        loadUpdates();
-        } else {
-        const msg = data.message || "Failed to publish";
-        statusEl.className = "err";
-        statusEl.textContent = "❌ " + msg;
-        showToast(msg, "err");
-        }
-        } catch (err) {
-        const msg = err.message || "Network error — server may be waking up, try again.";
-        statusEl.className = "err";
-        statusEl.textContent = "❌ " + msg;
-        showToast(msg, "err");
-        console.error("postUpdate error:", err);
-        } finally {
-        btn.disabled = false;
-        btn.innerHTML = "<span>🚀</span> Publish Update";
-        }
-        }
-
-        function clearForm() {
-        document.getElementById("upTitle").value = "";
-        document.getElementById("upBody").value = "";
-        document.getElementById("upLink").value = "";
-        document.getElementById("upLinkLabel").value = "";
-        document.getElementById("upImage").value = "";
-        document.getElementById("fileName").textContent = "";
-        document.getElementById("uploadZone").classList.remove("has-file");
-        document.getElementById("postStatus").textContent = "";
-        selectedType = "announcement";
-        document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
-        document.querySelector('[data-type="announcement"]').classList.add("selected");
-        }
-
-        /* ─── Delete ─────────────────────────────── */
-        async function deleteUpdate(id) {
-        if (!confirm("Delete this update? This cannot be undone.")) return;
-        try {
-        const res = await fetch(`${API}/admin/updates/${id}`, {
-        method: "DELETE",
-        headers: { "x-admin-secret": ADMIN_SECRET }
-        });
-
-        if (!res.ok) {
-        let errMsg = `HTTP ${res.status}`;
-        try { const d = await res.json(); errMsg = d.message || errMsg; } catch {}
-        showToast(errMsg, "err");
-        return;
-        }
-
-        const data = await res.json();
-        if (data.success) {
-        showToast("Update deleted.", "ok");
-        loadUpdates();
-        } else {
-        showToast(data.message || "Delete failed", "err");
-        }
-        } catch (err) {
-        showToast(err.message || "Network error", "err");
-        console.error("deleteUpdate error:", err);
-        }
-        }
-
-        /* ─── Load updates ──────────────────────── */
-        async function loadUpdates() {
-        const container = document.getElementById("updatesList");
-        container.innerHTML = `
-        <div class="skeleton"></div>
-        <div class="skeleton" style="height:60px;opacity:.6"></div>`;
-
-        try {
-        const res = await fetch(`${API}/updates`);
-
-        if (!res.ok) {
-        container.innerHTML = `<p class="err" style="padding:20px;">Server error ${res.status} — could not load updates.</p>`;
-        return;
-        }
-
-        const data = await res.json();
-
-        /* ── stats ── */
-        if (data.success && data.updates) {
-        const all = data.updates;
-        document.getElementById("statTotal").textContent    = all.length;
-        document.getElementById("statAnnounce").textContent = all.filter(u => u.type === "announcement").length;
-        document.getElementById("statFeature").textContent  = all.filter(u => u.type === "feature").length;
-        document.getElementById("statMaint").textContent    = all.filter(u => u.type === "maintenance").length;
-        }
-
-        if (!data.success || !data.updates.length) {
-        container.innerHTML = `
-        <div class="empty-state">
-        <div class="emoji">📭</div>
-        <p>No updates published yet. Use the form above to post one.</p>
-        </div>`;
-        return;
-        }
-
-        container.innerHTML = "";
-        data.updates.forEach(u => {
-        const tag      = `tag-${u.type || "announcement"}`;
-        const label    = (u.type || "announcement").charAt(0).toUpperCase() + (u.type || "announcement").slice(1);
-        const dateStr  = new Date(u.created_at).toLocaleDateString("en-KE", { day:"numeric", month:"short", year:"numeric", hour:"2-digit", minute:"2-digit" });
-
-        container.innerHTML += `
-        <div class="update-item" id="upitem-${u.id}">
-        <div class="update-left">
-        <div class="update-meta">
-        <span class="tag ${tag}">${label}</span>
-        <span class="update-date">${dateStr}</span>
-        </div>
-        <div class="update-title">${escHtml(u.title)}</div>
-        <div class="update-body">${escHtml(u.body)}</div>
-        ${u.cta_url ? `<a href="${u.cta_url}" target="_blank" style="color:#7ca9ff;font-size:12.5px;margin-top:2px;">${escHtml(u.cta_label || u.cta_url)} ↗</a>` : ""}
-        <div class="update-actions">
-        <button class="delete-btn" onclick="deleteUpdate(${u.id})">🗑 Delete</button>
-        </div>
-        </div>
-        ${u.image_url ? `<img class="update-img" src="${u.image_url}" alt="cover">` : ""}
-        </div>`;
-        });
-        } catch (err) {
-        container.innerHTML = `<p class="err" style="padding:20px;">❌ Failed to load: ${escHtml(err.message)}</p>`;
-        console.error("loadUpdates error:", err);
-        }
+          const t = document.getElementById("toast");
+          t.className = `toast toast-${type} show`;
+          t.innerHTML = (type === "ok" ? "✅ " : "❌ ") + msg;
+          clearTimeout(t._timer);
+          t._timer = setTimeout(() => t.classList.remove("show"), 4000);
         }
 
         function escHtml(str) {
-        return String(str)
-        .replace(/&/g,"&amp;")
-        .replace(/</g,"&lt;")
-        .replace(/>/g,"&gt;");
+          return String(str)
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;");
+        }
+
+        let selectedType = "announcement";
+
+        document.getElementById("typePicker").addEventListener("click", e => {
+          const chip = e.target.closest(".type-chip");
+          if (!chip) return;
+          document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
+          chip.classList.add("selected");
+          selectedType = chip.dataset.type;
+        });
+
+        document.getElementById("upImage").addEventListener("change", function () {
+          const zone = document.getElementById("uploadZone");
+          const name = document.getElementById("fileName");
+          if (this.files[0]) {
+            zone.classList.add("has-file");
+            name.textContent = "✅ " + this.files[0].name;
+          } else {
+            zone.classList.remove("has-file");
+            name.textContent = "";
+          }
+        });
+
+        async function postUpdate() {
+          const title    = document.getElementById("upTitle").value.trim();
+          const body     = document.getElementById("upBody").value.trim();
+          const link     = document.getElementById("upLink").value.trim();
+          const label    = document.getElementById("upLinkLabel").value.trim();
+          const file     = document.getElementById("upImage").files[0];
+          const statusEl = document.getElementById("postStatus");
+          const btn      = document.getElementById("postBtn");
+
+          if (!title || !body) {
+            statusEl.className = "err";
+            statusEl.textContent = "Title and body are required.";
+            return;
+          }
+
+          btn.disabled = true;
+          btn.innerHTML = "<span>⏳</span> Publishing…";
+          statusEl.textContent = "";
+
+          const fd = new FormData();
+          fd.append("title", title);
+          fd.append("body", body);
+          fd.append("type", selectedType);
+          if (link)  fd.append("cta_url", link);
+          if (label) fd.append("cta_label", label);
+          if (file)  fd.append("image", file);
+
+          try {
+            const res = await fetch(`${API}/admin/updates`, {
+              method: "POST",
+              headers: { "x-admin-secret": ADMIN_SECRET },
+              body: fd
+            });
+
+            const raw = await res.text();
+            let data;
+            try {
+              data = JSON.parse(raw);
+            } catch {
+              const msg = `Server returned non-JSON (status ${res.status}): ${raw.substring(0, 120)}`;
+              statusEl.className = "err";
+              statusEl.textContent = "❌ " + msg;
+              showToast(msg, "err");
+              return;
+            }
+
+            if (data.success) {
+              statusEl.className = "ok";
+              statusEl.textContent = "✅ Published!";
+              showToast("Update published successfully!", "ok");
+              clearForm();
+              loadUpdates();
+            } else {
+              const msg = data.message || "Failed to publish";
+              statusEl.className = "err";
+              statusEl.textContent = "❌ " + msg;
+              showToast(msg, "err");
+            }
+          } catch (err) {
+            const msg = err.message || "Network error — check your connection.";
+            statusEl.className = "err";
+            statusEl.textContent = "❌ " + msg;
+            showToast(msg, "err");
+            console.error("postUpdate error:", err);
+          } finally {
+            btn.disabled = false;
+            btn.innerHTML = "<span>🚀</span> Publish Update";
+          }
+        }
+
+        function clearForm() {
+          document.getElementById("upTitle").value = "";
+          document.getElementById("upBody").value = "";
+          document.getElementById("upLink").value = "";
+          document.getElementById("upLinkLabel").value = "";
+          document.getElementById("upImage").value = "";
+          document.getElementById("fileName").textContent = "";
+          document.getElementById("uploadZone").classList.remove("has-file");
+          document.getElementById("postStatus").textContent = "";
+          selectedType = "announcement";
+          document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
+          document.querySelector('[data-type="announcement"]').classList.add("selected");
+        }
+
+        async function deleteUpdate(id) {
+          if (!confirm("Delete this update? This cannot be undone.")) return;
+          try {
+            const res = await fetch(`${API}/admin/updates/${id}`, {
+              method: "DELETE",
+              headers: { "x-admin-secret": ADMIN_SECRET }
+            });
+
+            const raw = await res.text();
+            let data;
+            try {
+              data = JSON.parse(raw);
+            } catch {
+              showToast(`Server error (status ${res.status})`, "err");
+              return;
+            }
+
+            if (data.success) {
+              showToast("Update deleted.", "ok");
+              loadUpdates();
+            } else {
+              showToast(data.message || "Delete failed", "err");
+            }
+          } catch (err) {
+            showToast(err.message || "Network error", "err");
+            console.error("deleteUpdate error:", err);
+          }
+        }
+
+        async function loadUpdates() {
+          const container = document.getElementById("updatesList");
+          container.innerHTML = `
+            <div class="skeleton"></div>
+            <div class="skeleton" style="height:60px;opacity:.6"></div>`;
+
+          try {
+            const res = await fetch(`${API}/updates`);
+            const raw = await res.text();
+
+            let data;
+            try {
+              data = JSON.parse(raw);
+            } catch {
+              container.innerHTML = `
+                <p class="err" style="padding:20px;">
+                  ❌ Server returned non-JSON (status ${res.status}). 
+                  Response: ${escHtml(raw.substring(0, 120))}
+                </p>`;
+              return;
+            }
+
+            if (!data.success || !data.updates || !data.updates.length) {
+              document.getElementById("statTotal").textContent    = 0;
+              document.getElementById("statAnnounce").textContent = 0;
+              document.getElementById("statFeature").textContent  = 0;
+              document.getElementById("statMaint").textContent    = 0;
+              container.innerHTML = `
+                <div class="empty-state">
+                  <div class="emoji">📭</div>
+                  <p>No updates published yet. Use the form above to post one.</p>
+                </div>`;
+              return;
+            }
+
+            const all = data.updates;
+            document.getElementById("statTotal").textContent    = all.length;
+            document.getElementById("statAnnounce").textContent = all.filter(u => u.type === "announcement").length;
+            document.getElementById("statFeature").textContent  = all.filter(u => u.type === "feature").length;
+            document.getElementById("statMaint").textContent    = all.filter(u => u.type === "maintenance").length;
+
+            container.innerHTML = "";
+            all.forEach(u => {
+              const tag     = `tag-${u.type || "announcement"}`;
+              const label   = (u.type || "announcement").charAt(0).toUpperCase() + (u.type || "announcement").slice(1);
+              const dateStr = new Date(u.created_at).toLocaleDateString("en-KE", {
+                day: "numeric", month: "short", year: "numeric",
+                hour: "2-digit", minute: "2-digit"
+              });
+
+              container.innerHTML += `
+                <div class="update-item" id="upitem-${u.id}">
+                  <div class="update-left">
+                    <div class="update-meta">
+                      <span class="tag ${tag}">${escHtml(label)}</span>
+                      <span class="update-date">${dateStr}</span>
+                    </div>
+                    <div class="update-title">${escHtml(u.title)}</div>
+                    <div class="update-body">${escHtml(u.body)}</div>
+                    ${u.cta_url ? `<a href="${u.cta_url}" target="_blank"
+                      style="color:#7ca9ff;font-size:12.5px;margin-top:2px;">
+                      ${escHtml(u.cta_label || u.cta_url)} ↗</a>` : ""}
+                    <div class="update-actions">
+                      <button class="delete-btn" onclick="deleteUpdate(${u.id})">🗑 Delete</button>
+                    </div>
+                  </div>
+                  ${u.image_url ? `<img class="update-img" src="${u.image_url}" alt="cover">` : ""}
+                </div>`;
+            });
+
+          } catch (err) {
+            container.innerHTML = `
+              <p class="err" style="padding:20px;">
+                ❌ Failed to load: ${escHtml(err.message)}
+              </p>`;
+            console.error("loadUpdates error:", err);
+          }
         }
 
         loadUpdates();

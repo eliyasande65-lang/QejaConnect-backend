@@ -915,7 +915,13 @@ app.post('/auth/webauthn/register/start', async (req, res) => {
       },
     });
 
-    challenges.set(String(userId), options.challenge);
+    // FIX: store as object with challenge + expiry (was storing raw string,
+    // causing register/finish to fail on entry.challenge / entry.expires checks)
+    challenges.set(String(userId), {
+      challenge: options.challenge,
+      expires: Date.now() + 5 * 60 * 1000
+    });
+
     res.json(options);
 
   } catch (err) {
@@ -1012,6 +1018,9 @@ app.post('/auth/webauthn/login/start', (req, res) => {
           challenge: options.challenge,
           expires: Date.now() + 5 * 60 * 1000
         });
+
+        // FIX: was missing — client never received the options, login could never proceed
+        res.json(options);
 
       } catch (err2) {
         console.error('WebAuthn login/start error:', err2.message);
@@ -1164,12 +1173,9 @@ app.post("/upload-tenant-pic", auth, upload.single("image"), (req, res) => {
   streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 });
 
-
-
 // ============================================================
 //  NEW ROUTE 1 — Admin: get all contact messages (paginated)
 //  GET /admin/messages?page=1&limit=20&replied=0|1
-
 // ============================================================
 app.get("/admin/messages", adminAuth, (req, res) => {
   const page     = Math.max(1, parseInt(req.query.page)  || 1);
@@ -1231,8 +1237,6 @@ app.get("/admin/messages", adminAuth, (req, res) => {
 // ============================================================
 //  NEW ROUTE 2 — Admin: reply to a contact message
 //  POST /admin/messages/:id/reply
-
-//  Add this BEFORE "START SERVER"
 // ============================================================
 app.post("/admin/messages/:id/reply", adminAuth, (req, res) => {
   const { id }    = req.params;
@@ -1258,7 +1262,6 @@ app.post("/admin/messages/:id/reply", adminAuth, (req, res) => {
 // ============================================================
 //  NEW ROUTE 3 — User: fetch their own messages + admin replies
 //  GET /my-messages   (requires auth token)
-
 // ============================================================
 app.get("/my-messages", auth, (req, res) => {
   const sender_id   = req.user.id;
@@ -1277,24 +1280,12 @@ app.get("/my-messages", auth, (req, res) => {
   });
 });
 
-
-db.query(
-  "SELECT title, price, location, type FROM properties LIMIT 20",
-  async (err, properties) => {
-
-    const propertyText = properties
-      .map(p =>
-        `${p.title} | ${p.price} | ${p.location} | ${p.type}`
-      )
-      .join("\n");
-
-    // Send propertyText into OpenAI prompt
-});
-
 // =========================
 // QEJACONNECT AI
+// FIX: removed orphaned bare db.query() block that was sitting outside any
+//      route. Also fixed openai.responses.create → openai.chat.completions.create
+//      (responses.create does not exist in the OpenAI Node SDK).
 // =========================
-
 app.post("/ai/chat", auth, async (req, res) => {
   try {
     const { message } = req.body;
@@ -1303,7 +1294,6 @@ app.post("/ai/chat", auth, async (req, res) => {
       return res.status(400).json({ success: false, message: "Message required" });
     }
 
-    // OPTIONAL: database search first
     let propertyText = "";
 
     if (message.toLowerCase().includes("juja")) {
@@ -1316,17 +1306,12 @@ app.post("/ai/chat", auth, async (req, res) => {
         .join("\n");
     }
 
-    const response = await openai.responses.create({
+    const response = await openai.chat.completions.create({
       model: "gpt-4o-mini",
-      input: [
+      messages: [
         {
           role: "system",
-          content: `
-You are QejaConnect AI.
-
-If property data is provided, use it:
-${propertyText}
-`
+          content: `You are QejaConnect AI.${propertyText ? `\n\nAvailable properties:\n${propertyText}` : ""}`
         },
         {
           role: "user",
@@ -1337,7 +1322,7 @@ ${propertyText}
 
     res.json({
       success: true,
-      reply: response.output_text
+      reply: response.choices[0].message.content
     });
 
   } catch (err) {
@@ -1345,13 +1330,6 @@ ${propertyText}
     res.status(500).json({ success: false, message: "AI error" });
   }
 });
-
-
-
-//  multer + cloudinary are already imported in your server — no
-//  new dependencies needed.
-// =============================================================
-
 
 // ── GET /updates  (public — home page uses this) ─────────────
 app.get("/updates", (req, res) => {
@@ -1367,7 +1345,6 @@ app.get("/updates", (req, res) => {
   });
 });
 
-
 // ── POST /admin/updates  (admin only — create an update) ─────
 app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) => {
   const { title, body, type, cta_url, cta_label } = req.body;
@@ -1382,7 +1359,6 @@ app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) =
   try {
     let image_url = null;
 
-    // Upload image to Cloudinary if provided
     if (req.file) {
       image_url = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
@@ -1414,7 +1390,6 @@ app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) =
   }
 });
 
-
 // ── DELETE /admin/updates/:id  (admin only) ──────────────────
 app.delete("/admin/updates/:id", adminAuth, (req, res) => {
   const { id } = req.params;
@@ -1427,6 +1402,7 @@ app.delete("/admin/updates/:id", adminAuth, (req, res) => {
     res.json({ success: true, message: "Update deleted" });
   });
 });
+
 // =========================
 // START SERVER
 // =========================
