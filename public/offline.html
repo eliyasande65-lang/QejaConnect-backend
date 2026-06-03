@@ -1,0 +1,274 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#4f46e5">
+    <title>QejaConnect — You're Offline</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@700&family=Nunito:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --indigo: #4f46e5;
+            --violet: #7c3aed;
+            --dark-violet: #5b21b6;
+            --light: rgba(255,255,255,0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #1e1b4b 0%, #312e81 40%, #4c1d95 100%);
+            color: white;
+            font-family: 'Nunito', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* Animated background blobs */
+        .blob {
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(80px);
+            opacity: 0.25;
+            animation: float 8s ease-in-out infinite;
+        }
+
+        .blob-1 {
+            width: 320px;
+            height: 320px;
+            background: var(--violet);
+            top: -80px;
+            left: -80px;
+            animation-delay: 0s;
+        }
+
+        .blob-2 {
+            width: 240px;
+            height: 240px;
+            background: #a855f7;
+            bottom: -60px;
+            right: -60px;
+            animation-delay: -4s;
+        }
+
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0) scale(1);
+            }
+
+            50% {
+                transform: translateY(30px) scale(1.05);
+            }
+        }
+
+        /* Card */
+        .card {
+            position: relative;
+            z-index: 1;
+            background: rgba(255,255,255,0.06);
+            border: 1px solid rgba(255,255,255,0.12);
+            border-radius: 24px;
+            padding: 48px 36px;
+            max-width: 420px;
+            width: 100%;
+            text-align: center;
+            backdrop-filter: blur(20px);
+            box-shadow: 0 8px 40px rgba(0,0,0,0.4);
+            animation: rise 0.6s ease both;
+        }
+
+        @keyframes rise {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Logo */
+        .logo-wrap {
+            width: 90px;
+            height: 90px;
+            margin: 0 auto 24px;
+            border-radius: 20px;
+            overflow: hidden;
+            border: 3px solid rgba(255,255,255,0.2);
+            box-shadow: 0 0 0 6px rgba(139,92,246,0.2);
+        }
+
+            .logo-wrap img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+
+        /* Signal icon */
+        .signal {
+            margin: 0 auto 20px;
+            width: 64px;
+            height: 64px;
+            position: relative;
+        }
+
+            .signal svg {
+                width: 100%;
+                height: 100%;
+            }
+
+        .signal-bar {
+            animation: blink 1.8s ease-in-out infinite;
+        }
+
+            .signal-bar:nth-child(1) {
+                animation-delay: 0s;
+            }
+
+            .signal-bar:nth-child(2) {
+                animation-delay: 0.3s;
+            }
+
+            .signal-bar:nth-child(3) {
+                animation-delay: 0.6s;
+            }
+
+        @keyframes blink {
+            0%, 100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.15;
+            }
+        }
+
+        h1 {
+            font-family: 'Cinzel', serif;
+            font-size: 1.6rem;
+            letter-spacing: 0.03em;
+            margin-bottom: 12px;
+            background: linear-gradient(90deg, #c4b5fd, #fff, #c4b5fd);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .subtitle {
+            color: rgba(255,255,255,0.65);
+            font-size: 0.95rem;
+            line-height: 1.7;
+            margin-bottom: 32px;
+        }
+
+        .divider {
+            height: 1px;
+            background: rgba(255,255,255,0.1);
+            margin: 24px 0;
+        }
+
+        .tip {
+            font-size: 0.85rem;
+            color: rgba(255,255,255,0.45);
+            line-height: 1.6;
+        }
+
+            .tip strong {
+                color: rgba(255,255,255,0.75);
+            }
+
+        .retry-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 28px;
+            padding: 14px 32px;
+            background: linear-gradient(135deg, var(--indigo), var(--violet));
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-family: 'Nunito', sans-serif;
+            font-size: 1rem;
+            font-weight: 700;
+            cursor: pointer;
+            box-shadow: 0 4px 20px rgba(124,58,237,0.5);
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+            .retry-btn:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 8px 28px rgba(124,58,237,0.6);
+            }
+
+            .retry-btn:active {
+                transform: translateY(0);
+            }
+
+        .brand {
+            margin-top: 28px;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.3);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+
+    <div class="card">
+
+        <div class="logo-wrap">
+            <img src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect Logo">
+        </div>
+
+        <!-- Animated signal/wifi icon -->
+        <div class="signal">
+            <svg viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path class="signal-bar" d="M8 40 Q32 18 56 40" stroke="rgba(196,181,253,0.4)" stroke-width="4" stroke-linecap="round" fill="none" />
+                <path class="signal-bar" d="M16 48 Q32 33 48 48" stroke="rgba(196,181,253,0.6)" stroke-width="4" stroke-linecap="round" fill="none" />
+                <path class="signal-bar" d="M24 56 Q32 48 40 56" stroke="rgba(196,181,253,0.9)" stroke-width="4" stroke-linecap="round" fill="none" />
+                <circle cx="32" cy="58" r="3" fill="white" />
+            </svg>
+        </div>
+
+        <h1>You're Offline</h1>
+        <p class="subtitle">
+            No connection right now.<br>
+            QejaConnect needs the internet to match you with homes and hosts.
+        </p>
+
+        <div class="divider"></div>
+
+        <p class="tip">
+            <strong>Check your connection</strong> — turn Wi-Fi or mobile data back on, then tap retry.
+        </p>
+
+        <button class="retry-btn" onclick="window.location.reload()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+                <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                <path d="M3 3v5h5" />
+            </svg>
+            Try Again
+        </button>
+
+        <p class="brand">QejaConnect · Powered by Cynet</p>
+
+    </div>
+
+</body>
+</html>

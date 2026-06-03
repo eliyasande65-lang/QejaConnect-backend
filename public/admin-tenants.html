@@ -1,0 +1,151 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin - Tenants</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #f4f4f4;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: indigo;
+        }
+
+        .login-box {
+            max-width: 300px;
+            margin: 50px auto;
+            padding: 20px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            background: indigo;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background: white;
+            display: none;
+        }
+
+        th, td {
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: left;
+        }
+
+        th {
+            background: indigo;
+            color: white;
+        }
+    </style>
+</head>
+
+<body>
+
+    <h1>Tenant Submissions (Admin)</h1>
+
+    <div class="login-box" id="loginBox">
+        <h3>Admin Login</h3>
+        <input type="password" id="pass" placeholder="Enter admin password">
+        <button onclick="login()">Access</button>
+    </div>
+
+    <table id="tenantTable">
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>Phone</th>
+            <th>Location</th>
+        </tr>
+    </table>
+
+    <script>
+        let loggedIn = false;
+        let tenants = [];
+
+        function login(){
+            let pass = document.getElementById("pass").value;
+
+            if(pass === "admin123"){
+                loggedIn = true;
+                document.getElementById("loginBox").style.display = "none";
+                document.getElementById("tenantTable").style.display = "table";
+                loadData();
+            } else {
+                alert("Wrong password");
+            }
+        }
+
+        function loadData(){
+
+            const params = new URLSearchParams(window.location.search);
+
+            let name = params.get("name");
+            let email = params.get("email");
+            let phone = params.get("phone");
+            let location = params.get("location");
+
+            // prevent empty reload rows
+            if(name && email){
+
+                // store in memory
+                tenants.push({name, email, phone, location});
+
+                renderTable();
+            }
+        }
+
+        function renderTable(){
+
+            let table = document.getElementById("tenantTable");
+
+            // remove old rows except header
+            table.innerHTML = `
+                <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Phone</th>
+                    <th>Location</th>
+                </tr>
+            `;
+
+            tenants.forEach(t => {
+                let row = table.insertRow();
+
+                row.innerHTML = `
+                    <td>${t.name}</td>
+                    <td>${t.email}</td>
+                    <td>${t.phone}</td>
+                    <td>${t.location}</td>
+                `;
+            });
+        }
+    </script>
+
+</body>
+</html>

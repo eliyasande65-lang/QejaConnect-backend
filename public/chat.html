@@ -1,0 +1,361 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- ============================================================
+     QejaConnect PWA — paste this block inside <head> on EVERY page
+     ============================================================ -->
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#1a1535">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+    <!-- ============================================================
+         END QejaConnect PWA block
+         ============================================================ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landlord Chat | Qeja Connect</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .top {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            background: #1a1535;
+            color: white;
+            padding: 10px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 1000;
+            min-height: 64px;
+        }
+
+            .top .back-btn {
+                background: #1a1535;
+                border: none;
+                color: white;
+                border-radius: 8px;
+                padding: 6px 12px;
+                cursor: pointer;
+                font-size: 18px;
+                flex-shrink: 0;
+            }
+
+        .top-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .top .chat-name {
+            font-size: 17px;
+            font-weight: bold;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .top .chat-role {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 1px;
+        }
+
+        .top .status {
+            font-size: 12px;
+            opacity: 0.85;
+            margin-top: 2px;
+        }
+
+        #messages {
+            position: fixed;
+            top: 64px;
+            bottom: 70px;
+            left: 0;
+            width: 100%;
+            overflow-y: auto;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .msg-wrap {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .mine-wrap {
+            align-items: flex-end;
+        }
+
+        .other-wrap {
+            align-items: flex-start;
+        }
+
+        .msg-label {
+            font-size: 11px;
+            margin-bottom: 2px;
+            color: #888;
+        }
+
+        .msg {
+            padding: 10px 14px;
+            border-radius: 16px;
+            max-width: 80%;
+            width: fit-content;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            font-size: 15px;
+            line-height: 1.5;
+        }
+
+        .mine {
+            background: #1a1535;
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .other {
+            background: white;
+            color: black;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+        }
+
+        .msg-time {
+            font-size: 10px;
+            color: #aaa;
+            margin-top: 3px;
+            padding: 0 4px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #aaa;
+            margin: auto;
+            font-size: 15px;
+        }
+
+        .bottom {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-top: 1px solid #ddd;
+        }
+
+            .bottom input {
+                flex: 1;
+                min-width: 0;
+                padding: 12px 14px;
+                border-radius: 12px;
+                border: 1px solid #ccc;
+                font-size: 16px;
+                outline: none;
+            }
+
+                .bottom input:focus {
+                    border-color: indigo;
+                }
+
+            .bottom button {
+                padding: 12px 18px;
+                border: none;
+                background: #1a1535;
+                color: white;
+                border-radius: 12px;
+                cursor: pointer;
+                font-size: 15px;
+            }
+
+                .bottom button:disabled {
+                    opacity: 0.6;
+                    cursor: not-allowed;
+                }
+    </style>
+</head>
+<body>
+
+    <div class="top">
+        <button class="back-btn" onclick="history.back()">←</button>
+        <div class="top-info">
+            <div class="chat-name" id="chatName">Chat</div>
+            <div class="chat-role" id="chatRole">Tenant</div>
+            <div class="status" id="chatStatus">Loading...</div>
+        </div>
+    </div>
+
+    <div id="messages">
+        <div class="empty-state" id="emptyState">Loading messages...</div>
+    </div>
+
+    <div class="bottom">
+        <input type="text" id="messageInput" placeholder="Type a message..." onkeydown="handleKey(event)">
+        <button id="sendBtn" onclick="sendMessage()">Send</button>
+    </div>
+
+    <script>
+        const BASE_PATH = window.location.pathname.includes("QejaConnect") ? "/QejaConnect/" : "/";
+
+        const token      = localStorage.getItem("token");
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
+        const convId     = localStorage.getItem("conversation_id");
+
+        // Set partner name immediately from localStorage (set by dashboard)
+        const partnerName = localStorage.getItem("chat_partner_name") || "Tenant";
+        document.getElementById("chatName").textContent = partnerName;
+
+        let cachedLandlordId = null;
+        let cachedTenantId   = null;
+        let pollingTimer     = null;
+        let lastMessageCount = -1;
+
+        if (!token || !loggedUser || !convId) {
+        document.getElementById("emptyState").textContent = "Session expired. Please log in again.";
+        } else {
+        loadMessages();
+        pollingTimer = setInterval(loadMessages, 4000);
+        }
+
+        function formatTime(timestamp) {
+        if (!timestamp) return "";
+        const date = new Date(timestamp);
+        if (isNaN(date)) return "";
+        const now = new Date();
+        const isToday = date.toDateString() === now.toDateString();
+        const yesterday = new Date(now);
+        yesterday.setDate(now.getDate() - 1);
+        const isYesterday = date.toDateString() === yesterday.toDateString();
+
+        const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+        if (isToday)     return timeStr;
+        if (isYesterday) return `Yesterday ${timeStr}`;
+        return date.toLocaleDateString([], { day: "numeric", month: "short" }) + " " + timeStr;
+        }
+
+        async function loadMessages() {
+        try {
+        const res = await fetch(
+        `https://qeja-backend-azkf.onrender.com/messages/${convId}`,
+        { headers: { "Authorization": "Bearer " + token } }
+        );
+        const data = await res.json();
+
+        cachedLandlordId = data.landlord_id;
+        cachedTenantId   = data.tenant_id;
+
+        const msgs = data.messages || [];
+        const container = document.getElementById("messages");
+        const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+
+        if (msgs.length === 0) {
+        container.innerHTML = `<div class="empty-state">No messages yet.</div>`;
+        } else {
+        container.innerHTML = msgs.map(chat => {
+        const isMe = chat.sender_role === "landlord";
+        const timeStr = formatTime(chat.created_at || chat.timestamp || chat.sent_at);
+        return `
+        <div class="msg-wrap ${isMe ? "mine-wrap" : "other-wrap"}">
+        <div class="msg-label">${isMe ? "You" : escapeHtml(partnerName)}</div>
+        <div class="msg ${isMe ? "mine" : "other"}">${escapeHtml(chat.message)}</div>
+        ${timeStr ? `<div class="msg-time">${timeStr}</div>` : ""}
+        </div>`;
+        }).join("");
+        }
+
+        if (atBottom || msgs.length !== lastMessageCount) {
+        container.scrollTop = container.scrollHeight;
+        }
+
+        lastMessageCount = msgs.length;
+        document.getElementById("chatStatus").textContent = "Active conversation";
+
+        } catch (err) {
+        document.getElementById("chatStatus").textContent = "Reconnecting...";
+        }
+        }
+
+        async function sendMessage() {
+        const input = document.getElementById("messageInput");
+        const message = input.value.trim();
+        if (!message) return;
+
+        const btn = document.getElementById("sendBtn");
+        btn.disabled = true;
+        input.value = "";
+
+        try {
+        await fetch("https://qeja-backend-azkf.onrender.com/send-message", {
+        method: "POST",
+        headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+        conversation_id: convId,
+        landlord_id: cachedLandlordId,
+        tenant_id: cachedTenantId,
+        sender_role: "landlord",
+        message
+        })
+        });
+        await new Promise(r => setTimeout(r, 300));
+        loadMessages();
+        } catch (err) {
+        alert("Network error");
+        }
+
+        btn.disabled = false;
+        }
+
+        function handleKey(e) { if (e.key === "Enter") sendMessage(); }
+
+        function escapeHtml(str) {
+        return String(str)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+        }
+
+        document.addEventListener("visibilitychange", () => {
+        if (document.hidden) {
+        clearInterval(pollingTimer);
+        } else {
+        loadMessages();
+        pollingTimer = setInterval(loadMessages, 5000);
+        }
+        });
+    </script>
+
+</body>
+</html>

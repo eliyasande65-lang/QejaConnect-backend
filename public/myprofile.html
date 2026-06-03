@@ -1,0 +1,608 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Profile</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 60px 20px 40px;
+        }
+
+        .page {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .card {
+            width: 100%;
+            max-width: 500px;
+            background: #1a1535;
+            border-radius: 16px;
+            padding: 28px 24px;
+            box-shadow: 0 0 12px rgba(0,0,0,0.3);
+        }
+
+        .avatar-section {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .avatar-wrap {
+            position: relative;
+            width: 100px;
+            height: 100px;
+        }
+
+            .avatar-wrap img {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                object-fit: cover;
+                border: 3px solid #818cf8;
+                display: block;
+            }
+
+            .avatar-wrap .edit-badge {
+                position: absolute;
+                bottom: 4px;
+                right: 4px;
+                width: 28px;
+                height: 28px;
+                background: #1a1535;
+                border: 2px solid #818cf8;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                cursor: pointer;
+                transition: background 0.2s;
+            }
+
+                .avatar-wrap .edit-badge:hover {
+                    background: darkviolet;
+                }
+
+        #pic-input {
+            display: none;
+        }
+
+        .user-name {
+            font-size: 20px;
+            font-weight: bold;
+            color: white;
+            text-align: center;
+        }
+
+        .user-role {
+            font-size: 13px;
+            color: #a5b4fc;
+            background: rgba(10,140,248,0.15);
+            border: 1px solid #1a1535;
+            border-radius: 20px;
+            padding: 3px 14px;
+        }
+
+        .section-title {
+            font-size: 12px;
+            font-weight: bold;
+            letter-spacing: 0.08em;
+            color: #a5b4fc;
+            text-transform: uppercase;
+            margin: 0 0 12px;
+        }
+
+        .field-row {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-bottom: 18px;
+        }
+
+            .field-row label {
+                font-size: 13px;
+                color: #c4b5fd;
+            }
+
+            .field-row .value {
+                font-size: 15px;
+                color: white;
+                background: rgba(255,255,255,0.08);
+                border-radius: 10px;
+                padding: 12px 14px;
+            }
+
+                .field-row .value.muted {
+                    color: #9ca3af;
+                    font-style: italic;
+                    font-size: 13px;
+                }
+
+            .field-row input {
+                font-size: 15px;
+                color: white;
+                background: rgba(255,255,255,0.1);
+                border: 2px solid transparent;
+                border-radius: 10px;
+                padding: 12px 14px;
+                outline: none;
+                transition: border-color 0.2s;
+                width: 100%;
+            }
+
+                .field-row input:focus {
+                    border-color: #818cf8;
+                }
+
+                .field-row input.valid {
+                    border-color: #34d399;
+                }
+
+                .field-row input.invalid {
+                    border-color: #f87171;
+                }
+
+        .locked-note {
+            font-size: 12px;
+            color: #6b7280;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .divider {
+            border: none;
+            border-top: 1px solid rgba(255,255,255,0.1);
+            margin: 20px 0;
+        }
+
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 10px;
+            background: purple;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s, opacity 0.2s;
+            margin-top: 8px;
+        }
+
+            .save-btn:hover {
+                background: darkviolet;
+            }
+
+            .save-btn.btn-loading {
+                opacity: 0.7;
+                pointer-events: none;
+            }
+
+        .back-link {
+            color: #1a1535;
+            font-size: 14px;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            align-self: flex-start;
+            margin-left: calc(50% - 250px);
+        }
+
+            .back-link:hover {
+                color: white;
+            }
+
+        @media (max-width: 560px) {
+            .back-link {
+                margin-left: 0;
+            }
+        }
+
+        #toast {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1e1b4b;
+            color: white;
+            padding: 14px 22px;
+            border-radius: 12px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
+            border-left: 4px solid #818cf8;
+            z-index: 999;
+            max-width: 320px;
+            width: 90%;
+            transition: transform 0.35s cubic-bezier(0.34,1.56,0.64,1), opacity 0.35s ease;
+            opacity: 0;
+            pointer-events: none;
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+
+            #toast.success {
+                border-left-color: #34d399;
+            }
+
+            #toast.error {
+                border-left-color: #f87171;
+            }
+
+            #toast.info {
+                border-left-color: #818cf8;
+            }
+
+            #toast.warning {
+                border-left-color: #fbbf24;
+            }
+
+        #toast-icon {
+            font-size: 20px;
+            flex-shrink: 0;
+        }
+
+        #toast-msg {
+            line-height: 1.4;
+        }
+
+        .avatar-uploading {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.55);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 12px;
+        }
+
+            .avatar-uploading.active {
+                display: flex;
+            }
+
+        .foot {
+            text-align: center;
+            color: #1a1535;
+            font-size: 13px;
+            line-height: 1.7;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+
+        <a class="back-link" id="backLink" href="#">◀ Back</a>
+
+        <div class="card">
+            <div class="avatar-section">
+                <div class="avatar-wrap">
+                    <img id="avatarImg" src="" alt="Profile photo">
+                    <div class="avatar-uploading" id="avatarUploading">⏳</div>
+                    <label for="pic-input" class="edit-badge" title="Change photo">✏️</label>
+                </div>
+                <input type="file" id="pic-input" accept="image/*">
+                <div>
+                    <div class="user-name" id="displayName">—</div>
+                    <div style="display:flex;justify-content:center;margin-top:6px;">
+                        <span class="user-role" id="displayRole">—</span>
+                    </div>
+                </div>
+            </div>
+
+            <hr class="divider">
+            <div class="section-title">Account info</div>
+
+            <div class="field-row">
+                <label>Full name</label>
+                <div class="value" id="fieldName">—</div>
+            </div>
+
+            <div class="field-row">
+                <label>Email address</label>
+                <div class="value" id="fieldEmail">—</div>
+                <span class="locked-note">🔒 Cannot be changed</span>
+            </div>
+
+            <div id="landlordReadOnly" style="display:none;">
+                <div class="field-row">
+                    <label>Property name</label>
+                    <div class="value" id="fieldProperty">—</div>
+                </div>
+                <div class="field-row">
+                    <label>County</label>
+                    <div class="value" id="fieldCounty">—</div>
+                </div>
+                <div class="field-row">
+                    <label>Town / Estate</label>
+                    <div class="value" id="fieldTown">—</div>
+                </div>
+            </div>
+
+            <hr class="divider">
+            <div class="section-title">Edit info</div>
+
+            <div id="phoneSection" style="display:none;">
+                <div class="field-row">
+                    <label>Phone number</label>
+                    <input type="tel" id="phoneInput" placeholder="254712345678">
+                </div>
+            </div>
+
+            <div id="tenantEditNote" style="display:none;">
+                <div class="field-row">
+                    <label>Phone number</label>
+                    <div class="value muted">Not available for tenant accounts</div>
+                </div>
+            </div>
+
+            <button class="save-btn" id="saveBtn">Save Changes</button>
+        </div>
+
+        <div class="foot">
+            <p>QejaConnect_Kenya ltd. &nbsp;|&nbsp; qejaconnect@outlook.com</p>
+            <p><em>Regulated by Communication Authority of Kenya</em></p>
+        </div>
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+        const API = 'https://qeja-backend-azkf.onrender.com';
+
+        
+        let toastTimer;
+        function showToast(message, type = 'info', duration = 3500) {
+        const toast = document.getElementById('toast');
+        const icon  = document.getElementById('toast-icon');
+        const msg   = document.getElementById('toast-msg');
+        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+        toast.className = '';
+        toast.classList.add(type);
+        icon.textContent = icons[type] || 'ℹ️';
+        msg.textContent  = message;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        
+        function setText(id, value) {
+        const el = document.getElementById(id);
+        if (el) el.textContent = (value && value !== 'null') ? value : '—';
+        }
+
+        function show(id) { const el = document.getElementById(id); if (el) el.style.display = 'block'; }
+        function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
+
+        
+        const token   = localStorage.getItem('token');
+        const role    = localStorage.getItem('role');
+        const userRaw = localStorage.getItem('loggedUser');
+
+        if (!token || token === 'null' || !userRaw || userRaw === 'null') {
+        window.location.href = 'login.html';
+        }
+
+        let user = null;
+        try {
+        user = JSON.parse(userRaw);
+        } catch (e) {
+        console.error('loggedUser parse failed:', e);
+        showToast('Session corrupted — please log in again.', 'error', 5000);
+        setTimeout(() => window.location.href = 'login.html', 3000);
+        }
+
+        
+        if (user) {
+        // Log all keys so you can see exactly what came back from the server
+        console.log('loggedUser keys:', Object.keys(user));
+        console.log('loggedUser data:', user);
+        console.log('role:', role);
+
+        document.getElementById('backLink').href =
+        role === 'landlord' ? 'hostdashboard.html' : 'home.html';
+
+        const defaultAvatar = `https://ui-avatars.com/api/?background=4f46e5&color=fff&size=100&name=${encodeURIComponent(user.fullname || 'U')}`;
+        document.getElementById('avatarImg').src = user.profile_pic || defaultAvatar;
+
+        setText('displayName', user.fullname);
+        document.getElementById('displayRole').textContent =
+        role === 'landlord' ? '🏠 Landlord' : '🧑 Tenant';
+
+        setText('fieldName',  user.fullname);
+        setText('fieldEmail', user.email);
+
+        if (role === 'landlord') {
+        show('landlordReadOnly');
+        show('phoneSection');
+        hide('tenantEditNote');
+
+        // Handle both possible key names from the DB row
+        setText('fieldProperty', user.property_name || user.property);
+        setText('fieldCounty',   user.county);
+        setText('fieldTown',     user.town);
+
+        const phoneInput = document.getElementById('phoneInput');
+        if (phoneInput) phoneInput.value = user.phone || '';
+
+        } else {
+        hide('landlordReadOnly');
+        hide('phoneSection');
+        show('tenantEditNote');
+        }
+        }
+
+        
+        const phoneInput = document.getElementById('phoneInput');
+        if (phoneInput) {
+        phoneInput.addEventListener('input', function () {
+        const val = this.value.replace(/\s/g, '');
+        const ok  = /^(254|0)[17]\d{8}$/.test(val);
+        this.classList.toggle('valid',   ok && val.length > 0);
+        this.classList.toggle('invalid', !ok && val.length > 0);
+        });
+        }
+
+        
+        document.getElementById('pic-input').addEventListener('change', async function () {
+        const file = this.files[0];
+        if (!file) return;
+
+        if (file.size > 5 * 1024 * 1024) {
+        showToast('Image must be under 5MB.', 'warning');
+        return;
+        }
+
+        const overlay  = document.getElementById('avatarUploading');
+        overlay.classList.add('active');
+        showToast('Uploading photo...', 'info', 10000);
+
+        const endpoint = role === 'landlord' ? '/upload-profile-pic' : '/upload-tenant-pic';
+        const formData = new FormData();
+        formData.append('image', file);
+
+        try {
+        const res = await fetch(`${API}${endpoint}`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+        });
+
+        if (!res.ok) {
+        let errMsg = `Server error (${res.status})`;
+        try { const d = await res.json(); errMsg = d.message || errMsg; } catch (_) {}
+        showToast(errMsg, 'error', 5000);
+        return;
+        }
+
+        const data = await res.json();
+
+        if (data.success) {
+        document.getElementById('avatarImg').src = data.image;
+        const updated = { ...user, profile_pic: data.image };
+        localStorage.setItem('loggedUser', JSON.stringify(updated));
+        user = updated;
+        showToast('Profile photo updated! ✅', 'success');
+        } else {
+        showToast(data.message || 'Upload failed.', 'error');
+        }
+
+        } catch (err) {
+        console.error('Upload error:', err);
+        showToast(`Upload failed: ${err.message}`, 'error', 5000);
+        } finally {
+        overlay.classList.remove('active');
+        this.value = '';
+        }
+        });
+
+        
+        document.getElementById('saveBtn').addEventListener('click', async function () {
+
+        if (role === 'tenant') {
+        showToast('No editable fields for tenant accounts.', 'info');
+        return;
+        }
+
+        const phone = (phoneInput ? phoneInput.value : '').replace(/\s/g, '');
+
+        if (!phone) {
+        showToast('Please enter a phone number.', 'warning');
+        return;
+        }
+
+        if (!/^(254|0)[17]\d{8}$/.test(phone)) {
+        showToast('Enter a valid Kenyan number (e.g. 254712345678).', 'warning');
+        return;
+        }
+
+        this.textContent = 'Saving...';
+        this.classList.add('btn-loading');
+
+        try {
+        const res = await fetch(`${API}/update-phone`, {
+        method: 'PATCH',
+        headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ phone })
+        });
+
+        if (!res.ok) {
+        let errMsg = `Server error (${res.status})`;
+        try { const d = await res.json(); errMsg = d.message || errMsg; } catch (_) {}
+        showToast(errMsg, 'error', 5000);
+        return;
+        }
+
+        const data = await res.json();
+
+        if (data.success) {
+        const updated = { ...user, phone };
+        localStorage.setItem('loggedUser', JSON.stringify(updated));
+        user = updated;
+        showToast('Phone number updated! ✅', 'success');
+        } else {
+        showToast(data.message || 'Update failed.', 'error');
+        }
+
+        } catch (err) {
+        console.error('Save error:', err);
+        showToast(`Save failed: ${err.message}`, 'error', 5000);
+        } finally {
+        this.textContent = 'Save Changes';
+        this.classList.remove('btn-loading');
+        }
+        });
+    </script>
+</body>
+</html>

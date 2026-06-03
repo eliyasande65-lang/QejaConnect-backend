@@ -1,0 +1,767 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <!--loginguru-->
+    <script>
+        (function() {
+        var token = localStorage.getItem('token');
+        var role  = localStorage.getItem('role');
+        if (token && role) {
+        window.location.replace(role === 'landlord' ? 'hostdashboard.html' : 'home.html');
+        }
+        })();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tenant Login</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
+
+    <style>
+        :root {
+            --bg: #0d0a1a;
+            --surface: #13102a;
+            --card: #1a1535;
+            --border: rgba(139, 92, 246, 0.18);
+            --border-focus: #7c3aed;
+            --border-valid: #10b981;
+            --border-invalid: #ef4444;
+            --accent: #7c3aed;
+            --accent-light: #a78bfa;
+            --accent-glow: rgba(124, 58, 237, 0.25);
+            --text: #f1f0f7;
+            --muted: #8b84a8;
+            --dim: rgba(255,255,255,0.06);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 48px 16px 64px;
+        }
+
+            body::before, body::after {
+                content: '';
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(120px);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            body::before {
+                width: 500px;
+                height: 500px;
+                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
+                top: -100px;
+                left: -150px;
+            }
+
+            body::after {
+                width: 400px;
+                height: 400px;
+                background: radial-gradient(circle, rgba(49,10,120,0.18) 0%, transparent 70%);
+                bottom: 0;
+                right: -120px;
+            }
+
+        .page {
+            width: 100%;
+            max-width: 480px;
+            position: relative;
+            z-index: 1;
+        }
+
+
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .logo-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border-radius: 16px;
+            font-size: 26px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(124,58,237,0.4);
+        }
+
+        .header h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(1.8rem, 5vw, 2.4rem);
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            color: var(--text);
+        }
+
+        .header p {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-top: 8px;
+            font-weight: 300;
+        }
+
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 32px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-light);
+            margin: 28px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .section-label:first-child {
+                margin-top: 0;
+            }
+
+            .section-label::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: var(--border);
+            }
+
+        .field {
+            position: relative;
+            margin-top: 12px;
+        }
+
+            .field label {
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--muted);
+                margin-bottom: 6px;
+                letter-spacing: 0.02em;
+            }
+
+        input {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--dim);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            -webkit-appearance: none;
+        }
+
+            input::placeholder {
+                color: var(--muted);
+            }
+
+            input:focus {
+                border-color: var(--border-focus);
+                background: rgba(124,58,237,0.06);
+                box-shadow: 0 0 0 3px var(--accent-glow);
+            }
+
+
+        .pw-wrap {
+            position: relative;
+        }
+
+            .pw-wrap input {
+                padding-right: 48px;
+            }
+
+
+        .submit-btn {
+            width: 100%;
+            margin-top: 24px;
+            padding: 15px;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.02em;
+            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 8px 32px rgba(124,58,237,0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+            .submit-btn::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+
+            .submit-btn:hover::after {
+                opacity: 1;
+            }
+
+            .submit-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 12px 40px rgba(124,58,237,0.45);
+            }
+
+            .submit-btn:active {
+                transform: translateY(0);
+            }
+
+            .submit-btn.btn-loading {
+                opacity: 0.65;
+                pointer-events: none;
+            }
+
+
+        .divider {
+            text-align: center;
+            color: var(--muted);
+            font-size: 0.8rem;
+            margin: 20px 0 0;
+            position: relative;
+        }
+
+            .divider::before, .divider::after {
+                content: '';
+                position: absolute;
+                top: 50%;
+                width: calc(50% - 20px);
+                height: 1px;
+                background: var(--border);
+            }
+
+            .divider::before {
+                left: 0;
+            }
+
+            .divider::after {
+                right: 0;
+            }
+
+
+        #fingerprint-btn {
+            display: none;
+            width: 100%;
+            margin-top: 14px;
+            padding: 13px 16px;
+            background: rgba(124,58,237,0.08);
+            border: 1.5px solid rgba(139,92,246,0.35);
+            border-radius: 12px;
+            color: var(--accent-light);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+            #fingerprint-btn:hover {
+                background: rgba(124,58,237,0.15);
+                border-color: var(--accent-light);
+                color: white;
+                transform: translateY(-1px);
+            }
+
+        #fprint {
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+        }
+
+
+        .signup-link {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 0.88rem;
+            color: var(--muted);
+        }
+
+            .signup-link a {
+                color: var(--accent-light);
+                text-decoration: none;
+                font-weight: 500;
+            }
+
+                .signup-link a:hover {
+                    color: #c4b5fd;
+                }
+
+
+        #fp-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            z-index: 100;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+            #fp-modal-overlay.active {
+                display: flex;
+            }
+
+        #fp-modal {
+            background: var(--card);
+            border: 1px solid rgba(139,92,246,0.35);
+            border-radius: 20px;
+            padding: 32px 28px;
+            max-width: 360px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        }
+
+            #fp-modal .modal-icon {
+                font-size: 40px;
+                margin-bottom: 12px;
+            }
+
+            #fp-modal p {
+                color: var(--text);
+                font-size: 1rem;
+                font-weight: 500;
+                margin-bottom: 8px;
+                line-height: 1.5;
+            }
+
+            #fp-modal small {
+                color: var(--muted);
+                font-size: 0.82rem;
+                line-height: 1.6;
+                display: block;
+            }
+
+        .fp-modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 24px;
+        }
+
+            .fp-modal-buttons button {
+                flex: 1;
+                padding: 12px;
+                border: none;
+                border-radius: 10px;
+                font-family: 'DM Sans', sans-serif;
+                font-size: 0.9rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: opacity 0.2s, transform 0.15s;
+            }
+
+                .fp-modal-buttons button:hover {
+                    opacity: 0.88;
+                    transform: translateY(-1px);
+                }
+
+        #fp-yes-btn {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+        }
+
+        #fp-no-btn {
+            background: rgba(255,255,255,0.07);
+            color: var(--muted);
+            border: 1px solid var(--border);
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1535;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 13px 20px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            z-index: 999;
+            max-width: 360px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+
+            #toast.success {
+                border-left: 4px solid var(--success);
+            }
+
+            #toast.error {
+                border-left: 4px solid var(--error);
+            }
+
+            #toast.info {
+                border-left: 4px solid var(--accent-light);
+            }
+
+            #toast.warning {
+                border-left: 4px solid var(--warning);
+            }
+
+        #toast-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        #toast-msg {
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        .foot {
+            text-align: center;
+            margin-top: 32px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            line-height: 2;
+        }
+
+            .foot strong {
+                color: var(--accent-light);
+                font-weight: 600;
+            }
+
+        @media (max-width: 480px) {
+            .card {
+                padding: 24px 18px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="page">
+
+        <div class="header">
+            <div class="logo-mark">🔑</div>
+            <h1>Welcome back</h1>
+            <p>Sign in to your QejaConnect account</p>
+        </div>
+
+        <div class="card">
+
+            <form id="loginForm" onsubmit="return false">
+
+                <div class="section-label">✉️ Your Credentials</div>
+
+                <div class="field">
+                    <label>Email Address</label>
+                    <input type="email" name="email" placeholder="you@gmail.com" required>
+                </div>
+
+                <div class="field">
+                    <label>Password</label>
+                    <input type="password" name="password" placeholder="Your password" required>
+                </div>
+
+                <button type="submit" class="submit-btn" id="login-btn">Login</button>
+
+            </form>
+
+            <div class="divider">or</div>
+
+            <button id="fingerprint-btn">
+                <img id="fprint" src="https://media.tenor.com/qsjdkBafpPwAAAAC/fingerprint-scan.gif" alt="fingerprint">
+                Sign in with Fingerprint
+            </button>
+
+            <p class="signup-link">No account? <a href="welcome.html">Sign up</a></p>
+
+        </div>
+
+        <div class="foot">
+            <strong>QejaConnect Kenya Ltd.</strong><br>
+            qejaconnect@outlook.com &nbsp;·&nbsp; +254 714 104 737 &nbsp;·&nbsp; +254 712 034 43<br>
+            <em>Regulated by the Communication Authority of Kenya</em>
+        </div>
+
+    </div>
+
+    <!-- Fingerprint modal -->
+    <div id="fp-modal-overlay">
+        <div id="fp-modal">
+            <div class="modal-icon">🔐</div>
+            <p>Enable fingerprint login?</p>
+            <small>Next time you can sign in with just your fingerprint — no password needed.</small>
+            <div class="fp-modal-buttons">
+                <button id="fp-yes-btn">Yes, enable</button>
+                <button id="fp-no-btn">Not now</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+        const API = 'https://qeja-backend-azkf.onrender.com';
+
+        // ── Toast ──────────────────────────────────────────────────
+        let toastTimer;
+        function showToast(message, type = 'info', duration = 3500) {
+        const toast = document.getElementById('toast');
+        const icon  = document.getElementById('toast-icon');
+        const msg   = document.getElementById('toast-msg');
+        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        toast.className = '';
+        toast.classList.add(type);
+        icon.textContent = icons[type] || 'ℹ️';
+        msg.textContent  = message;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ── Show fingerprint button if registered (not declined) ───
+        window.addEventListener('DOMContentLoaded', () => {
+        const userId = localStorage.getItem('webauthn_user_id');
+        if (userId && userId !== 'declined') {
+        document.getElementById('fingerprint-btn').style.display = 'flex';
+        }
+        });
+
+        // ── Helper: redirect based on role ─────────────────────────
+        function redirectUser(role) {
+        window.location.href = role === 'landlord'
+        ? 'hostdashboard.html'
+        : 'home.html';
+        }
+
+        // ── Normal login ────────────────────────────────────────────
+        document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
+
+        const btn = document.getElementById('login-btn');
+        btn.textContent = 'Logging in…';
+        btn.classList.add('btn-loading');
+
+        const formData = {
+        email: this.email.value,
+        password: this.password.value
+        };
+
+        try {
+        const response = await fetch(`${API}/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+        localStorage.setItem('loggedUser', JSON.stringify(data.user));
+
+        showToast('Login successful! Welcome back 👋', 'success');
+
+        const alreadyRegistered = localStorage.getItem('webauthn_user_id');
+
+        if (!alreadyRegistered && window.PublicKeyCredential) {
+        setTimeout(() => {
+        window._pendingUser = data;
+        document.getElementById('fp-modal-overlay').classList.add('active');
+        }, 1200);
+        } else {
+        setTimeout(() => redirectUser(data.role), 1500);
+        }
+        } else {
+        showToast(data.message || 'Invalid email or password', 'error');
+        btn.textContent = 'Login';
+        btn.classList.remove('btn-loading');
+        }
+        } catch (error) {
+        console.error(error);
+        showToast('Server error. Please try again later.', 'error');
+        btn.textContent = 'Login';
+        btn.classList.remove('btn-loading');
+        }
+        });
+
+        // ── Modal: Yes ──────────────────────────────────────────────
+        document.getElementById('fp-yes-btn').addEventListener('click', async () => {
+        const user = window._pendingUser;
+        document.getElementById('fp-modal-overlay').classList.remove('active');
+        showToast('Setting up fingerprint...', 'info', 10000);
+
+        const success = await registerFingerprint(
+        user.user.id,
+        user.user.fullname,
+        user.user.email
+        );
+
+        if (success) {
+        showToast('Fingerprint enabled! ✅', 'success');
+        setTimeout(() => redirectUser(user.role), 1500);
+        } else {
+        showToast('Fingerprint setup failed. Redirecting...', 'error');
+        setTimeout(() => redirectUser(user.role), 2500);
+        }
+        });
+
+        // ── Modal: No ───────────────────────────────────────────────
+        document.getElementById('fp-no-btn').addEventListener('click', () => {
+        localStorage.setItem('webauthn_user_id', 'declined');
+        document.getElementById('fp-modal-overlay').classList.remove('active');
+        redirectUser(window._pendingUser.role);
+        });
+
+        // ── Register fingerprint (returns true/false) ───────────────
+        async function registerFingerprint(userId, userName, userEmail) {
+        try {
+        const optRes = await fetch(`${API}/auth/webauthn/register/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, userName, userEmail })
+        });
+
+        if (!optRes.ok) {
+        const err = await optRes.json();
+        showToast('Server: ' + (err.message || JSON.stringify(err)), 'error', 10000);
+        console.error('Register start failed:', err);
+        return false;
+        }
+
+        const options = await optRes.json();
+        console.log('WebAuthn options received:', options);
+
+        const credential = await SimpleWebAuthnBrowser.startRegistration(options);
+        console.log('Credential created:', credential);
+
+        const verifyRes = await fetch(`${API}/auth/webauthn/register/finish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, credential })
+        });
+
+        const result = await verifyRes.json();
+        console.log('Verify result:', result);
+
+        if (result.success) {
+        localStorage.setItem('webauthn_user_id', String(userId));
+        return true;
+        }
+
+        showToast('Server rejected credential: ' + (result.message || 'unknown error'), 'error', 10000);
+        return false;
+
+        } catch (err) {
+        showToast(err.name + ': ' + err.message, 'error', 10000);
+        console.error('Fingerprint registration error:', err.name, err.message);
+        return false;
+        }
+        }
+
+        // ── Fingerprint login ───────────────────────────────────────
+        document.getElementById('fingerprint-btn').addEventListener('click', async () => {
+        const userId = localStorage.getItem('webauthn_user_id');
+        if (!userId || userId === 'declined') return;
+
+        showToast('Scanning fingerprint...', 'info', 8000);
+
+        try {
+        const optRes = await fetch(`${API}/auth/webauthn/login/start`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId })
+        });
+        const options = await optRes.json();
+
+        const credential = await SimpleWebAuthnBrowser.startAuthentication(options);
+
+        const verifyRes = await fetch(`${API}/auth/webauthn/login/finish`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId, credential })
+        });
+
+        const data = await verifyRes.json();
+
+        if (data.success) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('role', data.role);
+        localStorage.setItem('loggedUser', JSON.stringify(data.user));
+        showToast('Fingerprint verified! 👆', 'success');
+        setTimeout(() => redirectUser(data.role), 1200);
+        } else {
+        showToast(data.message || 'Fingerprint login failed', 'error');
+        }
+        } catch (err) {
+        console.error('Fingerprint login error:', err);
+        showToast('Fingerprint failed. Try your password.', 'error');
+        }
+        });
+    </script>
+</body>
+</html>

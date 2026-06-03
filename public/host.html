@@ -1,0 +1,926 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Host Sign Up — QejaConnect</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0d0a1a;
+            --surface: #13102a;
+            --card: #1a1535;
+            --border: rgba(139, 92, 246, 0.18);
+            --border-focus: #7c3aed;
+            --border-valid: #10b981;
+            --border-invalid: #ef4444;
+            --accent: #7c3aed;
+            --accent-light: #a78bfa;
+            --accent-glow: rgba(124, 58, 237, 0.25);
+            --text: #f1f0f7;
+            --muted: #8b84a8;
+            --dim: rgba(255,255,255,0.06);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 48px 16px 64px;
+        }
+
+            /* Ambient background blobs */
+            body::before, body::after {
+                content: '';
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(120px);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            body::before {
+                width: 500px;
+                height: 500px;
+                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
+                top: -100px;
+                left: -150px;
+            }
+
+            body::after {
+                width: 400px;
+                height: 400px;
+                background: radial-gradient(circle, rgba(49,10,120,0.18) 0%, transparent 70%);
+                bottom: 0;
+                right: -120px;
+            }
+
+        .page {
+            width: 100%;
+            max-width: 680px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 36px;
+        }
+
+        .logo-mark {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border-radius: 16px;
+            font-size: 26px;
+            margin-bottom: 16px;
+            box-shadow: 0 8px 32px rgba(124,58,237,0.4);
+        }
+
+        .header h1 {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(1.8rem, 5vw, 2.4rem);
+            font-weight: 400;
+            letter-spacing: -0.5px;
+            color: var(--text);
+        }
+
+        .header p {
+            color: var(--muted);
+            font-size: 0.95rem;
+            margin-top: 8px;
+            font-weight: 300;
+        }
+
+        /* Card */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 36px 32px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+        }
+
+        /* Section headings inside form */
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-light);
+            margin: 28px 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .section-label::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: var(--border);
+            }
+
+        /* Input rows */
+        .row {
+            display: grid;
+            gap: 12px;
+        }
+
+        .row-2 {
+            grid-template-columns: 1fr 1fr;
+        }
+
+        .row-3 {
+            grid-template-columns: 1fr 1fr 1fr;
+        }
+
+        @media (max-width: 520px) {
+            .row-2, .row-3 {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 24px 18px;
+            }
+        }
+
+        /* Fields */
+        .field {
+            position: relative;
+            margin-top: 12px;
+        }
+
+            .field label {
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--muted);
+                margin-bottom: 6px;
+                letter-spacing: 0.02em;
+            }
+
+        input, textarea, select {
+            width: 100%;
+            padding: 12px 16px;
+            background: var(--dim);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 400;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            -webkit-appearance: none;
+        }
+
+            input::placeholder, textarea::placeholder {
+                color: var(--muted);
+            }
+
+            input:focus, textarea:focus, select:focus {
+                border-color: var(--border-focus);
+                background: rgba(124,58,237,0.06);
+                box-shadow: 0 0 0 3px var(--accent-glow);
+            }
+
+            input.valid {
+                border-color: var(--border-valid);
+            }
+
+            input.invalid {
+                border-color: var(--border-invalid);
+            }
+
+        select {
+            cursor: pointer;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238b84a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 14px center;
+            padding-right: 38px;
+        }
+
+            select option {
+                background: #1a1535;
+            }
+
+        textarea {
+            resize: none;
+            height: 90px;
+            line-height: 1.5;
+        }
+
+        /* Password wrapper */
+        .pw-wrap {
+            position: relative;
+        }
+
+            .pw-wrap input {
+                padding-right: 48px;
+            }
+
+        .toggle-pw {
+            position: absolute;
+            right: 13px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: var(--muted);
+            line-height: 1;
+            padding: 4px;
+            transition: color 0.2s;
+        }
+
+            .toggle-pw:hover {
+                color: var(--accent-light);
+            }
+
+        /* Strength bar */
+        .strength-wrap {
+            margin-top: 8px;
+            display: none;
+        }
+
+            .strength-wrap.visible {
+                display: block;
+            }
+
+        .strength-track {
+            height: 4px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            width: 0%;
+            border-radius: 4px;
+            transition: width 0.35s ease, background 0.35s ease;
+        }
+
+        .strength-text {
+            font-size: 0.72rem;
+            color: var(--muted);
+            margin-top: 5px;
+        }
+
+        /* Requirements list */
+        .req-list {
+            list-style: none;
+            margin-top: 10px;
+            display: none;
+            gap: 5px;
+            flex-wrap: wrap;
+        }
+
+            .req-list.visible {
+                display: flex;
+            }
+
+            .req-list li {
+                font-size: 0.72rem;
+                color: var(--muted);
+                display: flex;
+                align-items: center;
+                gap: 5px;
+                padding: 3px 8px;
+                border-radius: 20px;
+                border: 1px solid rgba(255,255,255,0.07);
+                transition: color 0.2s, border-color 0.2s;
+                white-space: nowrap;
+            }
+
+                .req-list li.met {
+                    color: var(--success);
+                    border-color: rgba(16,185,129,0.3);
+                }
+
+                .req-list li::before {
+                    content: '○';
+                    font-size: 9px;
+                }
+
+                .req-list li.met::before {
+                    content: '✓';
+                }
+
+        /* Upload areas */
+        .upload-btn {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 13px 16px;
+            background: var(--dim);
+            border: 1.5px dashed rgba(139,92,246,0.35);
+            border-radius: 10px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            color: var(--muted);
+            transition: border-color 0.2s, background 0.2s, color 0.2s;
+            width: 100%;
+            text-align: left;
+        }
+
+            .upload-btn:hover {
+                border-color: var(--accent-light);
+                background: rgba(124,58,237,0.08);
+                color: var(--text);
+            }
+
+            .upload-btn.has-file {
+                border-style: solid;
+                border-color: var(--border-valid);
+                color: var(--success);
+            }
+
+            .upload-btn .upload-icon {
+                font-size: 20px;
+                flex-shrink: 0;
+            }
+
+            .upload-btn .upload-name {
+                flex: 1;
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+                font-size: 0.85rem;
+            }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* ID section */
+        .id-box {
+            background: rgba(124,58,237,0.05);
+            border: 1px solid rgba(139,92,246,0.2);
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 12px;
+        }
+
+        .id-box-note {
+            font-size: 0.78rem;
+            color: var(--muted);
+            line-height: 1.6;
+            margin-bottom: 10px;
+        }
+
+        /* Submit button */
+        .submit-btn {
+            width: 100%;
+            margin-top: 28px;
+            padding: 15px;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            letter-spacing: 0.02em;
+            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 8px 32px rgba(124,58,237,0.35);
+            position: relative;
+            overflow: hidden;
+        }
+
+            .submit-btn::after {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
+                opacity: 0;
+                transition: opacity 0.2s;
+            }
+
+            .submit-btn:hover::after {
+                opacity: 1;
+            }
+
+            .submit-btn:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 12px 40px rgba(124,58,237,0.45);
+            }
+
+            .submit-btn:active {
+                transform: translateY(0);
+            }
+
+            .submit-btn.loading {
+                opacity: 0.65;
+                pointer-events: none;
+            }
+
+        /* Spinner inside button */
+        .spinner {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255,255,255,0.35);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1535;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 13px 20px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            z-index: 999;
+            max-width: 360px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+
+            #toast.success {
+                border-left: 4px solid var(--success);
+            }
+
+            #toast.error {
+                border-left: 4px solid var(--error);
+            }
+
+            #toast.warning {
+                border-left: 4px solid var(--warning);
+            }
+
+            #toast.info {
+                border-left: 4px solid var(--accent-light);
+            }
+
+        #toast-icon {
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        #toast-msg {
+            line-height: 1.4;
+        }
+
+        /* Footer */
+        .foot {
+            text-align: center;
+            margin-top: 32px;
+            color: var(--muted);
+            font-size: 0.8rem;
+            line-height: 2;
+        }
+
+            .foot strong {
+                color: var(--accent-light);
+                font-weight: 600;
+            }
+    </style>
+</head>
+<body>
+
+    <div class="page">
+
+        <div class="header">
+            <div class="logo-mark">🏠</div>
+            <h1>Host / Landlord Sign Up</h1>
+            <p>List your property and connect with tenants across Kenya</p>
+        </div>
+
+        <div class="card">
+           
+            <form id="signupForm">
+
+                <!-- Personal Info -->
+                <div class="section-label">👤 Personal Information</div>
+
+                <div class="field">
+                    <label>Full Name</label>
+                    <input type="text" id="fullname" placeholder="e.g. Jane Wanjiku" autocomplete="name">
+                </div>
+
+                <div class="row row-2">
+                    <div class="field">
+                        <label>Email Address</label>
+                        <input type="email" id="email" placeholder="you@gmail.com" autocomplete="email">
+                    </div>
+                    <div class="field">
+                        <label>Phone Number</label>
+                        <input type="tel" id="phone" placeholder="254712345678" autocomplete="tel">
+                    </div>
+                </div>
+
+                <div class="row row-2">
+                    <div class="field">
+                        <label>National ID Number</label>
+                        <input type="text" id="natid" placeholder="e.g. 12345678">
+                    </div>
+                    <div class="field">
+                        <label>KRA PIN</label>
+                        <input type="text" id="kra" placeholder="e.g. A012345678B">
+                    </div>
+                </div>
+
+                <!-- Property Info -->
+                <div class="section-label">🏢 Property Details</div>
+
+                <div class="row row-2">
+                    <div class="field">
+                        <label>County</label>
+                        <input type="text" id="county" placeholder="e.g. Nairobi">
+                    </div>
+                    <div class="field">
+                        <label>Town / Estate</label>
+                        <input type="text" id="town" placeholder="e.g. Westlands">
+                    </div>
+                </div>
+
+                <div class="row row-2">
+                    <div class="field">
+                        <label>Property Name</label>
+                        <input type="text" id="property" placeholder="e.g. Sunrise Apartments">
+                    </div>
+                    <div class="field">
+                        <label>Number of Units</label>
+                        <input type="number" id="units" placeholder="e.g. 12" min="1">
+                    </div>
+                </div>
+
+                <div class="field">
+                    <label>Property Type</label>
+                    <select id="proptype">
+                        <option value="">Select a type…</option>
+                        <option>Apartment</option>
+                        <option>Bedsitter</option>
+                        <option>Hostel</option>
+                        <option>Single Room</option>
+                        <option>Office Space</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+
+                <div class="field">
+                    <label>Description (optional)</label>
+                    <textarea id="description" placeholder="Describe your property — location highlights, amenities, access…"></textarea>
+                </div>
+
+                <!-- Uploads -->
+                <div class="section-label">📸 Profile Picture</div>
+
+                <label class="upload-btn" id="uploadLabel" for="profile_pic">
+                    <span class="upload-icon">📷</span>
+                    <span class="upload-name" id="fileNameDisplay">Click to choose a photo…</span>
+                </label>
+                <input type="file" id="profile_pic" accept="image/*">
+
+                <div class="section-label">🪪 Identity Verification</div>
+
+                <div class="id-box">
+                    <p class="id-box-note">Upload a clear photo of your National ID (front side). Used only by our team to verify your identity — never shared publicly.</p>
+                    <label class="upload-btn" id="idUploadLabel" for="id_photo">
+                        <span class="upload-icon">🪪</span>
+                        <span class="upload-name" id="idFileNameDisplay">Click to choose ID photo…</span>
+                    </label>
+                    <input type="file" id="id_photo" accept="image/*">
+                </div>
+
+                <!-- Password -->
+                <div class="section-label">🔒 Set Password</div>
+
+                <div class="field">
+                    <label>Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" id="password" placeholder="Create a strong password" autocomplete="new-password">
+                        <button type="button" class="toggle-pw" id="togglePw" aria-label="Toggle password visibility">👁️</button>
+                    </div>
+                    <div class="strength-wrap" id="strengthWrap">
+                        <div class="strength-track">
+                            <div class="strength-fill" id="strengthFill"></div>
+                        </div>
+                        <div class="strength-text" id="strengthLabel"></div>
+                    </div>
+                    <ul class="req-list" id="reqList">
+                        <li id="req-len">8+ characters</li>
+                        <li id="req-upper">Uppercase</li>
+                        <li id="req-lower">Lowercase</li>
+                        <li id="req-num">Number</li>
+                        <li id="req-sym">Symbol</li>
+                    </ul>
+                </div>
+
+                <div class="field">
+                    <label>Confirm Password</label>
+                    <div class="pw-wrap">
+                        <input type="password" id="confirm" placeholder="Repeat your password" autocomplete="new-password">
+                        <button type="button" class="toggle-pw" id="toggleConfirm" aria-label="Toggle confirm password visibility">👁️</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="createaccount">Create Host Account</button>
+
+            </form>
+        </div>
+
+        <div class="foot">
+            <strong>QejaConnect Kenya Ltd.</strong><br>
+            qejaconnect@outlook.com &nbsp;·&nbsp; +254 714 104 737 &nbsp;·&nbsp; +254 712 034 43<br>
+            <em>Regulated by the Communication Authority of Kenya</em>
+        </div>
+
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+        const API = 'https://qeja-backend-azkf.onrender.com';
+
+        // ── Toast ───────────────────────────────────────────────────────────────
+        let toastTimer;
+        function showToast(message, type = 'info', duration = 3500) {
+        const toast = document.getElementById('toast');
+        const icon  = document.getElementById('toast-icon');
+        const msg   = document.getElementById('toast-msg');
+        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+        toast.className = '';
+        toast.classList.add(type);
+        icon.textContent = icons[type] || 'ℹ️';
+        msg.textContent  = message;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ── File upload labels ──────────────────────────────────────────────────
+        document.getElementById('profile_pic').addEventListener('change', function () {
+        const display = document.getElementById('fileNameDisplay');
+        const label   = document.getElementById('uploadLabel');
+        if (this.files && this.files[0]) {
+        display.textContent = this.files[0].name;
+        label.classList.add('has-file');
+        } else {
+        display.textContent = 'Click to choose a photo…';
+        label.classList.remove('has-file');
+        }
+        });
+
+        document.getElementById('id_photo').addEventListener('change', function () {
+        const display = document.getElementById('idFileNameDisplay');
+        const label   = document.getElementById('idUploadLabel');
+        if (this.files && this.files[0]) {
+        display.textContent = this.files[0].name;
+        label.classList.add('has-file');
+        } else {
+        display.textContent = 'Click to choose ID photo…';
+        label.classList.remove('has-file');
+        }
+        });
+
+        // ── Password toggles ────────────────────────────────────────────────────
+        document.getElementById('togglePw').addEventListener('click', function () {
+        const pw = document.getElementById('password');
+        const isText = pw.type === 'text';
+        pw.type = isText ? 'password' : 'text';
+        this.textContent = isText ? '👁️' : '🙈';
+        });
+
+        document.getElementById('toggleConfirm').addEventListener('click', function () {
+        const cf = document.getElementById('confirm');
+        const isText = cf.type === 'text';
+        cf.type = isText ? 'password' : 'text';
+        this.textContent = isText ? '👁️' : '🙈';
+        });
+
+        // ── Password strength ───────────────────────────────────────────────────
+        const rules = {
+        len:   v => v.length >= 8,
+        upper: v => /[A-Z]/.test(v),
+        lower: v => /[a-z]/.test(v),
+        num:   v => /[0-9]/.test(v),
+        sym:   v => /[^A-Za-z0-9]/.test(v),
+        };
+
+        const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very strong'];
+        const strengthColors = ['', '#ef4444', '#f59e0b', '#a78bfa', '#10b981', '#059669'];
+
+        function checkStrength(val) {
+        return Object.values(rules).filter(fn => fn(val)).length;
+        }
+
+        document.getElementById('password').addEventListener('input', function () {
+        const val   = this.value;
+        const wrap  = document.getElementById('strengthWrap');
+        const fill  = document.getElementById('strengthFill');
+        const label = document.getElementById('strengthLabel');
+        const list  = document.getElementById('reqList');
+
+        if (val.length === 0) {
+        wrap.classList.remove('visible');
+        list.classList.remove('visible');
+        this.classList.remove('valid', 'invalid');
+        return;
+        }
+
+        wrap.classList.add('visible');
+        list.classList.add('visible');
+
+        const score = checkStrength(val);
+        fill.style.width      = (score / 5 * 100) + '%';
+        fill.style.background = strengthColors[score];
+        label.textContent     = strengthLabels[score];
+        label.style.color     = strengthColors[score];
+
+        Object.entries(rules).forEach(([key, fn]) => {
+        const li = document.getElementById('req-' + key);
+        if (!li) return;
+        li.classList.toggle('met',   fn(val));
+        li.classList.toggle('unmet', !fn(val));
+        });
+
+        this.classList.toggle('valid',   score === 5);
+        this.classList.toggle('invalid', score < 5 && val.length > 0);
+        });
+
+        // ── Confirm password match ──────────────────────────────────────────────
+        document.getElementById('confirm').addEventListener('input', function () {
+        const pw = document.getElementById('password').value;
+        if (this.value.length === 0) {
+        this.classList.remove('valid', 'invalid');
+        return;
+        }
+        this.classList.toggle('valid',   this.value === pw);
+        this.classList.toggle('invalid', this.value !== pw);
+        });
+
+        // ── Submit ──────────────────────────────────────────────────────────────
+        document.getElementById('signupForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const fullname    = document.getElementById('fullname').value.trim();
+        const email       = document.getElementById('email').value.trim();
+        const phone       = document.getElementById('phone').value.trim().replace(/\s/g, '');
+        const natid       = document.getElementById('natid').value.trim();
+        const kra         = document.getElementById('kra').value.trim();
+        const county      = document.getElementById('county').value.trim();
+        const town        = document.getElementById('town').value.trim();
+        const property    = document.getElementById('property').value.trim();
+        const proptype    = document.getElementById('proptype').value;
+        const units       = document.getElementById('units').value.trim();
+        const description = document.getElementById('description').value.trim();
+        const password    = document.getElementById('password').value;
+        const confirm     = document.getElementById('confirm').value;
+        const file        = document.getElementById('profile_pic').files[0];
+        const idFile      = document.getElementById('id_photo').files[0];
+
+        // Validation
+        if (!fullname)  { showToast('Please enter your full name.', 'warning'); return; }
+
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        showToast('Please enter a valid email address.', 'warning'); return;
+        }
+
+        if (!phone || !/^(254|0)[17]\d{8}$/.test(phone)) {
+        showToast('Enter a valid Kenyan phone number (e.g. 254712345678).', 'warning'); return;
+        }
+
+        if (!natid)    { showToast('Please enter your National ID number.', 'warning'); return; }
+        if (!kra)      { showToast('Please enter your KRA PIN.', 'warning'); return; }
+        if (!county)   { showToast('Please enter your county.', 'warning'); return; }
+        if (!town)     { showToast('Please enter your town or estate.', 'warning'); return; }
+        if (!property) { showToast('Please enter your property name.', 'warning'); return; }
+
+        if (!proptype) {
+        document.getElementById('proptype').classList.add('invalid');
+        showToast('Please select a property type.', 'warning'); return;
+        }
+
+        if (!units || isNaN(units) || parseInt(units) < 1) {
+        showToast('Please enter a valid number of units.', 'warning'); return;
+        }
+
+        if (!file)   { showToast('Please upload a profile picture.', 'warning'); return; }
+        if (!idFile) { showToast('Please upload a photo of your National ID.', 'warning'); return; }
+
+        const score = checkStrength(password);
+        if (score < 4) {
+        showToast('Password is too weak — please meet all requirements.', 'warning', 4000);
+        document.getElementById('reqList').classList.add('visible');
+        document.getElementById('strengthWrap').classList.add('visible');
+        return;
+        }
+
+        if (password !== confirm) {
+        showToast('Passwords do not match.', 'error');
+        document.getElementById('confirm').classList.add('invalid');
+        return;
+        }
+
+        // Build FormData
+        const formData = new FormData();
+        formData.append('fullname',    fullname);
+        formData.append('email',       email);
+        formData.append('phone',       phone);
+        formData.append('id',          natid);
+        formData.append('kra',         kra);
+        formData.append('county',      county);
+        formData.append('town',        town);
+        formData.append('property',    property);
+        formData.append('type',        proptype);
+        formData.append('units',       units);
+        formData.append('description', description);
+        formData.append('password',    password);
+        formData.append('profile_pic', file);
+        formData.append('id_photo',    idFile);
+
+        const btn = document.getElementById('createaccount');
+        btn.innerHTML = '<span class="spinner"></span> Creating account…';
+        btn.classList.add('loading');
+
+        try {
+        const res  = await fetch(`${API}/register-landlord`, { method: 'POST', body: formData });
+        const data = await res.json();
+
+        if (data.success) {
+        showToast('Application submitted! We\'ll notify you once approved.', 'success', 4000);
+        setTimeout(() => { window.location.href = 'login.html'; }, 3000);
+        } else {
+        showToast(data.message || 'Sign up failed. Please try again.', 'error');
+        btn.innerHTML = 'Create Host Account';
+        btn.classList.remove('loading');
+        }
+        } catch (err) {
+        console.error(err);
+        showToast('Network error. Please check your connection and try again.', 'error');
+        btn.innerHTML = 'Create Host Account';
+        btn.classList.remove('loading');
+        }
+        });
+    </script>
+</body>
+</html>

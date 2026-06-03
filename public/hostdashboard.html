@@ -1,0 +1,720 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- ============================================================
+     QejaConnect PWA — paste this block inside <head> on EVERY page
+     ============================================================ -->
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#4f46e5">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+    <!-- ============================================================
+         END QejaConnect PWA block
+         ============================================================ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landlord Dashboard | Qeja Connect</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial;
+            margin: 0;
+            background: #f4f4f4;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            background-color: #1a1535;
+            padding: 10px 15px;
+            gap: 15px;
+            position: relative;
+        }
+
+        #logo {
+            width: 60px;
+            height: 60px;
+            margin-left: 60px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .brand {
+            color: white;
+        }
+
+        .menu-btn {
+            position: fixed;
+            top: 15px;
+            left: 10px;
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 12px;
+            background: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10001;
+        }
+
+        /* ── SIDE MENU ── */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -260px;
+            width: 260px;
+            height: 100%;
+            background: #1b1b1b;
+            z-index: 9999;
+            transition: 0.3s;
+            padding-top: 80px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4);
+            overflow-y: auto;
+        }
+
+            .side-menu.active {
+                left: 0;
+            }
+
+            .side-menu a {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: white;
+                text-decoration: none;
+                padding: 16px 22px;
+                border-bottom: 1px solid #2a2a2a;
+                font-size: 15px;
+                font-weight: 500;
+                transition: background 0.2s, border-left 0.2s, padding-left 0.2s;
+            }
+
+                .side-menu a:hover {
+                    background: rgba(99, 102, 241, 0.3);
+                }
+
+                .side-menu a.active-link {
+                    background: rgba(99, 102, 241, 0.22);
+                    color: #a5b4fc;
+                    border-left: 3px solid #a5b4fc;
+                    padding-left: 19px;
+                }
+
+            .side-menu .menu-badge {
+                background: indigo;
+                color: white;
+                border-radius: 6px;
+                font-size: 11px;
+                font-weight: 700;
+                padding: 2px 8px;
+                min-width: 22px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+
+        /* ── OVERLAY ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 9998;
+        }
+
+            .overlay.active {
+                display: block;
+            }
+
+        /* ── DASHBOARD CARDS ── */
+        .dashboard {
+            max-width: 1000px;
+            margin: auto;
+            padding: 20px;
+        }
+
+        .card {
+            background: white;
+            padding: 20px;
+            margin-bottom: 15px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+            .card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+            }
+
+            .card h3 {
+                color: indigo;
+                margin: 0 0 6px;
+            }
+
+            .card p {
+                margin: 4px 0;
+                color: #555;
+                font-size: 14px;
+            }
+
+        .last-msg {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #888;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .open-btn {
+            margin-top: 12px;
+            padding: 10px 16px;
+            border: none;
+            background: #1a1535;
+            color: white;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+            .open-btn:hover {
+                opacity: 0.85;
+            }
+
+        .empty {
+            text-align: center;
+            margin-top: 40px;
+            color: gray;
+            font-size: 14px;
+        }
+
+        /* ── ADD PROPERTY BUTTON ── */
+        button.add {
+            display: block;
+            margin: 20px auto;
+            padding: 15px 25px;
+            border: none;
+            border-radius: 10px;
+            background: #1a1535;
+            color: white;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: bold;
+            transition: opacity 0.2s, transform 0.1s;
+        }
+
+            button.add:hover {
+                opacity: 0.88;
+                transform: translateY(-1px);
+            }
+
+        /* ── SECTION TITLE ── */
+        .section-title {
+            font-size: 20px;
+            font-weight: bold;
+            color: indigo;
+            margin: 30px 20px 10px;
+        }
+
+        /* ── PROPERTY CARDS ── */
+        .properties-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 14px;
+        }
+
+        .prop-card {
+            background: white;
+            border-radius: 14px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border-left: 4px solid indigo;
+            position: relative;
+            transition: transform 0.15s, box-shadow 0.15s;
+        }
+
+            .prop-card:hover {
+                transform: translateY(-2px);
+                box-shadow: 0 6px 18px rgba(0,0,0,0.1);
+            }
+
+            .prop-card.inactive {
+                border-left-color: #dc2626;
+                opacity: 0.85;
+            }
+
+        .pub-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: #dcfce7;
+            color: #16a34a;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            text-transform: uppercase;
+        }
+
+        .inactive-badge {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            background: #fee2e2;
+            color: #dc2626;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            text-transform: uppercase;
+        }
+
+        .prop-card h3 {
+            color: indigo;
+            margin: 0 0 10px;
+            font-size: 15px;
+            padding-right: 90px;
+        }
+
+        .prop-meta {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .prop-row {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            font-size: 13px;
+            color: #555;
+        }
+
+        .prop-price {
+            font-size: 15px;
+            font-weight: 700;
+            color: #1e293b;
+        }
+
+        .prop-type {
+            display: inline-block;
+            background: #ede9fe;
+            color: indigo;
+            font-size: 11px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 999px;
+            margin-top: 8px;
+        }
+
+        .prop-expires {
+            margin-top: 10px;
+            font-size: 11px;
+            color: #94a3b8;
+            border-top: 1px solid #f1f5f9;
+            padding-top: 8px;
+        }
+
+        .relist-btn {
+            display: inline-block;
+            margin-top: 12px;
+            padding: 9px 16px;
+            border: none;
+            border-radius: 8px;
+            background: indigo;
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: Arial;
+            text-decoration: none;
+            transition: opacity 0.2s;
+        }
+
+            .relist-btn:hover {
+                opacity: 0.85;
+            }
+
+        /* ── TABS ── */
+        .tab-bar {
+            display: flex;
+            gap: 10px;
+            margin: 20px 20px 0;
+            border-bottom: 2px solid #ddd;
+        }
+
+            .tab-bar button {
+                padding: 10px 20px;
+                border: none;
+                background: none;
+                font-size: 15px;
+                color: #555;
+                cursor: pointer;
+                border-bottom: 3px solid transparent;
+                font-weight: bold;
+                transition: color 0.2s, border-color 0.2s;
+            }
+
+                .tab-bar button.active {
+                    color: indigo;
+                    border-bottom-color: indigo;
+                }
+
+                .tab-bar button:hover:not(.active) {
+                    color: indigo;
+                }
+
+        .tab-content {
+            display: none;
+        }
+
+            .tab-content.active {
+                display: block;
+            }
+    </style>
+</head>
+<body>
+
+    <div class="logo-area">
+        <button class="menu-btn" onclick="toggleMenu()">☰</button>
+        <img src="logo.jpg" id="logo">
+        <div class="brand">
+            <h2>Qeja Connect</h2>
+            <p>Quality accommodation providence</p>
+        </div>
+    </div>
+
+    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+    <div class="side-menu" id="sideMenu">
+        <a href="home.html">🏠 Home</a>
+        <a href="landlords.html">🏘 Landlords</a>
+        <a href="contact.html">📞 Contact</a>
+        <a href="hostdashboard.html" id="menuDashboard" style="display:flex;align-items:center;justify-content:space-between;">
+            📊 Dashboard
+            <span id="menuDashboardBadge" style="display:none;background:indigo;color:white;border-radius:6px;font-size:11px;font-weight:700;padding:2px 8px;min-width:20px;text-align:center;"></span>
+        </a>
+        <a href="myprofile.html">👤 Profile</a>
+        <a href="mymessages.html" id="menuMessages" style="display:flex;align-items:center;justify-content:space-between;">
+            💬 Messages from QejaConnect
+            <span id="navNotifBadge" style="display:none;background:indigo;color:white;border-radius:6px;font-size:11px;font-weight:700;padding:2px 8px;min-width:20px;text-align:center;">0</span>
+        </a>
+        <a href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
+            🚪 Log out
+        </a>
+        <button onclick="toggleTheme()" style="margin:20px;padding:10px;border:none;background:none;color:white;cursor:pointer;">
+            🌙 Theme
+        </button>
+    </div>
+
+    <button class="add" onclick="location.href='addproperty.html'">+ Add Property</button>
+    <div class="section-title">Your Properties</div>
+    <div class="dashboard" id="myProperties"></div>
+    
+    <div class="dashboard" id="dashboard"></div>
+
+    <div class="section-title">Your Chats</div>
+
+    <div class="tab-bar">
+        <button class="active" onclick="switchTab('landlordChats', this)">Tenant Inquiries</button>
+        <button onclick="switchTab('tenantChats', this)">My Conversations</button>
+    </div>
+
+    <div class="dashboard tab-content active" id="landlordChats"></div>
+    <div class="dashboard tab-content" id="tenantChats"></div>
+    
+    <script>
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
+        const token      = localStorage.getItem("token");
+        const userId     = loggedUser?.id;
+
+        function switchTab(tabId, btn) {
+        document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
+        document.querySelectorAll(".tab-bar button").forEach(el => el.classList.remove("active"));
+        document.getElementById(tabId).classList.add("active");
+        btn.classList.add("active");
+        }
+
+        async function loadRequests() {
+        const dashboard = document.getElementById("dashboard");
+
+        if (!userId) {
+        dashboard.innerHTML = `<div class="empty">Please login first</div>`;
+        return;
+        }
+
+        try {
+        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
+        const data = await res.json();
+
+        if (!data.success || data.data.length === 0) {
+        dashboard.innerHTML = `<div class="empty">Kindly don't forget your password. Forgetting it may require you contact us</div>`;
+        return;
+        }
+
+        dashboard.innerHTML = data.data.map(r => `
+        <div class="card">
+        <h3>${r.title}</h3>
+        <p><b>Tenant:</b> ${r.fullname}</p>
+        <p><b>Email:</b> ${r.email}</p>
+        <p><b>Message:</b> ${r.message}</p>
+        <p><b>Date:</b> ${new Date(r.created_at).toLocaleString()}</p>
+        </div>
+        `).join("");
+
+        } catch (err) {
+        dashboard.innerHTML = `<div class="empty">Forgetting password may require you contact us</div>`;
+        }
+        }
+
+        async function loadLandlordChats() {
+        const container = document.getElementById("landlordChats");
+
+        if (!userId || !token) {
+        container.innerHTML = `<div class="empty">Please login first</div>`;
+        return;
+        }
+
+        try {
+        const res  = await fetch(
+        `https://qeja-backend-azkf.onrender.com/landlord-chats/${userId}`,
+        { headers: { "Authorization": "Bearer " + token } }
+        );
+        const data = await res.json();
+
+        if (!data.success || !data.chats?.length) {
+        container.innerHTML = `<div class="empty">No tenant inquiries yet</div>`;
+        return;
+        }
+
+        container.innerHTML = data.chats.map(chat => `
+        <div class="card" onclick="openChat(${chat.conversation_id}, '${escapeAttr(chat.fullname)}')">
+        <h3>${chat.fullname}</h3>
+        <p>${chat.email}</p>
+        ${chat.last_message ? `<div class="last-msg">💬 ${chat.last_message}</div>` : ""}
+        <button class="open-btn">Open Chat →</button>
+        </div>
+        `).join("");
+
+        } catch {
+        container.innerHTML = `<div class="empty">Failed to load chats</div>`;
+        }
+        }
+
+        async function loadTenantChats() {
+        const container = document.getElementById("tenantChats");
+
+        if (!userId || !token) {
+        container.innerHTML = `<div class="empty">Please login first</div>`;
+        return;
+        }
+
+        try {
+        const res  = await fetch(
+        `https://qeja-backend-azkf.onrender.com/tenant-chats/${userId}`,
+        { headers: { "Authorization": "Bearer " + token } }
+        );
+        const data = await res.json();
+
+        if (!data.success || !data.chats?.length) {
+        container.innerHTML = `<div class="empty">No conversations started yet</div>`;
+        return;
+        }
+
+        container.innerHTML = data.chats.map(chat => `
+        <div class="card" onclick="openTenantChat(${chat.conversation_id}, '${escapeAttr(chat.fullname)}')">
+        <h3>${chat.fullname}</h3>
+        <p>${chat.email}</p>
+        ${chat.last_message ? `<div class="last-msg">💬 ${chat.last_message}</div>` : ""}
+        <button class="open-btn">Open Chat →</button>
+        </div>
+        `).join("");
+
+        } catch {
+        container.innerHTML = `<div class="empty">Failed to load chats</div>`;
+        }
+        }
+
+        // Saves conversation ID + partner name, then navigates
+        function openChat(id, name) {
+        localStorage.setItem("conversation_id", id);
+        localStorage.setItem("chat_partner_name", name);
+        location.href = "chat.html";
+        }
+
+        function openTenantChat(id, name) {
+        localStorage.setItem("conversation_id", id);
+        localStorage.setItem("chat_partner_name", name);
+        location.href = "chat-tenant.html";
+        }
+
+        // Escapes a string for safe use inside an HTML attribute (onclick="...")
+        function escapeAttr(str) {
+        return String(str)
+        .replace(/\\/g, "\\\\")
+        .replace(/'/g, "\\'");
+        }
+
+        function toggleMenu() {
+        document.getElementById("sideMenu").classList.toggle("active");
+        document.getElementById("overlay").classList.toggle("active");
+        }
+
+        function closeMenu() {
+        document.getElementById("sideMenu").classList.remove("active");
+        document.getElementById("overlay").classList.remove("active");
+        }
+
+        function toggleTheme() {
+        document.body.classList.toggle("dark");
+        }
+        async function loadMyProperties() {
+            const container = document.getElementById("myProperties");
+            if (!userId || !token) {
+                container.innerHTML = `<div class="empty">Please login first</div>`;
+                return;
+            }
+            try {
+                const res = await fetch(
+                    `https://qeja-backend-azkf.onrender.com/landlord-properties/${userId}`,
+                    { headers: { "Authorization": "Bearer " + token } }
+                );
+                const data = await res.json();
+
+                if (!data.success || !data.properties?.length) {
+                    container.innerHTML = `<div class="empty">No properties listed yet. Click "+ Add Property" to get started.</div>`;
+                    return;
+                }
+
+                const now = new Date();
+
+                container.innerHTML = `<div class="properties-grid">` +
+                    data.properties.map(p => {
+                        const expiry = p.listing_expires_at ? new Date(p.listing_expires_at) : null;
+                        const isExpired = expiry && now > expiry;
+
+                        const badge = isExpired
+                            ? `<span class="inactive-badge">⛔ Inactive</span>`
+                            : `<span class="pub-badge">✓ Published</span>`;
+
+                        const expiryLine = expiry
+                            ? isExpired
+                                ? `<div class="prop-expires">⛔ Expired: ${expiry.toLocaleDateString()}</div>`
+                                : `<div class="prop-expires">🗓 Expires: ${expiry.toLocaleDateString()}</div>`
+                            : "";
+
+                        const relistBtn = isExpired
+                            ? `<br><a class="relist-btn" href="addproperty.html">🔄 Upload Again</a>`
+                            : "";
+
+                        return `
+                        <div class="prop-card ${isExpired ? "inactive" : ""}">
+                            ${badge}
+                            <h3>${p.title}</h3>
+                            <div class="prop-meta">
+                                <div class="prop-row">💰 <strong class="prop-price">${p.price}</strong></div>
+                                <div class="prop-row">📍 ${p.location}</div>
+                            </div>
+                            <span class="prop-type">${p.type}</span>
+                            ${expiryLine}
+                            ${relistBtn}
+                        </div>`;
+                    }).join("") +
+                `</div>`;
+
+            } catch (err) {
+                console.error("loadMyProperties error:", err);
+                container.innerHTML = `<div class="empty">Failed to load properties.</div>`;
+            }
+        }
+
+        window.onload = function () {
+            loadRequests();
+            loadLandlordChats();
+            loadTenantChats();
+            loadMyProperties();
+        };
+        
+    </script>
+    <script>
+        (async function initMenuBadges() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // ── Highlight current page link ──
+        const path = location.pathname.split('/').pop();
+        document.querySelectorAll('.side-menu a').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href && path && href.includes(path)) {
+        a.classList.add('active-link');
+        }
+        });
+
+        try {
+        // ── Unread admin replies → Messages badge ──
+        const msgRes  = await fetch('https://qeja-backend-azkf.onrender.com/my-messages', {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const msgData = await msgRes.json();
+
+        let unreadMessages = 0;
+        if (msgData.success) {
+        let seen = [];
+        try { seen = JSON.parse(localStorage.getItem('seenReplies') || '[]'); } catch {}
+        unreadMessages = msgData.messages.filter(m => m.reply && !seen.includes(m.id)).length;
+        }
+
+        const msgBadge = document.getElementById('navNotifBadge');
+        if (msgBadge && unreadMessages > 0) {
+        msgBadge.textContent = unreadMessages;
+        msgBadge.style.display = 'inline-block';
+        }
+
+        // ── New booking requests → Dashboard badge ──
+        const userId = JSON.parse(localStorage.getItem('loggedUser') || '{}')?.id;
+        if (!userId) return;
+
+        const reqRes  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
+        const reqData = await reqRes.json();
+
+        let unseenRequests = 0;
+        if (reqData.success && reqData.data?.length) {
+        let seenReqs = [];
+        try { seenReqs = JSON.parse(localStorage.getItem('seenRequests') || '[]'); } catch {}
+        unseenRequests = reqData.data.filter(r => !seenReqs.includes(r.id)).length;
+        }
+
+        const dashBadge = document.getElementById('menuDashboardBadge');
+        if (dashBadge && unseenRequests > 0) {
+        dashBadge.textContent = unseenRequests;
+        dashBadge.style.display = 'inline-block';
+        }
+
+        } catch (err) {
+        console.error('Menu badge error:', err);
+        }
+        })();
+    </script>
+    
+</body>
+</html>

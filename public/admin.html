@@ -1,0 +1,1230 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QejaConnect — Admin Panel</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #070a12;
+            --surface: #0d1320;
+            --card: #111827;
+            --border: rgba(255,255,255,0.07);
+            --border-hi: rgba(139,92,246,0.4);
+            --accent: #7c3aed;
+            --ok: #10b981;
+            --warn: #f59e0b;
+            --danger: #ef4444;
+            --text: #e2e8f0;
+            --muted: #64748b;
+            --mono: 'DM Mono',monospace;
+            --head: 'Syne',sans-serif;
+            --body: 'DM Sans',sans-serif;
+        }
+
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0
+        }
+
+        body {
+            background: var(--bg);
+            color: var(--text);
+            font-family: var(--body);
+            min-height: 100vh;
+            overflow-x: hidden
+        }
+
+            body::before {
+                content: '';
+                position: fixed;
+                inset: 0;
+                background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");
+                background-size: 180px;
+                pointer-events: none;
+                z-index: 0
+            }
+
+        #loginGate {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg)
+        }
+
+        .login-box {
+            background: var(--surface);
+            border: 1px solid var(--border-hi);
+            border-radius: 16px;
+            padding: 48px 40px;
+            width: 360px;
+            text-align: center;
+            box-shadow: 0 0 80px rgba(124,58,237,0.15)
+        }
+
+            .login-box .badge {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                background: rgba(124,58,237,0.15);
+                border: 1px solid var(--border-hi);
+                border-radius: 999px;
+                padding: 6px 16px;
+                font-size: 11px;
+                font-family: var(--mono);
+                letter-spacing: .12em;
+                color: #a78bfa;
+                text-transform: uppercase;
+                margin-bottom: 24px
+            }
+
+            .login-box h1 {
+                font-family: var(--head);
+                font-size: 26px;
+                font-weight: 800;
+                margin-bottom: 8px
+            }
+
+            .login-box p {
+                font-size: 13px;
+                color: var(--muted);
+                margin-bottom: 32px
+            }
+
+            .login-box input {
+                width: 100%;
+                background: var(--card);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                padding: 14px 16px;
+                font-size: 15px;
+                font-family: var(--mono);
+                color: var(--text);
+                outline: none;
+                transition: border-color .2s;
+                margin-bottom: 14px;
+                letter-spacing: .1em
+            }
+
+                .login-box input:focus {
+                    border-color: var(--accent)
+                }
+
+        .btn-primary {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: var(--head);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s,transform .1s
+        }
+
+            .btn-primary:hover {
+                background: #6d28d9
+            }
+
+            .btn-primary:active {
+                transform: scale(.98)
+            }
+
+        .login-err {
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--danger);
+            display: none
+        }
+
+        #app {
+            display: none;
+            position: relative;
+            z-index: 1
+        }
+
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 50;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 32px;
+            height: 60px;
+            background: rgba(7,10,18,.85);
+            backdrop-filter: blur(14px);
+            border-bottom: 1px solid var(--border)
+        }
+
+        .logo {
+            font-family: var(--head);
+            font-size: 18px;
+            font-weight: 800
+        }
+
+            .logo span {
+                color: var(--accent)
+            }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 16px
+        }
+
+        .stat-pill {
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--muted)
+        }
+
+            .stat-pill b {
+                color: var(--text)
+            }
+
+        .btn-logout {
+            font-family: var(--mono);
+            font-size: 12px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            background: rgba(239,68,68,.1);
+            border: 1px solid rgba(239,68,68,.3);
+            color: #fca5a5;
+            cursor: pointer;
+            transition: background .2s
+        }
+
+            .btn-logout:hover {
+                background: rgba(239,68,68,.2)
+            }
+
+        .page-tabs {
+            display: flex;
+            gap: 4px;
+            padding: 16px 32px 0;
+            border-bottom: 1px solid var(--border);
+            position: relative;
+            z-index: 1
+        }
+
+        .page-tab {
+            padding: 10px 22px;
+            border-radius: 8px 8px 0 0;
+            border: 1px solid transparent;
+            border-bottom: none;
+            background: transparent;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+            .page-tab.active {
+                background: var(--card);
+                border-color: var(--border);
+                color: var(--text)
+            }
+
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--warn);
+            color: #000;
+            border-radius: 999px;
+            font-size: 10px;
+            padding: 1px 6px;
+            margin-left: 6px;
+            font-weight: 700
+        }
+
+        .page-section {
+            display: none
+        }
+
+            .page-section.active {
+                display: block
+            }
+
+        main {
+            padding: 28px 32px;
+            max-width: 1400px;
+            margin: 0 auto
+        }
+
+        .filters {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 28px;
+            flex-wrap: wrap
+        }
+
+            .filters h2 {
+                font-family: var(--head);
+                font-size: 22px;
+                font-weight: 800;
+                margin-right: auto
+            }
+
+        .filter-tab {
+            padding: 7px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: transparent;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 12px;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+            .filter-tab.active, .filter-tab:hover {
+                background: var(--accent);
+                border-color: var(--accent);
+                color: #fff
+            }
+
+        .search-wrap {
+            position: relative
+        }
+
+            .search-wrap input {
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 8px 12px 8px 34px;
+                font-size: 13px;
+                font-family: var(--body);
+                color: var(--text);
+                outline: none;
+                width: 220px;
+                transition: border-color .2s
+            }
+
+                .search-wrap input:focus {
+                    border-color: var(--accent)
+                }
+
+            .search-wrap .ico {
+                position: absolute;
+                left: 10px;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 14px;
+                color: var(--muted)
+            }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill,minmax(340px,1fr));
+            gap: 20px
+        }
+
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            transition: border-color .2s,transform .2s;
+            animation: fadeUp .4s both
+        }
+
+            .card:hover {
+                border-color: var(--border-hi);
+                transform: translateY(-2px)
+            }
+
+        @keyframes fadeUp {
+            from {
+                opacity: 0;
+                transform: translateY(16px)
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px 14px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            border: 2px solid var(--border-hi);
+            cursor: pointer;
+            transition: transform .2s;
+            flex-shrink: 0
+        }
+
+            .avatar:hover {
+                transform: scale(1.05)
+            }
+
+        .card-title {
+            flex: 1;
+            min-width: 0
+        }
+
+            .card-title h3 {
+                font-family: var(--head);
+                font-size: 15px;
+                font-weight: 700;
+                white-space: nowrap;
+                overflow: hidden;
+                text-overflow: ellipsis
+            }
+
+            .card-title small {
+                font-family: var(--mono);
+                font-size: 11px;
+                color: var(--muted)
+            }
+
+        .status-badge {
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 3px 10px;
+            border-radius: 999px;
+            font-weight: 500;
+            white-space: nowrap
+        }
+
+            .status-badge.pending {
+                background: rgba(245,158,11,.15);
+                color: #fbbf24;
+                border: 1px solid rgba(245,158,11,.3)
+            }
+
+            .status-badge.approved {
+                background: rgba(16,185,129,.15);
+                color: #34d399;
+                border: 1px solid rgba(16,185,129,.3)
+            }
+
+            .status-badge.rejected {
+                background: rgba(239,68,68,.12);
+                color: #f87171;
+                border: 1px solid rgba(239,68,68,.3)
+            }
+
+        .id-wrap {
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .id-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: .1em;
+            text-transform: uppercase;
+            color: var(--muted);
+            margin-bottom: 8px
+        }
+
+        .id-img {
+            width: 100%;
+            height: 140px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            transition: opacity .2s
+        }
+
+            .id-img:hover {
+                opacity: .9
+            }
+
+        .id-missing {
+            width: 100%;
+            height: 100px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--surface);
+            border-radius: 8px;
+            border: 1px dashed var(--border);
+            color: var(--muted);
+            font-size: 13px;
+            font-family: var(--mono)
+        }
+
+        .details {
+            padding: 14px 20px
+        }
+
+        .detail-row {
+            display: flex;
+            align-items: baseline;
+            gap: 8px;
+            padding: 4px 0;
+            font-size: 13px
+        }
+
+        .detail-key {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--muted);
+            min-width: 86px;
+            flex-shrink: 0
+        }
+
+        .detail-val {
+            color: var(--text);
+            word-break: break-all
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            padding: 14px 20px;
+            border-top: 1px solid var(--border)
+        }
+
+        .btn-approve, .btn-reject {
+            flex: 1;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            font-family: var(--head);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+        .btn-approve {
+            background: rgba(16,185,129,.15);
+            color: #34d399;
+            border: 1px solid rgba(16,185,129,.3)
+        }
+
+            .btn-approve:hover {
+                background: rgba(16,185,129,.3)
+            }
+
+        .btn-reject {
+            background: rgba(239,68,68,.1);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,.25)
+        }
+
+            .btn-reject:hover {
+                background: rgba(239,68,68,.2)
+            }
+
+            .btn-approve:disabled, .btn-reject:disabled {
+                opacity: .4;
+                cursor: not-allowed
+            }
+
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 36px
+        }
+
+        .page-btn {
+            padding: 8px 18px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--surface);
+            color: var(--text);
+            font-family: var(--mono);
+            font-size: 13px;
+            cursor: pointer;
+            transition: all .2s
+        }
+
+            .page-btn:hover:not(:disabled) {
+                border-color: var(--accent);
+                color: #a78bfa
+            }
+
+            .page-btn:disabled {
+                opacity: .3;
+                cursor: default
+            }
+
+        .page-info {
+            font-family: var(--mono);
+            font-size: 12px;
+            color: var(--muted)
+        }
+
+        .state-msg {
+            grid-column: 1/-1;
+            text-align: center;
+            padding: 80px 20px;
+            color: var(--muted);
+            font-family: var(--mono);
+            font-size: 14px
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 32px;
+            height: 32px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin .7s linear infinite;
+            margin-bottom: 12px
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg)
+            }
+        }
+
+        /* messages */
+        .msg-filters {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+            flex-wrap: wrap
+        }
+
+            .msg-filters h2 {
+                font-family: var(--head);
+                font-size: 22px;
+                font-weight: 800;
+                margin-right: auto
+            }
+
+        .msg-list {
+            display: flex;
+            flex-direction: column;
+            gap: 16px
+        }
+
+        .msg-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            overflow: hidden;
+            animation: fadeUp .35s both
+        }
+
+            .msg-card.has-reply {
+                border-color: rgba(16,185,129,.25)
+            }
+
+        .msg-card-header {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border)
+        }
+
+        .msg-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            background: var(--accent);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+            color: #fff;
+            font-family: var(--head);
+            font-weight: 700
+        }
+
+        .msg-sender {
+            flex: 1;
+            min-width: 0
+        }
+
+            .msg-sender strong {
+                display: block;
+                font-size: 14px;
+                font-family: var(--head)
+            }
+
+            .msg-sender span {
+                font-size: 11px;
+                font-family: var(--mono);
+                color: var(--muted)
+            }
+
+        .msg-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 4px
+        }
+
+        .role-pill {
+            font-family: var(--mono);
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            color: var(--muted)
+        }
+
+            .role-pill.landlord {
+                color: #a78bfa;
+                border-color: rgba(167,139,250,.3)
+            }
+
+            .role-pill.tenant {
+                color: #67e8f9;
+                border-color: rgba(103,232,249,.3)
+            }
+
+        .msg-time {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--muted)
+        }
+
+        .msg-body {
+            padding: 14px 18px
+        }
+
+        .msg-bubble {
+            background: var(--surface);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 14px;
+            line-height: 1.6;
+            border-left: 3px solid var(--border-hi)
+        }
+
+        .reply-section {
+            padding: 0 18px 14px
+        }
+
+        .reply-label {
+            font-family: var(--mono);
+            font-size: 10px;
+            letter-spacing: .08em;
+            text-transform: uppercase;
+            color: var(--ok);
+            margin-bottom: 6px
+        }
+
+        .reply-bubble {
+            background: rgba(16,185,129,.08);
+            border: 1px solid rgba(16,185,129,.2);
+            border-radius: 10px;
+            padding: 12px 14px;
+            font-size: 13px;
+            line-height: 1.6;
+            color: #a7f3d0;
+            margin-bottom: 4px
+        }
+
+        .reply-time {
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--muted)
+        }
+
+        .replied-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            font-family: var(--mono);
+            font-size: 10px;
+            color: var(--ok)
+        }
+
+        .reply-form {
+            display: flex;
+            gap: 8px;
+            padding: 0 18px 14px
+        }
+
+            .reply-form textarea {
+                flex: 1;
+                background: var(--surface);
+                border: 1px solid var(--border);
+                border-radius: 8px;
+                padding: 10px 12px;
+                font-size: 13px;
+                font-family: var(--body);
+                color: var(--text);
+                outline: none;
+                resize: none;
+                height: 70px;
+                transition: border-color .2s
+            }
+
+                .reply-form textarea:focus {
+                    border-color: var(--accent)
+                }
+
+        .btn-send {
+            padding: 0 18px;
+            background: var(--accent);
+            border: none;
+            border-radius: 8px;
+            color: #fff;
+            font-family: var(--head);
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s;
+            white-space: nowrap;
+            align-self: flex-end;
+            height: 40px
+        }
+
+            .btn-send:hover {
+                background: #6d28d9
+            }
+
+            .btn-send:disabled {
+                opacity: .5;
+                cursor: not-allowed
+            }
+
+        #lightbox {
+            display: none;
+            position: fixed;
+            inset: 0;
+            z-index: 200;
+            background: rgba(0,0,0,.85);
+            backdrop-filter: blur(6px);
+            align-items: center;
+            justify-content: center
+        }
+
+            #lightbox.open {
+                display: flex
+            }
+
+            #lightbox img {
+                max-width: 90vw;
+                max-height: 88vh;
+                border-radius: 10px;
+                box-shadow: 0 0 80px rgba(0,0,0,.6)
+            }
+
+            #lightbox .close-lb {
+                position: absolute;
+                top: 24px;
+                right: 28px;
+                font-size: 28px;
+                color: #fff;
+                cursor: pointer;
+                background: none;
+                border: none
+            }
+
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(60px);
+            background: var(--surface);
+            color: var(--text);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-left: 4px solid var(--accent);
+            box-shadow: 0 4px 30px rgba(0,0,0,.5);
+            z-index: 300;
+            opacity: 0;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1),opacity .35s;
+            pointer-events: none;
+            max-width: 320px
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1
+            }
+
+            #toast.ok {
+                border-left-color: var(--ok)
+            }
+
+            #toast.err {
+                border-left-color: var(--danger)
+            }
+    </style>
+</head>
+<body>
+
+    <div id="loginGate">
+        <div class="login-box">
+            <div class="badge">🔐 &nbsp;Restricted Access</div>
+            <h1>Admin Panel</h1>
+            <p>QejaConnect — Staff Portal</p>
+            <input type="password" id="secretInput" placeholder="Enter admin secret…" autocomplete="off">
+            <button class="btn-primary" onclick="doLogin()">Authenticate</button>
+            <div class="login-err" id="loginErr">Incorrect secret. Try again.</div>
+        </div>
+    </div>
+
+    <div id="app">
+        <header>
+            <div class="logo">Qeja<span>Admin</span></div>
+            <div class="header-right">
+                <div class="stat-pill">Landlords: <b id="hTotal">—</b></div>
+                <div class="stat-pill" style="color:#fbbf24">Pending: <b id="hPending" style="color:#fbbf24">—</b></div>
+                <div class="stat-pill" style="color:#f87171">Unread msgs: <b id="hUnread" style="color:#f87171">—</b></div>
+                <button class="btn-logout" onclick="doLogout()">Sign out</button>
+            </div>
+        </header>
+
+        <div class="page-tabs">
+            <button class="page-tab active" onclick="switchPage('verification',this)">🏠 Landlord Verification</button>
+            <button class="page-tab" id="msgTabBtn" onclick="switchPage('messages',this)">
+                💬 Messages <span class="tab-badge" id="msgBadge" style="display:none">0</span>
+            </button>
+        </div>
+
+        <div class="page-section active" id="section-verification">
+            <main>
+                <div class="filters">
+                    <h2>Landlord Verification</h2>
+                    <div class="search-wrap">
+                        <span class="ico">🔍</span>
+                        <input type="text" id="searchInput" placeholder="Search name / email…" oninput="onSearch()">
+                    </div>
+                    <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
+                    <button class="filter-tab" onclick="setFilter('0',this)">Pending</button>
+                    <button class="filter-tab" onclick="setFilter('1',this)">Approved</button>
+                    <button class="filter-tab" onclick="setFilter('-1',this)">Rejected</button>
+                </div>
+                <div class="grid" id="grid"></div>
+                <div class="pagination" id="pagination"></div>
+            </main>
+        </div>
+
+        <div class="page-section" id="section-messages">
+            <main>
+                <div class="msg-filters">
+                    <h2>User Messages</h2>
+                    <button class="filter-tab active" onclick="setMsgFilter('all',this)">All</button>
+                    <button class="filter-tab" onclick="setMsgFilter('0',this)">Unreplied</button>
+                    <button class="filter-tab" onclick="setMsgFilter('1',this)">Replied</button>
+                </div>
+                <div class="msg-list" id="msgList">
+                    <div class="state-msg"><div class="spinner"></div><br>Loading messages…</div>
+                </div>
+                <div class="pagination" id="msgPagination"></div>
+            </main>
+        </div>
+    </div>
+
+    <div id="lightbox">
+        <button class="close-lb" onclick="closeLightbox()">✕</button>
+        <img id="lbImg" src="" alt="Photo">
+    </div>
+
+    <div id="toast"></div>
+
+    <script>
+        const API = 'https://qeja-backend-azkf.onrender.com';
+        let adminSecret='', currentFilter='all', currentPage=1, searchQ='', allData=[], toastTimer;
+        let msgFilter='all', msgPage=1, allMsgs=[];
+
+        document.getElementById('secretInput').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+
+        function doLogin(){
+        const val=document.getElementById('secretInput').value.trim();
+        if(!val) return;
+        adminSecret=val;
+        document.getElementById('loginGate').style.display='none';
+        document.getElementById('app').style.display='block';
+        loadLandlords(); loadMessages();
+        }
+
+        function doLogout(){
+        adminSecret='';
+        document.getElementById('app').style.display='none';
+        document.getElementById('loginGate').style.display='flex';
+        document.getElementById('secretInput').value='';
+        }
+
+        function switchPage(name,btn){
+        document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
+        document.querySelectorAll('.page-tab').forEach(b=>b.classList.remove('active'));
+        document.getElementById('section-'+name).classList.add('active');
+        btn.classList.add('active');
+        }
+
+        function setFilter(f,el){
+        currentFilter=f; currentPage=1;
+        document.querySelectorAll('#section-verification .filter-tab').forEach(b=>b.classList.remove('active'));
+        el.classList.add('active'); loadLandlords();
+        }
+
+        let searchDebounce;
+        function onSearch(){
+        searchQ=document.getElementById('searchInput').value.toLowerCase();
+        clearTimeout(searchDebounce); searchDebounce=setTimeout(renderCards,200);
+        }
+
+        async function loadLandlords(){
+        document.getElementById('grid').innerHTML='<div class="state-msg"><div class="spinner"></div><br>Loading…</div>';
+        const params=new URLSearchParams({page:currentPage,limit:20});
+        if(currentFilter!=='all') params.set('verified',currentFilter);
+        try{
+        const res=await fetch(`${API}/admin/landlords?${params}`,{headers:{'x-admin-secret':adminSecret}});
+        if(res.status===403){doLogout();return;}
+        const data=await res.json();
+        if(!data.success) throw new Error(data.message);
+        allData=data.landlords;
+        if(currentFilter==='all') document.getElementById('hTotal').textContent=data.total;
+        fetchPendingCount(); renderCards();
+        renderPagination(data.total,data.limit,currentPage,p=>{currentPage=p;loadLandlords();},'pagination');
+        }catch(err){ document.getElementById('grid').innerHTML=`<div class="state-msg">⚠️ ${err.message}</div>`; }
+        }
+
+        async function fetchPendingCount(){
+        try{
+        const res=await fetch(`${API}/admin/landlords?page=1&limit=1&verified=0`,{headers:{'x-admin-secret':adminSecret}});
+        const data=await res.json();
+        if(data.success) document.getElementById('hPending').textContent=data.total;
+        }catch(_){}
+        }
+
+        function renderCards(){
+        const filtered=allData.filter(l=>{
+        if(!searchQ) return true;
+        return ['fullname','email','phone','national_id'].some(k=>(l[k]||'').toLowerCase().includes(searchQ));
+        });
+        const grid=document.getElementById('grid');
+        if(!filtered.length){grid.innerHTML='<div class="state-msg">No landlords found.</div>';return;}
+        grid.innerHTML=filtered.map((l,i)=>buildCard(l,i)).join('');
+        }
+
+        function statusBadge(v){
+        if(v===1||v==='1')  return '<span class="status-badge approved">✓ Approved</span>';
+        if(v===-1||v==='-1') return '<span class="status-badge rejected">✕ Rejected</span>';
+        return '<span class="status-badge pending">⏳ Pending</span>';
+        }
+
+        function fmtDate(dt){
+        if(!dt) return '—';
+        return new Date(dt).toLocaleString('en-KE',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        }
+
+        function buildCard(l,i){
+        const delay=(i%20)*30;
+        const isFixed=l.verified===1||l.verified===-1;
+        const idSrc=l.id_photo?escH(l.id_photo):null;
+        const profSrc=l.profile_pic?escH(l.profile_pic):'https://ui-avatars.com/api/?name='+encodeURIComponent(l.fullname||'L')+'&background=7c3aed&color=fff';
+        return `
+        <div class="card" style="animation-delay:${delay}ms" id="card-${l.id}">
+        <div class="card-header">
+        <img class="avatar" src="${profSrc}" alt="Profile" onclick="openLightbox('${profSrc}')">
+        <div class="card-title"><h3>${escH(l.fullname||'—')}</h3><small>#${l.id} · ${escH(l.email||'')}</small></div>
+        ${statusBadge(l.verified)}
+        </div>
+        <div class="id-wrap">
+        <div class="id-label">🪪 National ID Photo</div>
+        ${idSrc?`<img class="id-img" src="${idSrc}" alt="National ID" onclick="openLightbox('${idSrc}')">`:'<div class="id-missing">No ID uploaded</div>'}
+        </div>
+        <div class="details">
+        ${row('Phone',l.phone)}${row('Nat. ID',l.national_id)}${row('KRA PIN',l.kra_pin)}
+        ${row('County',l.county)}${row('Town',l.town)}${row('Property',l.property_name)}
+        ${row('Type',l.property_type)}${row('Units',l.units)}${row('Joined',fmtDate(l.created_at))}
+        ${l.description?row('Notes',l.description):''}
+        </div>
+        <div class="actions">
+        <button class="btn-approve" ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'approve',this)">${l.verified===1?'✓ Approved':'✅ Approve'}</button>
+        <button class="btn-reject"  ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'reject',this)">${l.verified===-1?'✕ Rejected':'❌ Reject'}</button>
+        <a class="btn-email"
+           href="mailto:${l.email}?subject=QejaConnect%20Support&body=Hello%20${encodeURIComponent(l.fullname || '')},%0D%0A%0D%0A"
+           style="
+                flex:1;
+                display:flex;
+                align-items:center;
+                justify-content:center;
+                text-decoration:none;
+                padding:10px;
+                border-radius:8px;
+                font-family: var(--head);
+                font-size:13px;
+                font-weight:700;
+                background: rgba(124,58,237,.15);
+                color:#a78bfa;
+                border:1px solid rgba(124,58,237,.3);
+           ">
+           ✉ Email
+        </a>
+        </div>
+        </div>`;
+        }
+
+        function row(k,v){
+        if(!v&&v!==0) return '';
+        return `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${escH(String(v))}</span></div>`;
+        }
+
+        async function verifyLandlord(id,action,btn){
+        btn.disabled=true; btn.textContent='Saving…';
+        try{
+        const res=await fetch(`${API}/admin/landlords/${id}/verify`,{
+        method:'PATCH',headers:{'Content-Type':'application/json','x-admin-secret':adminSecret},
+        body:JSON.stringify({action})
+        });
+        const data=await res.json();
+        if(!data.success) throw new Error(data.message);
+        showToast(action==='approve'?'✅ Landlord approved':'❌ Landlord rejected',action==='approve'?'ok':'err');
+        setTimeout(loadLandlords,600);
+        }catch(err){
+        showToast('Error: '+err.message,'err');
+        btn.disabled=false; btn.textContent=action==='approve'?'✅ Approve':'❌ Reject';
+        }
+        }
+
+        // ── Messages ──
+        function setMsgFilter(f,el){
+        msgFilter=f; msgPage=1;
+        document.querySelectorAll('#section-messages .filter-tab').forEach(b=>b.classList.remove('active'));
+        el.classList.add('active'); loadMessages();
+        }
+
+        async function loadMessages(){
+        const list=document.getElementById('msgList');
+        if(list) list.innerHTML='<div class="state-msg"><div class="spinner"></div><br>Loading messages…</div>';
+        const params=new URLSearchParams({page:msgPage,limit:20});
+        if(msgFilter!=='all') params.set('replied',msgFilter);
+        try{
+        const res=await fetch(`${API}/admin/messages?${params}`,{headers:{'x-admin-secret':adminSecret}});
+        if(res.status===403) return;
+        const data=await res.json();
+        if(!data.success) throw new Error(data.message);
+        allMsgs=data.messages;
+        fetchUnreadCount(); renderMessages();
+        renderPagination(data.total,data.limit,msgPage,p=>{msgPage=p;loadMessages();},'msgPagination');
+        }catch(err){
+        if(list) list.innerHTML=`<div class="state-msg">⚠️ ${err.message}</div>`;
+        }
+        }
+
+        async function fetchUnreadCount(){
+        try{
+        const res=await fetch(`${API}/admin/messages?page=1&limit=1&replied=0`,{headers:{'x-admin-secret':adminSecret}});
+        const data=await res.json();
+        if(data.success){
+        const n=data.total;
+        document.getElementById('hUnread').textContent=n;
+        const badge=document.getElementById('msgBadge');
+        badge.textContent=n; badge.style.display=n>0?'inline-flex':'none';
+        }
+        }catch(_){}
+        }
+
+        function renderMessages(){
+        const list=document.getElementById('msgList');
+        if(!allMsgs.length){list.innerHTML='<div class="state-msg">No messages found.</div>';return;}
+        list.innerHTML=allMsgs.map((m,i)=>buildMsgCard(m,i)).join('');
+        }
+
+        function buildMsgCard(m,i){
+        const delay=(i%20)*30;
+        const hasReply=!!m.reply;
+        const initial=(m.sender_name||'?')[0].toUpperCase();
+        return `
+        <div class="msg-card ${hasReply?'has-reply':''}" style="animation-delay:${delay}ms" id="msg-${m.id}">
+        <div class="msg-card-header">
+        <div class="msg-avatar">${initial}</div>
+        <div class="msg-sender"><strong>${escH(m.sender_name||'Unknown')}</strong><span>${escH(m.sender_email||'')}</span></div>
+        <div class="msg-meta">
+        <span class="role-pill ${m.sender_role}">${m.sender_role}</span>
+        <span class="msg-time">${fmtDate(m.created_at)}</span>
+        ${hasReply?'<span class="replied-tag">✓ replied</span>':''}
+        </div>
+        </div>
+        <div class="msg-body"><div class="msg-bubble">${escH(m.message)}</div></div>
+        ${hasReply?`
+        <div class="reply-section">
+        <div class="reply-label">↩ Admin reply</div>
+        <div class="reply-bubble">${escH(m.reply)}</div>
+        <div class="reply-time">${fmtDate(m.replied_at)}</div>
+        </div>`:`
+        <div class="reply-form" id="form-${m.id}">
+        <textarea placeholder="Type your reply to ${escH(m.sender_name||'user')}…" id="replyText-${m.id}"></textarea>
+        <button class="btn-send" onclick="sendReply(${m.id})">Send ↩</button>
+        </div>`}
+        </div>`;
+        }
+
+        async function sendReply(msgId){
+        const textarea=document.getElementById(`replyText-${msgId}`);
+        const reply=textarea.value.trim();
+        if(!reply){showToast('Type a reply first','err');return;}
+        const btn=document.querySelector(`#form-${msgId} .btn-send`);
+        btn.disabled=true; btn.textContent='Sending…';
+        try{
+        const res=await fetch(`${API}/admin/messages/${msgId}/reply`,{
+        method:'POST',headers:{'Content-Type':'application/json','x-admin-secret':adminSecret},
+        body:JSON.stringify({reply})
+        });
+        const data=await res.json();
+        if(!data.success) throw new Error(data.message);
+        showToast('✅ Reply sent','ok');
+        setTimeout(loadMessages,500);
+        }catch(err){
+        showToast('Error: '+err.message,'err');
+        btn.disabled=false; btn.textContent='Send ↩';
+        }
+        }
+
+        function renderPagination(total,limit,page,onPage,containerId){
+        const totalPgs=Math.ceil(total/limit)||1;
+        const pg=document.getElementById(containerId);
+        if(totalPgs<=1){pg.innerHTML='';return;}
+        pg.innerHTML=`
+        <button class="page-btn" ${page<=1?'disabled':''} onclick="(${onPage.toString()})(${page-1})">← Prev</button>
+        <span class="page-info">Page ${page} of ${totalPgs}</span>
+        <button class="page-btn" ${page>=totalPgs?'disabled':''} onclick="(${onPage.toString()})(${page+1})">Next →</button>`;
+        }
+
+        function openLightbox(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('open');}
+        function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
+        document.getElementById('lightbox').addEventListener('click',function(e){if(e.target===this)closeLightbox();});
+        document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+
+        function showToast(msg,type=''){
+        const t=document.getElementById('toast');
+        t.textContent=msg; t.className='show '+type;
+        clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='',3200);
+        }
+
+        function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+    </script>
+</body>
+</html>

@@ -1,0 +1,241 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings | Qeja Connect</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        /* ================= HEADER ================= */
+        header {
+            width: 100%;
+            background: linear-gradient(45deg, indigo, darkviolet);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            color: white;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #logo {
+            width: 55px;
+            height: 55px;
+            border-radius: 10px;
+        }
+
+        /* ================= NAV ================= */
+        nav {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+            nav a {
+                color: white;
+                text-decoration: none;
+                padding: 8px 12px;
+                border-radius: 8px;
+                transition: 0.3s;
+            }
+
+                nav a:hover {
+                    background: rgba(255,255,255,0.15);
+                }
+
+        /* ================= SETTINGS CONTAINER ================= */
+        .container {
+            max-width: 700px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        /* CARD */
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        }
+
+        /* DARK MODE SUPPORT */
+        body.dark {
+            background: #111;
+            color: white;
+        }
+
+            body.dark .card {
+                background: #1e1e1e;
+            }
+
+        /* ================= SETTING ROW ================= */
+        .setting {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        body.dark .setting {
+            border-bottom: 1px solid #333;
+        }
+
+        .setting h4 {
+            font-size: 16px;
+        }
+
+        /* ================= TOGGLE SWITCH ================= */
+        .switch {
+            position: relative;
+            width: 45px;
+            height: 26px;
+        }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            border-radius: 30px;
+            transition: .4s;
+        }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 20px;
+                width: 20px;
+                left: 3px;
+                bottom: 3px;
+                background-color: white;
+                border-radius: 50%;
+                transition: .4s;
+            }
+
+        input:checked + .slider {
+            background-color: indigo;
+        }
+
+            input:checked + .slider:before {
+                transform: translateX(19px);
+            }
+
+        /* ================= FOOTER ================= */
+        footer {
+            text-align: center;
+            margin-top: 25px;
+            font-size: 13px;
+            color: gray;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo">
+            <h2>Qeja Connect</h2>
+        </div>
+
+        <nav>
+            <a href="">Home</a>
+            <a href="">Properties</a>
+            <a href="">Contact</a>
+            <a href="">Logout</a>
+        </nav>
+    </header>
+
+    <!-- SETTINGS -->
+    <div class="container">
+
+        <div class="card">
+
+            <h2 style="margin-bottom: 20px;">Settings</h2>
+
+            
+
+            <!-- NOTIFICATIONS -->
+            <div class="setting">
+                <h4>Notifications</h4>
+                <label class="switch">
+                    <input type="checkbox" id="notifToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- COOKIES -->
+            <div class="setting">
+                <h4>Accept Cookies</h4>
+                <label class="switch">
+                    <input type="checkbox" id="cookieToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <!-- CACHE -->
+            <div class="setting">
+                <h4>Auto Clear Cache</h4>
+                <label class="switch">
+                    <input type="checkbox" id="cacheToggle">
+                    <span class="slider"></span>
+                </label>
+            </div>
+
+            <footer>
+                © 2026 Qeja Connect Kenya Ltd
+            </footer>
+
+        </div>
+    </div>
+
+    <script>
+
+        // DARK MODE ONLY (MAIN FEATURE)
+        const darkToggle = document.getElementById("darkToggle");
+
+        darkToggle.addEventListener("change", () => {
+
+        document.body.classList.toggle("dark", darkToggle.checked);
+
+        localStorage.setItem("darkMode", darkToggle.checked);
+        });
+
+        // LOAD SAVED MODE
+        window.onload = () => {
+        const saved = localStorage.getItem("darkMode") === "true";
+        darkToggle.checked = saved;
+        document.body.classList.toggle("dark", saved);
+        };
+
+    </script>
+
+</body>
+</html>

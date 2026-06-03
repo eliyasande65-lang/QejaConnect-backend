@@ -1,0 +1,1027 @@
+﻿<!DOCTYPE html>
+
+<html lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/x-icon" href="/QejaConnect/favicon.ico">
+    <link rel="icon" type="image/png" sizes="192x192" href="/QejaConnect/logo-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="/QejaConnect/logo-512.png">
+    <!-- Theme colour -->
+    <meta name="theme-color" content="#1a1535">
+
+    <!-- SEO & Search appearance -->
+    <meta name="description" content="Qeja Connect links tenants with verified landlords in Kenya. Find accommodation easily — browse listings, chat with landlords, and secure your next home.">
+    <meta name="keywords" content="rental Kenya, find house Kenya, tenant landlord platform, accommodation Kenya, QejaConnect">
+    <meta name="author" content="QejaConnect Kenya">
+    <meta name="robots" content="index, follow">
+
+    <!-- Open Graph (controls how it looks on Google + social shares) -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="Qeja Connect — Find Rental Accommodation in Kenya">
+    <meta property="og:description" content="Qeja Connect links tenants with verified landlords. Browse listings, chat directly, and secure your home with ease.">
+    <meta property="og:url" content="https://eliyasande65-lang.github.io/QejaConnect/welcome.html">
+    <meta property="og:image" content="https://eliyasande65-lang.github.io/QejaConnect/logo-512.png">
+    <meta property="og:site_name" content="Qeja Connect">
+    <meta property="og:locale" content="en_KE">
+    <!-- iOS home-screen support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="logo-192.png">
+    <link rel="icon" href="favicon.ico">
+    <!--thebypass-->
+    <script>
+        (function() {
+        var token = localStorage.getItem('token');
+        var role  = localStorage.getItem('role');
+        if (token && role) {
+        window.location.replace(role === 'landlord' ? 'hostdashboard.html' : 'home.html');
+        }
+        })();
+    </script>
+    <!-- Register Service Worker + Request Notification Permission -->
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', async () => {
+        const reg = await navigator.serviceWorker.register('/QejaConnect/sw.js');
+        console.log('SW registered:', reg.scope);
+        setTimeout(async () => {
+        if ('Notification' in window && Notification.permission === 'default') {
+        const permission = await Notification.requestPermission();
+        console.log('Notification permission:', permission);
+        }
+        }, 4000);
+        });
+        }
+    </script>
+
+    <meta name="theme-color" content="#4b0082">
+    <meta charset="utf-8" />
+    <title>welcome</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=Playfair+Display:ital,wght@0,700;1,400&display=swap" rel="stylesheet">
+
+    <style>
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --indigo: #4338ca;
+            --indigo-dark: #312e81;
+            --indigo-deep: #1e1b4b;
+            --violet: #7c3aed;
+            --violet-light: #a78bfa;
+            --violet-pale: #ede9fe;
+            --white: #ffffff;
+            --off-white: #f8f7ff;
+            --text-dark: #1e1b4b;
+            --text-mid: #4338ca;
+            --text-muted: #6d6aac;
+            --card-border: rgba(167,139,250,0.25);
+            --font-display: 'Playfair Display', Georgia, serif;
+            --font-body: 'Outfit', system-ui, sans-serif;
+        }
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: var(--font-body);
+            background: var(--off-white);
+            color: var(--text-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* ── NAV ── */
+        .nav {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 500;
+            background: rgba(255,255,255,0.85);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--card-border);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 28px;
+        }
+
+        .nav-brand {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            text-decoration: none;
+        }
+
+        .nav-logo {
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            object-fit: cover;
+            border: 2px solid var(--violet-light);
+        }
+
+        .nav-name {
+            font-family: var(--font-body);
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: var(--indigo-dark);
+            letter-spacing: -0.01em;
+        }
+
+        .nav-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        /* ── BUTTONS ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px 22px;
+            border-radius: 10px;
+            font-family: var(--font-body);
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: none;
+            transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+            text-decoration: none;
+        }
+
+            .btn:active {
+                transform: scale(0.97);
+            }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--indigo);
+            border: 1.5px solid var(--indigo);
+        }
+
+            .btn-ghost:hover {
+                background: var(--violet-pale);
+            }
+
+        .btn-primary {
+            background: var(--indigo);
+            color: var(--white);
+            box-shadow: 0 4px 16px rgba(67,56,202,0.25);
+        }
+
+            .btn-primary:hover {
+                background: var(--indigo-dark);
+                box-shadow: 0 6px 20px rgba(67,56,202,0.35);
+            }
+
+        .btn-outline-white {
+            background: transparent;
+            color: var(--white);
+            border: 1.5px solid rgba(255,255,255,0.55);
+        }
+
+            .btn-outline-white:hover {
+                background: #1a1535;
+            }
+
+        /* ── HERO ── */
+        .hero {
+            min-height: 100vh;
+            background: #1a1535;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 120px 24px 80px;
+            position: relative;
+            overflow: hidden;
+        }
+
+            /* Geometric background accents */
+            .hero::before {
+                content: '';
+                position: absolute;
+                width: 600px;
+                height: 600px;
+                border-radius: 50%;
+                background: #1a1535);
+                top: -200px;
+                right: -150px;
+                pointer-events: none;
+            }
+
+            .hero::after {
+                content: '';
+                position: absolute;
+                width: 400px;
+                height: 400px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(167,139,250,0.12) 0%, transparent 70%);
+                bottom: -100px;
+                left: -100px;
+                pointer-events: none;
+            }
+
+        .hero-inner {
+            position: relative;
+            z-index: 1;
+            max-width: 760px;
+            text-align: center;
+        }
+
+        .hero-eyebrow {
+            display: inline-block;
+            background: rgba(167,139,250,0.2);
+            border: 1px solid rgba(167,139,250,0.4);
+            color: var(--violet-light);
+            font-size: 0.78rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            padding: 5px 16px;
+            border-radius: 20px;
+            margin-bottom: 24px;
+        }
+
+        .hero-title {
+            font-family: var(--font-display);
+            font-size: clamp(2.6rem, 6vw, 4.4rem);
+            font-weight: 700;
+            color: var(--white);
+            line-height: 1.15;
+            margin-bottom: 20px;
+        }
+
+            .hero-title em {
+                font-style: italic;
+                color: var(--violet-light);
+            }
+
+        .hero-sub {
+            font-size: 1.08rem;
+            color: rgba(255,255,255,0.75);
+            line-height: 1.7;
+            max-width: 520px;
+            margin: 0 auto 40px;
+            font-weight: 300;
+        }
+
+        .hero-cta {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-bottom: 48px;
+        }
+
+        /* Install btn inherits .btn .btn-outline-white */
+        #install-btn {
+            display: none; /* JS controls this */
+        }
+
+        .hero-stats {
+            display: flex;
+            gap: 32px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .hero-stat {
+            text-align: center;
+        }
+
+        .hero-stat-num {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--white);
+            line-height: 1;
+        }
+
+        .hero-stat-label {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.55);
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            margin-top: 4px;
+        }
+
+        .hero-divider {
+            width: 1px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            align-self: center;
+        }
+
+        /* ── SECTION WRAPPER ── */
+        .section {
+            padding: 80px 24px;
+            max-width: 1100px;
+            margin: 0 auto;
+        }
+
+        .section-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 0.16em;
+            text-transform: uppercase;
+            color: var(--violet);
+            margin-bottom: 10px;
+        }
+
+        .section-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.8rem, 4vw, 2.6rem);
+            color: var(--indigo-dark);
+            font-weight: 700;
+            margin-bottom: 14px;
+            line-height: 1.2;
+        }
+
+        .section-sub {
+            font-size: 1rem;
+            color: var(--text-muted);
+            max-width: 520px;
+            line-height: 1.7;
+            font-weight: 300;
+        }
+
+        /* ── HOW IT WORKS ── */
+        .how-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-top: 48px;
+        }
+
+        .step-card {
+            background: var(--white);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 28px 24px;
+            position: relative;
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+
+            .step-card:hover {
+                box-shadow: 0 8px 32px rgba(67,56,202,0.1);
+                transform: translateY(-3px);
+            }
+
+        .step-num {
+            width: 36px;
+            height: 36px;
+            background: var(--violet-pale);
+            color: var(--indigo);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.9rem;
+            margin-bottom: 16px;
+        }
+
+        .step-text {
+            font-size: 0.95rem;
+            color: var(--text-dark);
+            line-height: 1.6;
+            font-weight: 400;
+        }
+
+        /* ── ABOUT CARD ── */
+        .about-card {
+            background: linear-gradient(135deg, var(--indigo-deep), var(--indigo-dark));
+            border-radius: 20px;
+            padding: 52px 48px;
+            color: var(--white);
+            display: flex;
+            gap: 48px;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 80px;
+        }
+
+        .about-text {
+            flex: 1;
+            min-width: 260px;
+        }
+
+        .about-card .section-label {
+            color: var(--violet-light);
+        }
+
+        .about-title {
+            font-family: var(--font-display);
+            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
+            color: var(--white);
+            margin-bottom: 16px;
+            line-height: 1.25;
+        }
+
+        .about-body {
+            font-size: 1rem;
+            color: rgba(255,255,255,0.72);
+            line-height: 1.75;
+            font-weight: 300;
+            max-width: 480px;
+        }
+
+        .about-img-wrap {
+            flex: 0 0 180px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .about-logo {
+            width: 120px;
+            height: 120px;
+            border-radius: 20px;
+            object-fit: cover;
+            border: 3px solid rgba(167,139,250,0.4);
+        }
+
+        .about-brand-name {
+            font-weight: 600;
+            color: rgba(255,255,255,0.85);
+            font-size: 0.9rem;
+            letter-spacing: 0.04em;
+        }
+
+        .about-brand-tag {
+            font-size: 0.78rem;
+            color: rgba(255,255,255,0.45);
+            font-style: italic;
+        }
+
+        /* ── SIGN-UP SECTION ── */
+        .signup-section {
+            text-align: center;
+            padding: 80px 24px;
+            background: var(--white);
+            border-top: 1px solid var(--card-border);
+            border-bottom: 1px solid var(--card-border);
+        }
+
+        .signup-inner {
+            max-width: 520px;
+            margin: 0 auto;
+        }
+
+        .signup-cta {
+            display: flex;
+            gap: 14px;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 28px;
+        }
+
+        /* ── POPUP ── */
+        .popup-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(30,27,74,0.6);
+            backdrop-filter: blur(4px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+        }
+
+            .popup-overlay.open {
+                display: flex;
+            }
+
+        .popup1 {
+            background: var(--white);
+            padding: 36px 32px;
+            border-radius: 20px;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(30,27,74,0.3);
+            max-width: 360px;
+            width: 90%;
+            animation: pop-in 0.22s ease;
+        }
+
+        @keyframes pop-in {
+            from {
+                transform: scale(0.92);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .popup1 h2 {
+            font-family: var(--font-display);
+            font-size: 1.5rem;
+            color: var(--indigo-dark);
+            margin-bottom: 8px;
+        }
+
+        .popup-sub {
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .popup-choices {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .popup-choice {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            padding: 18px 12px;
+            border: 1.5px solid var(--card-border);
+            border-radius: 14px;
+            cursor: pointer;
+            background: var(--off-white);
+            transition: border-color 0.15s, background 0.15s;
+            font-family: var(--font-body);
+        }
+
+            .popup-choice:hover {
+                border-color: var(--indigo);
+                background: var(--violet-pale);
+            }
+
+        .popup-choice-icon {
+            font-size: 2rem;
+            line-height: 1;
+        }
+
+        .popup-choice-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--indigo-dark);
+        }
+
+        .popup-choice-desc {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: center;
+        }
+
+        .popup-close-btn {
+            background: none;
+            border: none;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+            cursor: pointer;
+            text-decoration: underline;
+            font-family: var(--font-body);
+        }
+
+        /* ── BANNER ── */
+        .bar-fill {
+            width: 100%;
+            position: relative;
+            overflow: hidden;
+            padding: 28px 20px;
+            background: linear-gradient(135deg, #1e1b4b 0%, #3b0764 50%, #1e1b4b 100%);
+            border-top: 1px solid rgba(167,139,250,0.3);
+            border-bottom: 1px solid rgba(167,139,250,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+        }
+
+            .bar-fill::before {
+                content: '';
+                position: absolute;
+                inset: 0;
+                background: linear-gradient( 105deg, transparent 30%, rgba(167,139,250,0.15) 50%, transparent 70% );
+                animation: shimmer 2.8s ease-in-out infinite;
+                pointer-events: none;
+            }
+
+        @keyframes shimmer {
+            0% {
+                transform: translateX(-100%);
+            }
+
+            100% {
+                transform: translateX(100%);
+            }
+        }
+
+        .bar-fill::after {
+            content: '';
+            position: absolute;
+            width: 200px;
+            height: 200px;
+            background: radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%);
+            border-radius: 50%;
+            left: -60px;
+            top: 50%;
+            transform: translateY(-50%);
+            animation: pulse-orb 3s ease-in-out infinite alternate;
+            pointer-events: none;
+        }
+
+        @keyframes pulse-orb {
+            from {
+                opacity: 0.4;
+                transform: translateY(-50%) scale(1);
+            }
+
+            to {
+                opacity: 0.8;
+                transform: translateY(-50%) scale(1.2);
+            }
+        }
+
+        .bar-dots {
+            display: flex;
+            gap: 6px;
+            position: relative;
+            z-index: 1;
+        }
+
+            .bar-dots span {
+                width: 6px;
+                height: 6px;
+                border-radius: 50%;
+                background: rgba(196,181,253,0.7);
+                animation: dot-bounce 1.4s ease-in-out infinite;
+            }
+
+                .bar-dots span:nth-child(2) {
+                    animation-delay: 0.2s;
+                }
+
+                .bar-dots span:nth-child(3) {
+                    animation-delay: 0.4s;
+                }
+
+        @keyframes dot-bounce {
+            0%, 100% {
+                transform: translateY(0);
+                opacity: 0.5;
+            }
+
+            50% {
+                transform: translateY(-6px);
+                opacity: 1;
+            }
+        }
+
+        .bar-text {
+            position: relative;
+            z-index: 1;
+            font-size: 0.8rem;
+            font-weight: 700;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+            color: transparent;
+            background: linear-gradient(90deg, #c4b5fd, #ffffff, #a78bfa, #ffffff, #c4b5fd);
+            background-size: 300% auto;
+            -webkit-background-clip: text;
+            background-clip: text;
+            animation: text-shine 3s linear infinite;
+        }
+
+        @keyframes text-shine {
+            0% {
+                background-position: 0% center;
+            }
+
+            100% {
+                background-position: 300% center;
+            }
+        }
+
+        .bar-badge {
+            position: relative;
+            z-index: 1;
+            background: rgba(139,92,246,0.25);
+            border: 1px solid rgba(167,139,250,0.4);
+            border-radius: 20px;
+            padding: 4px 14px;
+            font-size: 0.75rem;
+            font-weight: 800;
+            letter-spacing: 0.12em;
+            color: #ddd6fe;
+            animation: badge-glow 2s ease-in-out infinite alternate;
+        }
+
+        @keyframes badge-glow {
+            from {
+                box-shadow: 0 0 6px rgba(139,92,246,0.3);
+            }
+
+            to {
+                box-shadow: 0 0 18px rgba(139,92,246,0.7);
+            }
+        }
+
+        /* ── FOOTER ── */
+        .foot {
+            text-align: center;
+            padding: 40px 24px 50px;
+            background: var(--indigo-deep);
+            color: rgba(255,255,255,0.6);
+        }
+
+        .foot-logo {
+            width: 52px;
+            height: 52px;
+            border-radius: 12px;
+            object-fit: cover;
+            margin: 0 auto 14px;
+            display: block;
+            opacity: 0.85;
+        }
+
+        .foot h3 {
+            color: var(--white);
+            font-family: var(--font-display);
+            font-size: 1.2rem;
+            font-weight: 700;
+            margin-bottom: 12px;
+        }
+
+        .foot p {
+            font-size: 0.88rem;
+            line-height: 2;
+            font-weight: 300;
+        }
+
+        .foot a {
+            color: var(--violet-light);
+            text-decoration: none;
+        }
+
+            .foot a:hover {
+                text-decoration: underline;
+            }
+
+        /* ── RESPONSIVE ── */
+        @media (max-width: 640px) {
+            .nav {
+                padding: 10px 16px;
+            }
+
+            .about-card {
+                padding: 36px 24px;
+            }
+
+            .about-img-wrap {
+                flex: 0 0 auto;
+                width: 100%;
+                flex-direction: row;
+            }
+
+            .section {
+                padding: 60px 16px;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- NAV -->
+    <nav class="nav">
+        <a class="nav-brand" href="#">
+            <img class="nav-logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect logo">
+            <span class="nav-name">QejaConnect</span>
+        </a>
+        <div class="nav-actions">
+            <button id="login" class="btn btn-ghost">Sign in</button>
+            <button id="signup" class="btn btn-primary" onclick="openPopup()">Get started</button>
+        </div>
+    </nav>
+
+    <!-- HERO -->
+    <section class="hero">
+        <div class="hero-inner">
+            <span class="hero-eyebrow">Kenya's Rental Platform</span>
+            <h1 class="hero-title">Find your home,<br>Effortlessly.</h1>
+            <p class="hero-sub">Qeja Connect links tenants with verified landlords — making it simple to search, connect, and secure accommodation with clarity and trust.</p>
+            <div class="hero-cta">
+                <button class="btn btn-primary" style="padding:13px 30px;font-size:1rem;" onclick="openPopup()">Create account</button>
+                <button id="install-btn" class="btn btn-outline-white" style="padding:13px 30px;font-size:1rem;">
+                    Install App
+                </button>
+            </div>
+            <div class="hero-stats">
+                <div class="hero-stat">
+                    <div class="hero-stat-num">100%</div>
+                    <div class="hero-stat-label">Verified listings</div>
+                </div>
+                <div class="hero-divider"></div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num">Free</div>
+                    <div class="hero-stat-label">To join</div>
+                </div>
+                <div class="hero-divider"></div>
+                <div class="hero-stat">
+                    <div class="hero-stat-num">24/7</div>
+                    <div class="hero-stat-label">Chat support</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- HOW IT WORKS -->
+    <div class="section">
+        <p class="section-label">How it works</p>
+        <h2 class="section-title">Up and running in minutes</h2>
+        <p class="section-sub">Whether you're looking for a place or listing one, the process is simple and straightforward.</p>
+
+        <div class="how-grid">
+            <div class="step-card">
+                <div class="step-num">1</div>
+                <p class="step-text">Tenants create an account and browse verified listings near their preferred location.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">2</div>
+                <p class="step-text">Landlords or property owners register as a host and list their available properties.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">3</div>
+                <p class="step-text">Fill in your geographical details accurately so we can match you with the right people.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">4</div>
+                <p class="step-text">Hosts track their dashboard for booking requests and respond to tenant inquiries via chat.</p>
+            </div>
+            <div class="step-card">
+                <div class="step-num">5</div>
+                <p class="step-text">Communicate politely and promptly — hosts should check their dashboard regularly.</p>
+            </div>
+        </div>
+
+        <!-- ABOUT -->
+        <div class="about-card">
+            <div class="about-img-wrap">
+                <img class="about-logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect">
+                <span class="about-brand-name">QejaConnect</span>
+                <span class="about-brand-tag">Secure your house easily</span>
+            </div>
+            <div class="about-text">
+                <p class="section-label">About us</p>
+                <h3 class="about-title">What is Qeja Connect?</h3>
+                <p class="about-body">Qeja Connect is an online platform created to link tenants with property owners, making it easier to find accommodation with clarity, trust, and convenience. We believe everyone deserves a safe, straightforward path to finding their next home.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- SIGN UP CTA -->
+    <div class="signup-section">
+        <div class="signup-inner">
+            <p class="section-label" style="justify-content:center;display:flex;">Ready to start?</p>
+            <h2 class="section-title" style="font-size:clamp(1.6rem,4vw,2.2rem);">Seems cool? Join today.</h2>
+            <p class="section-sub" style="margin:0 auto;">Create your free account in under two minutes and start browsing or listing properties right away.</p>
+            <div class="signup-cta">
+                <button id="login2" class="btn btn-ghost" style="padding:12px 28px;">Sign in</button>
+                <button class="btn btn-primary" style="padding:12px 28px;" onclick="openPopup()">Create account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- POPUP OVERLAY -->
+    <div class="popup-overlay" id="popupOverlay" onclick="closePopupOverlay(event)">
+        <div class="popup1" id="popup">
+            <h2>Sign up as</h2>
+            <p class="popup-sub">Choose the account type that fits you.</p>
+            <div class="popup-choices">
+                <button class="popup-choice" id="tenant">
+                    <span class="popup-choice-icon">🏠</span>
+                    <span class="popup-choice-label">Tenant</span>
+                    <span class="popup-choice-desc">Looking for a place to rent</span>
+                </button>
+                <button class="popup-choice" id="host">
+                    <span class="popup-choice-icon">🏢</span>
+                    <span class="popup-choice-label">Host / Landlord</span>
+                    <span class="popup-choice-desc">Listing a property</span>
+                </button>
+            </div>
+            <button class="popup-close-btn" onclick="closePopup()">Cancel</button>
+        </div>
+    </div>
+
+    <!-- BANNER -->
+    <div class="bar-fill">
+        <div class="bar-dots"><span></span><span></span><span></span></div>
+        <span class="bar-text">Powered by</span>
+        <span class="bar-badge">QC</span>
+        <div class="bar-dots"><span></span><span></span><span></span></div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="foot">
+        <img class="foot-logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect">
+        <h3>Qeja Connect</h3>
+        <p>Developed by QejaConnect_Kenya ltd.</p>
+        <p>qejaconnect@outlook.com &nbsp;·&nbsp; +254 714 104 737</p>
+        <p style="margin-top:12px;"><a href="https://eliyasande65-lang.github.io/QejaConnect/privacy_policy.html">Privacy Policy</a></p>
+        <p style="margin-top:16px;">
+            <a href="https://www.facebook.com/profile.php?id=61590181066724" target="_blank" rel="noopener"
+               style="display:inline-flex;align-items:center;gap:8px;color:#a78bfa;font-size:0.92rem;font-weight:600;text-decoration:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#a78bfa">
+                    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.791-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.884v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
+                </svg>
+                Follow us on Facebook @qejaconnect
+            </a>
+        </p>
+    </div>
+
+    
+    <script>
+        function openPopup() {
+        document.getElementById("popup").style.display = "block";
+        }
+
+        function closePopup() {
+        document.getElementById("popup").style.display = "none";
+        }
+
+        document.getElementById('tenant').onclick = () =>
+        window.location.href = "tenant.html";
+
+        document.getElementById('host').onclick = () =>
+        window.location.href = "host.html";
+
+        document.getElementById('login').onclick = () =>
+        window.location.href = "login.html";
+    </script>
+
+    <!-- Install prompt logic -->
+    <script>
+        let deferredPrompt;
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+        e.preventDefault();
+        deferredPrompt = e;
+        document.getElementById('install-btn').style.display = 'block';
+        });
+
+        document.getElementById('install-btn').addEventListener('click', async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+        document.getElementById('install-btn').style.display = 'none';
+        }
+        deferredPrompt = null;
+        });
+
+        // Hide the button if already installed
+        window.addEventListener('appinstalled', () => {
+        document.getElementById('install-btn').style.display = 'none';
+        deferredPrompt = null;
+        });
+    </script>
+
+    z
+    <script>
+        // Second sign-in button (in CTA section)
+        document.getElementById('login2').onclick = () => window.location.href = "login.html";
+
+        // Close popup by clicking overlay background
+        function closePopupOverlay(e) {
+        if (e.target === document.getElementById('popupOverlay')) closePopup();
+        }
+
+        // openPopup/closePopup now also toggle the overlay
+        const _origOpen = openPopup;
+        const _origClose = closePopup;
+        window.openPopup = function() {
+        document.getElementById('popupOverlay').classList.add('open');
+        document.getElementById('popup').style.display = 'block';
+        };
+        window.closePopup = function() {
+        document.getElementById('popupOverlay').classList.remove('open');
+        document.getElementById('popup').style.display = 'none';
+        };
+    </script>
+
+</body>
+</html>

@@ -1,0 +1,231 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <!-- ============================================================
+     QejaConnect PWA — paste this block inside <head> on EVERY page
+     ============================================================ -->
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+
+    <!-- Theme colour (browser chrome / Android status bar) -->
+    <meta name="theme-color" content="#4f46e5">
+
+    <!-- iOS home-screen support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+
+    <!-- ============================================================
+         END QejaConnect PWA block
+         ============================================================ -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Landlords | Qeja Connect</title>
+
+    <style>
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        header {
+            background: #1a1535;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            color: white;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+        }
+
+        nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+            nav a {
+                color: white;
+                text-decoration: none;
+                font-weight: bold;
+            }
+
+        .banner {
+            padding: 70px 20px;
+            text-align: center;
+            background: background: rgba(75, 0, 130, 0.5);
+        }
+
+            .banner h1 {
+                color: #1a1535;
+                font-size: 3rem;
+            }
+
+        .landlord-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
+            gap: 25px;
+            padding: 40px 20px;
+        }
+
+        .profile {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+            .profile img {
+                width: 100px;
+                height: 100px;
+                border-radius: 50%;
+                object-fit: cover;
+            }
+
+        .verified {
+            color: green;
+            font-weight: bold;
+        }
+
+        button {
+            margin-top: 15px;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #1a1535;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        footer {
+            background: #1a1a1a;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo">
+            <h2>Qeja Connect</h2>
+        </div>
+
+        <nav>
+            <a href="home.html">Home</a>
+            <a href="mymessages.html">Notifications</a>
+            <a href="landlords.html">Landlords</a>
+            <a href="contact.html">Contact</a>
+            <a href="hostdashboard.html">Dashboard</a>
+            <a href="myprofile.html">Profile</a>
+            <a href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
+                🚪 Log out
+            </a>
+        </nav>
+
+    </header>
+
+    <section class="banner">
+        <h1>Verified Landlords</h1>
+        <p>Meet trusted property owners and accommodation providers.</p>
+    </section>
+
+    <section class="landlord-grid" id="landlordGrid"></section>
+
+    <footer>
+        <p>© 2026 Qeja Connect Kenya Ltd. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+
+        async function loadLandlords() {
+
+        try {
+        const res = await fetch("https://qeja-backend-azkf.onrender.com/landlords");
+        const data = await res.json();
+
+        const grid = document.getElementById("landlordGrid");
+        grid.innerHTML = "";
+
+        // SAFE GUARD
+        (data.landlords || []).forEach(landlord => {
+
+        grid.innerHTML += `
+        <div class="profile">
+
+        <img src="${
+        landlord.profile_pic
+        ? landlord.profile_pic
+        : 'default-user.png'
+        }">
+
+        <h3>${landlord.fullname}</h3>
+
+        <p class="verified">✔ Verified Host</p>
+
+        <p>${landlord.property_name || "No property listed yet"}</p>
+
+        <small>${landlord.town}, ${landlord.county}</small>
+
+        <button onclick="viewLandlord(${landlord.id})">
+        View Profile
+        </button>
+
+        </div>
+        `;
+        });
+
+        } catch (err) {
+        console.error(err);
+        alert("Failed to load landlords");
+        }
+        }
+
+        function viewLandlord(id) {
+        window.location.href = `landlord-profile.html?id=${id}`;
+        }
+
+        loadLandlords();
+
+    </script>
+
+    
+</body>
+</html>

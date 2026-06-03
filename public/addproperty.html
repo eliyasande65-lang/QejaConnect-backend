@@ -1,0 +1,734 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Add Property</title>
+    <!-- ============================================================
+     QejaConnect PWA — paste this block inside <head> on EVERY page
+     ============================================================ -->
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+
+    <!-- Theme colour (browser chrome / Android status bar) -->
+    <meta name="theme-color" content="#4f46e5">
+
+    <!-- iOS home-screen support -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+
+    <!-- Register Service Worker -->
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+
+    <!-- ============================================================
+         END QejaConnect PWA block
+         ============================================================ -->
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: #0f172a;
+            color: white;
+            min-height: 100vh;
+            padding: 30px 20px;
+        }
+
+        .container {
+            max-width: 680px;
+            margin: auto;
+            background: #1e293b;
+            padding: 36px 32px;
+            border-radius: 20px;
+            border: 1px solid #334155;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 1.7rem;
+            font-weight: 700;
+            margin-bottom: 28px;
+            letter-spacing: -0.3px;
+        }
+
+        form {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        input, textarea, select {
+            padding: 14px 16px;
+            border: 1.5px solid #334155;
+            border-radius: 10px;
+            background: #0f172a;
+            color: white;
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+            transition: border-color 0.2s;
+        }
+
+            input:focus, textarea:focus, select:focus {
+                border-color: indigo;
+            }
+
+            select option {
+                background: #1e293b;
+            }
+
+        textarea {
+            height: 110px;
+            resize: none;
+        }
+
+        .upload-label {
+            display: block;
+            padding: 14px;
+            text-align: center;
+            border-radius: 10px;
+            background: #312e81;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+            border: 1.5px dashed #6366f1;
+        }
+
+            .upload-label:hover {
+                background: #3730a3;
+            }
+
+            .upload-label.has-file {
+                background: #1e3a1e;
+                border-color: #22c55e;
+                color: #86efac;
+            }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Payment notice banner */
+        .pay-notice {
+            background: linear-gradient(135deg, #312e81 0%, #1e1b4b 100%);
+            border: 1px solid #4f46e5;
+            border-radius: 12px;
+            padding: 14px 18px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #c7d2fe;
+            margin-bottom: 4px;
+        }
+
+            .pay-notice .icon {
+                font-size: 22px;
+                flex-shrink: 0;
+            }
+
+            .pay-notice strong {
+                color: #a5b4fc;
+            }
+
+        button[type="submit"] {
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #4f46e5, #7c3aed);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.1s;
+            font-family: 'DM Sans', sans-serif;
+        }
+
+            button[type="submit"]:hover {
+                opacity: 0.92;
+                transform: translateY(-1px);
+            }
+
+            button[type="submit"]:active {
+                transform: translateY(0);
+            }
+
+            button[type="submit"]:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                transform: none;
+            }
+
+        #uploadStatus {
+            text-align: center;
+            font-size: 14px;
+            min-height: 20px;
+        }
+
+        .success-text {
+            color: #4ade80;
+            font-weight: 600;
+        }
+
+        .error-text {
+            color: #f87171;
+            font-weight: 600;
+        }
+
+        /* ───── MPESA MODAL ───── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+            .modal-overlay.active {
+                display: flex;
+            }
+
+        .modal {
+            background: #1e293b;
+            border: 1px solid #334155;
+            border-radius: 20px;
+            padding: 32px 28px;
+            width: 100%;
+            max-width: 420px;
+            text-align: center;
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .mpesa-logo {
+            font-size: 2.5rem;
+            margin-bottom: 8px;
+        }
+
+        .modal h2 {
+            font-size: 1.3rem;
+            font-weight: 700;
+            margin-bottom: 6px;
+        }
+
+        .modal .amount-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 800;
+            padding: 6px 20px;
+            border-radius: 50px;
+            margin: 10px 0 18px;
+            letter-spacing: -0.5px;
+        }
+
+        .modal p.sub {
+            color: #94a3b8;
+            font-size: 13.5px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .phone-wrapper {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .phone-prefix {
+            background: #0f172a;
+            border: 1.5px solid #334155;
+            border-radius: 10px;
+            padding: 14px 14px;
+            color: #94a3b8;
+            font-size: 15px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        #phoneInput {
+            flex: 1;
+            padding: 14px 16px;
+            width: 90%;
+            border: 1.5px solid #334155;
+            border-radius: 10px;
+            background: #0f172a;
+            color: white;
+            font-size: 15px;
+            font-family: 'DM Sans', sans-serif;
+            outline: none;
+        }
+
+            #phoneInput:focus {
+                border-color: #16a34a;
+            }
+
+        .mpesa-btn {
+            width: 100%;
+            padding: 15px;
+            border: none;
+            border-radius: 10px;
+            background: linear-gradient(135deg, #16a34a, #15803d);
+            color: white;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            transition: opacity 0.2s;
+            margin-bottom: 10px;
+        }
+
+            .mpesa-btn:hover {
+                opacity: 0.9;
+            }
+
+            .mpesa-btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+        .cancel-btn {
+            background: none;
+            border: none;
+            color: #64748b;
+            font-size: 14px;
+            cursor: pointer;
+            font-family: 'DM Sans', sans-serif;
+            padding: 6px;
+        }
+
+            .cancel-btn:hover {
+                color: #94a3b8;
+            }
+
+        /* Payment status states inside modal */
+        #mpesaStatus {
+            margin: 12px 0;
+            font-size: 14px;
+            min-height: 22px;
+        }
+
+        .spinner {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #334155;
+            border-top-color: #16a34a;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 8px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .step-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #64748b;
+            margin-top: 14px;
+        }
+
+        .step-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #334155;
+            transition: background 0.3s;
+        }
+
+            .step-dot.active {
+                background: #16a34a;
+            }
+
+            .step-dot.done {
+                background: #22c55e;
+            }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>🏠 Add Property</h1>
+
+        <!-- Payment notice -->
+        <div class="pay-notice">
+            <span class="icon">💳</span>
+            <div>
+                Listing fee is charged per units via M-Pesa. Your property stays live on the feed for <strong>30 days</strong>. Payment is collected before upload.
+            </div>
+        </div>
+
+        <form id="propertyForm" enctype="multipart/form-data">
+
+            <input type="text" id="title" placeholder="Property Title" required>
+            <input type="text" id="units" placeholder="How many units are available" required>
+            <input type="text" id="price" placeholder="Price e.g Ksh 7000/month" required>
+            <input type="text" id="location" placeholder="Location" required>
+            <input type="url" id="maps_url" placeholder="📍 Google Maps URL (optional)">
+
+            <select id="type">
+                <option>Apartment</option>
+                <option>Bedsitter</option>
+                <option>Hostel</option>
+                <option>Single Room</option>
+            </select>
+
+            <label for="image" class="upload-label" id="uploadLabel">
+                📷 Choose Property Image
+            </label>
+            <input type="file" id="image" accept="image/*" required>
+
+            <textarea id="description" placeholder="Describe the property…" required></textarea>
+
+            <div id="uploadStatus"></div>
+
+            <button type="submit" id="submitBtn"></button>
+
+        </form>
+    </div>
+
+
+
+    <div class="modal-overlay" id="mpesaModal">
+        <div class="modal">
+            <div class="mpesa-logo">📲</div>
+            <h2>M-Pesa Payment</h2>
+            <div class="amount-badge"></div>
+            <p class="sub">Enter your Safaricom number. An STK push will be sent to your phone. Enter your M-Pesa PIN to complete.</p>
+
+            <div class="phone-wrapper">
+                <div class="phone-prefix">🇰🇪 +254</div>
+                <input type="tel" id="phoneInput" placeholder="712 345 678" maxlength="9" inputmode="numeric">
+            </div>
+
+            <div id="mpesaStatus"></div>
+
+            <button class="mpesa-btn" id="payBtn" onclick="initiateMpesa()">
+                Pay and publish
+            </button>
+            <button class="cancel-btn" onclick="closeModal()">Cancel</button>
+
+            <div class="step-indicator">
+                <div class="step-dot active" id="dot1"></div>
+                <span>Enter number</span>
+                <div class="step-dot" id="dot2"></div>
+                <span>Confirm on phone</span>
+                <div class="step-dot" id="dot3"></div>
+                <span>Uploading</span>
+            </div>
+        </div>
+    </div>
+    <script>
+        document.querySelector('#units').addEventListener('input', function(){
+            const unit=document.getElementById('units').value;
+            const units=unit*95;
+            document.querySelector('.amount-badge').innerHTML=`Ksh. ${units}`;
+            document.getElementById('submitBtn').innerHTML=`💳Pay Ksh ${units} and upload`;
+            localStorage.setItem('rooms', units);
+        });
+
+        document.getElementById('submitBtn').textContent = '💳 Pay & Upload'; 
+    </script>
+    
+    <script>
+
+        const API_BASE = "https://qeja-backend-azkf.onrender.com";
+
+
+        document.getElementById("image").addEventListener("change", function () {
+        const label = document.getElementById("uploadLabel");
+        if (this.files[0]) {
+        label.textContent = "✅ " + this.files[0].name;
+        label.classList.add("has-file");
+        } else {
+        label.textContent = "📷 Choose Property Image";
+        label.classList.remove("has-file");
+        }
+        });
+
+
+        let pendingFormData = null;
+
+        //  Form submit > validate > open modal
+        document.getElementById("propertyForm").addEventListener("submit", function (e) {
+        e.preventDefault();
+
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
+        const token = localStorage.getItem("token");
+
+        if (!loggedUser || !token) {
+        alert("Please login first.");
+        return;
+        }
+
+        // Block tenants
+        const role = localStorage.getItem("role") || loggedUser.role;
+        if (role !== "landlord") {
+        alert("Only landlords can list properties.");
+        window.location.href = "home.html";
+        return;
+        }
+
+        const file = document.getElementById("image").files[0];
+        if (!file) { alert("Please select a property image."); return; }
+
+        // Build FormData and stash it
+        const fd = new FormData();
+        fd.append("maps_url",     document.getElementById("maps_url").value);
+        fd.append("landlord_id",  loggedUser.id);
+        fd.append("title",        document.getElementById("title").value);
+        fd.append("price",        document.getElementById("price").value);
+        fd.append("location",     document.getElementById("location").value);
+        fd.append("type",         document.getElementById("type").value);
+        fd.append("description",  document.getElementById("description").value);
+        fd.append("image",        file);
+
+        pendingFormData = fd;
+
+        // Pre-fill phone from stored user if available
+        if (loggedUser.phone) {
+        const cleaned = loggedUser.phone.replace(/^(\+254|254|0)/, "");
+        document.getElementById("phoneInput").value = cleaned;
+        }
+
+        openModal();
+        });
+
+        // ── Modal open/close ────────────────────────────────────────────
+        function openModal() {
+        document.getElementById("mpesaModal").classList.add("active");
+        resetModalState();
+        }
+
+        function closeModal() {
+        document.getElementById("mpesaModal").classList.remove("active");
+        resetModalState();
+        }
+
+        function resetModalState() {
+        document.getElementById("mpesaStatus").innerHTML = "";
+        document.getElementById("payBtn").disabled = false;
+        document.getElementById("payBtn").textContent = "Send STK Push";
+        setStep(1);
+        }
+
+        function setStep(n) {
+        ["dot1","dot2","dot3"].forEach((id, i) => {
+        const el = document.getElementById(id);
+        el.classList.remove("active","done");
+        if (i + 1 < n)  el.classList.add("done");
+        if (i + 1 === n) el.classList.add("active");
+        });
+        }
+
+        // ── M-Pesa STK Push ─────────────────────────────────────────────
+        async function initiateMpesa() {
+        const raw = document.getElementById("phoneInput").value.trim().replace(/\s/g,"");
+
+        if (!/^\d{9}$/.test(raw)) {
+        showMpesaStatus("error", "Enter a valid 9-digit number (e.g. 712 345 678)");
+        return;
+        }
+
+        const phone = "254" + raw;          // e.g. 254712345678
+        const token = localStorage.getItem("token");
+
+        const statusEl = document.getElementById("mpesaStatus");
+        const payBtn   = document.getElementById("payBtn");
+
+        payBtn.disabled = true;
+        payBtn.textContent = "Sending…";
+        setStep(2);
+        statusEl.innerHTML = `<div class="spinner"></div><p style="color:#94a3b8;font-size:13px;">STK push sent — check your phone</p>`;
+
+        try {
+        // 1️⃣ Initiate STK push
+        const units = localStorage.getItem('rooms') || 195; 
+
+        const stkRes = await fetch(`${API_BASE}/mpesa/stk-push`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
+            body: JSON.stringify({ phone, amount: units, description: "Property listing fee" })
+        });
+
+        const stkData = await stkRes.json();
+
+        if (!stkData.success) {
+        showMpesaStatus("error", stkData.message || "Failed to send STK push.");
+        payBtn.disabled = false;
+        payBtn.textContent = "Retry";
+        setStep(1);
+        return;
+        }
+
+        const checkoutRequestId = stkData.CheckoutRequestID;
+
+        // 2️⃣ Poll for payment confirmation
+        statusEl.innerHTML = `<div class="spinner"></div><p style="color:#94a3b8;font-size:13px;">Waiting for payment confirmation…</p>`;
+        await pollPayment(checkoutRequestId, token);
+
+        } catch (err) {
+        showMpesaStatus("error", "Network error. Please try again.");
+        payBtn.disabled = false;
+        payBtn.textContent = "Retry";
+        setStep(1);
+        }
+        }
+
+        // ── Poll payment status
+        async function pollPayment(checkoutRequestId, token) {
+        const MAX_TRIES = 20;       // 20 × 3s = 60s max wait
+        const INTERVAL  = 3000;
+
+        for (let attempt = 0; attempt < MAX_TRIES; attempt++) {
+        await sleep(INTERVAL);
+
+        try {
+        const res = await fetch(`${API_BASE}/mpesa/check-payment`, {
+        method: "POST",
+        headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${localStorage.getItem("token")}`
+        },
+        body: JSON.stringify({ checkoutRequestId })
+        });
+
+        const data = await res.json();
+
+        if (data.success && data.status === "completed") {
+        // ✅ Payment confirmed — proceed to upload
+        setStep(3);
+        document.getElementById("mpesaStatus").innerHTML =
+        `<p style="color:#4ade80;font-weight:600;">✅ Payment confirmed!</p>`;
+
+        await sleep(800);
+        closeModal();
+        await doUpload(data.transaction_id || checkoutRequestId);
+        return;
+        }
+
+        if (data.status === "failed" || data.status === "cancelled") {
+        showMpesaStatus("error", "Payment was not completed. Please try again.");
+        document.getElementById("payBtn").disabled = false;
+        document.getElementById("payBtn").textContent = "Retry";
+        setStep(1);
+        return;
+        }
+
+        // Still pending — keep polling
+
+        } catch (err) {
+        // Network hiccup — retry
+        }
+        }
+
+        // Timed out
+        showMpesaStatus("error", "Payment timeout. If deducted, contact support.");
+        document.getElementById("payBtn").disabled = false;
+        document.getElementById("payBtn").textContent = "Retry";
+        setStep(1);
+        }
+
+        // ── Upload property after payment ────────────────────────────────
+        async function doUpload(transactionId) {
+        const status  = document.getElementById("uploadStatus");
+        const submitBtn = document.getElementById("submitBtn");
+
+        submitBtn.disabled = true;
+        submitBtn.textContent = "Uploading…";
+        status.innerHTML = `<div style="display:flex;align-items:center;gap:8px;justify-content:center;">
+        <div class="spinner" style="width:20px;height:20px;border-width:2px;"></div>
+        <span style="color:#94a3b8;font-size:14px;">Uploading your property…</span>
+        </div>`;
+
+        // Attach transaction ID so backend can verify/log payment
+        pendingFormData.append("mpesa_transaction_id", transactionId);
+        // Expiry: 30 days from now (ISO string, backend should also compute this)
+        const expiresAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+        pendingFormData.append("listing_expires_at", expiresAt);
+
+        try {
+        const res = await fetch(`${API_BASE}/upload-property`, {
+        method: "POST",
+        headers: { "Authorization": `Bearer ${localStorage.getItem("token")}` },
+        body: pendingFormData
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+        status.innerHTML = `<p class="success-text">✅ Property uploaded! Redirecting…</p>`;
+        document.getElementById("propertyForm").reset();
+        document.getElementById("uploadLabel").textContent = "📷 Choose Property Image";
+        document.getElementById("uploadLabel").classList.remove("has-file");
+
+        setTimeout(() => {
+        window.location.href =
+        "hostdashboard.html";
+        }, 1800);
+        } else {
+        status.innerHTML = `<p class="error-text">❌ ${data.message || "Upload failed."}</p>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "💳 Pay Ksh 195 & Upload";
+        }
+
+        } catch (err) {
+        status.innerHTML = `<p class="error-text">❌ Server error. Contact support with your M-Pesa ref.</p>`;
+        submitBtn.disabled = false;
+        submitBtn.textContent = "💳 Pay Ksh 195 & Upload";
+        }
+        }
+
+        // ── Helpers ──────────────────────────────────────────────────────
+        function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+        function showMpesaStatus(type, msg) {
+        const el = document.getElementById("mpesaStatus");
+        el.innerHTML = `<p class="${type === "error" ? "error-text" : "success-text"}">${msg}</p>`;
+        }
+    </script>
+
+</body>
+</html>

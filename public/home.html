@@ -1,0 +1,1337 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#1a1535">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <!--brotherfromanothermother-->
+    <script>
+        (function() {
+        if (!localStorage.getItem('token')) {
+        window.location.replace('login.html');
+        }
+        })();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Qeja Connect | Home</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f4f4;
+            color: #222;
+        }
+
+        /* ── HEADER ── */
+        header {
+            width: 100%;
+            background: #1a1535;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 10001;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            margin-left: 40px;
+            gap: 15px;
+        }
+
+        #logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .brand {
+            color: white;
+        }
+
+            .brand h2 {
+                margin: 0;
+            }
+
+            .brand p {
+                margin: 0;
+                font-size: 14px;
+                opacity: 0.9;
+            }
+
+        .menu-btn {
+            position: fixed;
+            top: 20px;
+            left: 1px;
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 12px;
+            background: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10000;
+        }
+
+        /* ── SIDE MENU ── */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -260px;
+            width: 260px;
+            height: 100%;
+            background: #1b1b1b;
+            z-index: 9999;
+            transition: 0.3s;
+            padding-top: 80px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4);
+            overflow-y: auto;
+        }
+
+            .side-menu.active {
+                left: 0;
+            }
+
+            .side-menu a {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: white;
+                text-decoration: none;
+                padding: 16px 22px;
+                border-bottom: 1px solid #2a2a2a;
+                font-size: 15px;
+                font-weight: 500;
+                transition: background 0.2s;
+            }
+
+                .side-menu a:hover {
+                    background: rgba(99,102,241,0.3);
+                }
+
+                .side-menu a.active-link {
+                    background: rgba(99,102,241,0.22);
+                    color: #a5b4fc;
+                    border-left: 3px solid #a5b4fc;
+                    padding-left: 19px;
+                }
+
+        .menu-badge {
+            background: indigo;
+            color: white;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            min-width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* ── OVERLAY ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            top: 90px;
+            display: none;
+            z-index: 9998;
+        }
+
+            .overlay.active {
+                display: block;
+            }
+
+        /* ── HERO ── */
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.55),rgba(0,0,0,0.55)), url('https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?q=80&w=1200&auto=format&fit=crop');
+            background-size: cover;
+            background-position: center;
+            min-height: 350px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            color: white;
+            padding: 20px;
+        }
+
+        .hero-content {
+            max-width: 800px;
+        }
+
+        .hero h1 {
+            font-size: clamp(2rem,5vw,4rem);
+            margin-bottom: 10px;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            line-height: 1.7;
+        }
+
+        /* ── SEARCH ── */
+        .search-section {
+            width: 100%;
+            padding: 30px 20px;
+            display: flex;
+            justify-content: center;
+        }
+
+        .search-box {
+            width: 100%;
+            max-width: 1100px;
+            background: white;
+            padding: 20px;
+            border-radius: 15px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px,1fr));
+            gap: 15px;
+        }
+
+            .search-box input,
+            .search-box select {
+                padding: 14px;
+                border-radius: 10px;
+                border: 1px solid #ccc;
+                font-size: 15px;
+            }
+
+            .search-box button {
+                border: none;
+                border-radius: 10px;
+                background: indigo;
+                height: 45px;
+                color: white;
+                font-weight: bold;
+                cursor: pointer;
+                font-size: 15px;
+            }
+
+                .search-box button:hover {
+                    background: darkviolet;
+                }
+
+        /* ── PROPERTIES ── */
+        .properties {
+            padding: 20px;
+        }
+
+        .section-title {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+            .section-title h2 {
+                color: indigo;
+                font-size: 2rem;
+            }
+
+        .property-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px,1fr));
+            gap: 25px;
+        }
+
+        .property-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+            .property-card:hover {
+                transform: translateY(-5px);
+            }
+
+            .property-card img {
+                width: 100%;
+                height: 230px;
+                object-fit: cover;
+            }
+
+        .property-info {
+            padding: 20px;
+        }
+
+            .property-info h3 {
+                margin-top: 0;
+                color: indigo;
+            }
+
+        .price {
+            color: darkviolet;
+            font-size: 1.3rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .location {
+            color: #555;
+            margin-bottom: 10px;
+        }
+
+        .features {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+            .features span {
+                background: #eee;
+                padding: 8px 12px;
+                border-radius: 20px;
+                font-size: 13px;
+            }
+
+        .view-btn {
+            width: 100%;
+            margin-top: 15px;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #1a1535;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-size: 15px;
+        }
+
+            .view-btn:hover {
+                background: darkviolet;
+            }
+
+        /* ── POPUP ── */
+        .popup-container {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.75);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+
+        .popup-content {
+            background: white;
+            width: 100%;
+            max-width: 430px;
+            border-radius: 18px;
+            overflow: hidden;
+            position: relative;
+            max-height: 90vh;
+            overflow-y: auto;
+            animation: popupShow 0.25s ease;
+        }
+
+            .popup-content img {
+                width: 100%;
+                height: 200px;
+                object-fit: cover;
+            }
+
+        .close-popup {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            font-size: 30px;
+            cursor: pointer;
+            font-weight: bold;
+            color: red;
+        }
+
+        .popup-content h2 {
+            padding: 15px;
+            margin: 0;
+            color: indigo;
+        }
+
+        .popup-price {
+            padding: 0 15px;
+            color: darkviolet;
+            font-weight: bold;
+        }
+
+        .popup-location {
+            padding: 5px 15px;
+            color: #555;
+        }
+
+        #popup-description {
+            padding: 10px 15px;
+            line-height: 1.6;
+        }
+
+        .popup-features {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 10px 15px 20px;
+        }
+
+            .popup-features span {
+                background: #eee;
+                padding: 6px 10px;
+                border-radius: 20px;
+                font-size: 12px;
+            }
+
+        @keyframes popupShow {
+            from {
+                transform: scale(0.8);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        #interest-btn {
+            width: calc(100% - 30px);
+            margin: 0 15px 20px;
+            padding: 14px;
+            border: none;
+            border-radius: 12px;
+            background: #1a1535;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+            #interest-btn:hover {
+                transform: translateY(-2px);
+                opacity: 0.95;
+                box-shadow: 0 4px 12px rgba(75,0,130,0.4);
+            }
+
+        /* ── FOOTER ── */
+        footer {
+            margin-top: 50px;
+            background: #1b1b1b;
+            color: white;
+            padding: 40px 20px;
+        }
+
+        .footer-content {
+            max-width: 1200px;
+            margin: auto;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px,1fr));
+            gap: 30px;
+        }
+
+        footer h3 {
+            color: violet;
+        }
+
+        footer p {
+            line-height: 1.8;
+            color: #ccc;
+        }
+
+        footer a {
+            color: #a78bfa;
+            text-decoration: none;
+            display: block;
+            line-height: 2;
+        }
+
+            footer a:hover {
+                text-decoration: underline;
+            }
+
+        .copyright {
+            text-align: center;
+            margin-top: 30px;
+            color: #aaa;
+            border-top: 1px solid #444;
+            padding-top: 20px;
+        }
+
+        /* ── DARK MODE ── */
+        body.dark {
+            background: #121212;
+            color: #eaeaea;
+        }
+
+            body.dark .property-card {
+                background: #1e1e1e;
+                color: #eaeaea;
+            }
+
+            body.dark .search-box {
+                background: #1e1e1e;
+            }
+
+            body.dark input,
+            body.dark select {
+                background: #2a2a2a;
+                color: white;
+                border: 1px solid #444;
+            }
+
+            body.dark .section-title h2 {
+                color: #c084fc;
+            }
+
+            body.dark footer {
+                background: #0d0d0d;
+            }
+
+            body.dark .popup-content {
+                background: #1e1e1e;
+                color: white;
+            }
+
+            body.dark .popup-location {
+                color: #ccc;
+            }
+
+            body.dark .popup-features span {
+                background: #333;
+                color: white;
+            }
+
+        @media (max-width: 768px) {
+            header {
+                justify-content: center;
+                gap: 10px;
+            }
+
+            .hero {
+                min-height: 280px;
+            }
+        }
+        
+
+        /*adminupdates*/
+        /* ── UPDATE CARDS in the property grid ── */
+        .update-card {
+            background: white;
+            border-radius: 15px;
+            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+            border-top: 4px solid #4f46e5;
+            position: relative;
+        }
+
+            .update-card:hover {
+                transform: translateY(-5px);
+            }
+
+        .update-card-banner {
+            background: linear-gradient(135deg, #1a1535, #312e81);
+            padding: 20px;
+            position: relative;
+        }
+
+            .update-card-banner img {
+                width: 100%;
+                height: 160px;
+                object-fit: cover;
+                border-radius: 8px;
+                margin-top: 10px;
+                display: block;
+            }
+
+        .update-type-badge {
+            display: inline-block;
+            font-size: 11px;
+            font-weight: 700;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .badge-announcement {
+            background: rgba(99,102,241,0.3);
+            color: #a5b4fc;
+        }
+
+        .badge-maintenance {
+            background: rgba(251,146,60,0.3);
+            color: #fdba74;
+        }
+
+        .badge-alert {
+            background: rgba(239,68,68,0.3);
+            color: #fca5a5;
+        }
+
+        .badge-feature {
+            background: rgba(52,211,153,0.3);
+            color: #6ee7b7;
+        }
+
+        .badge-promotion {
+            background: rgba(167,139,250,0.3);
+            color: #c4b5fd;
+        }
+
+        .update-card-body {
+            padding: 18px 20px 20px;
+        }
+
+            .update-card-body h3 {
+                color: indigo;
+                margin: 0 0 8px;
+                font-size: 1rem;
+            }
+
+            .update-card-body p {
+                color: #555;
+                font-size: 14px;
+                line-height: 1.6;
+                margin-bottom: 12px;
+            }
+
+        .update-cta-btn {
+            display: inline-block;
+            padding: 9px 18px;
+            background: #1a1535;
+            color: white;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: background 0.2s;
+        }
+
+            .update-cta-btn:hover {
+                background: darkviolet;
+            }
+
+        .update-meta-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 6px;
+        }
+
+        .update-date {
+            font-size: 12px;
+            color: #999;
+        }
+
+        /* dark mode support */
+        body.dark .update-card {
+            background: #1e1e1e;
+        }
+
+        body.dark .update-card-body h3 {
+            color: #c084fc;
+        }
+
+        body.dark .update-card-body p {
+            color: #ccc;
+        }
+
+        body.dark .update-cta-btn {
+            background: #312e81;
+        }
+
+        /* ── SECTION LABEL for updates strip ── */
+        .feed-divider {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin: 32px 0 18px;
+        }
+
+            .feed-divider span {
+                font-weight: 700;
+                font-size: 1rem;
+                color: #4f46e5;
+                white-space: nowrap;
+            }
+
+            .feed-divider::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: #ddd;
+            }
+
+        body.dark .feed-divider::after {
+            background: #333;
+        }
+
+        body.dark .feed-divider span {
+            color: #a78bfa;
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            <img src="logo.jpg" id="logo" alt="logo">
+            <div class="brand">
+                <h2>Qeja Connect</h2>
+                <p>Quality accommodation providence</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+    <div class="side-menu" id="sideMenu">
+        <a href="home.html">🏠 Home</a>
+        <a href="landlords.html">🏘 Landlords</a>
+        <a href="contact.html">📞 Contact</a>
+        <a href="hostdashboard.html" id="menuDashboard">
+            📊 Dashboard
+            <span id="menuDashboardBadge" class="menu-badge" style="display:none;"></span>
+        </a>
+        <a href="myprofile.html">👤 Profile</a>
+        <a href="mymessages.html" id="menuMessages">
+            💬 Messages from QejaConnect
+            <span id="navNotifBadge" class="menu-badge" style="display:none;">0</span>
+        </a>
+        <a href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
+            🚪 Log out
+        </a>
+        <button onclick="toggleTheme()" style="margin:20px;padding:10px;border:none;background:none;color:white;cursor:pointer;">
+            🌙 Theme
+        </button>
+    </div>
+
+    <section class="hero">
+        <div class="hero-content">
+            <h1>Find Trusted Housing Across Kenya</h1>
+            <p>Discover verified rentals, hostels, apartments and affordable accommodation posted directly by landlords and property owners.</p>
+        </div>
+    </section>
+
+    <section class="search-section">
+        <div class="search-box">
+            <input type="text" placeholder="Enter town or area">
+            <select>
+                <option>Property Type</option>
+                <option>Apartment</option>
+                <option>Bedsitter</option>
+                <option>Single Room</option>
+                <option>Hostel</option>
+            </select>
+            <select>
+                <option>Budget</option>
+                <option>Below Ksh 5,000</option>
+                <option>Ksh 5,000 - 10,000</option>
+                <option>Ksh 10,000 - 20,000</option>
+                <option>Above Ksh 20,000</option>
+            </select>
+            <button onclick="searchProperty()" style="background: #1a1535">Search Property</button>
+        </div>
+    </section>
+
+    <section class="properties">
+        <div class="section-title">
+            <h2>Available Properties</h2>
+        </div>
+
+        <!-- Updates strip — injected by loadFeed() -->
+        <div id="updatesStrip"></div>
+
+        <!-- Properties grid -->
+        <div class="property-grid" id="propertyGrid"></div>
+    </section>
+
+    <footer>
+        <div class="footer-content">
+            <div>
+                <h3>Qeja Connect</h3>
+                <p>Kenya's modern housing connection platform helping tenants and landlords connect safely and efficiently.</p>
+            </div>
+            <div>
+                <h3>Contact</h3>
+                <p>Email: qejaconnect@outlook.com</p>
+                <p>Phone: +254714104737</p>
+                <p>Nairobi, Kenya</p>
+            </div>
+            <div>
+                <h3>Quick Links</h3>
+                <a href="privacy_policy.html">Privacy Policy</a>
+                <p>About us</p>
+                <p>Terms and Conditions</p>
+            </div>
+        </div>
+        <div class="copyright">© 2026 Qeja Connect Kenya Ltd. All Rights Reserved.</div>
+    </footer>
+
+    <!-- POPUP -->
+    <div id="popup" class="popup-container">
+        <div class="popup-content">
+            <span class="close-popup" onclick="closePopup()">&times;</span>
+            <img id="popup-image">
+            <h2 id="popup-title"></h2>
+            <div class="popup-price" id="popup-price"></div>
+            <div class="popup-location" id="popup-location"></div>
+            <p id="popup-description"></p>
+            <div class="popup-features" id="popup-features"></div>
+            <a id="map-btn" href="#" target="_blank"
+               style="display:none;width:calc(100% - 30px);margin:0 15px 10px;padding:14px;border-radius:12px;background:#1a73e8;color:white;font-size:15px;font-weight:bold;text-align:center;text-decoration:none;">
+                🗺️ Open on Google Maps
+            </a>
+            <button id="interest-btn" onclick="handleInterestedClick()">Interested</button>
+        </div>
+    </div>
+    <!-- QEJACONNECT AI ASSISTANT -->
+
+    <style>
+        #qc-ai-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            width: 65px;
+            height: 65px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            z-index: 999999;
+            background: #4f46e5;
+            color: #fff;
+            font-size: 28px;
+            box-shadow: 0 5px 20px rgba(0,0,0,.3);
+        }
+
+        #qc-ai-chat {
+            position: fixed;
+            right: 20px;
+            bottom: 95px;
+            width: 370px;
+            height: 600px;
+            background: #fff;
+            border-radius: 18px;
+            overflow: hidden;
+            display: none;
+            flex-direction: column;
+            box-shadow: 0 10px 40px rgba(0,0,0,.3);
+            z-index: 999999;
+        }
+
+        #qc-ai-header {
+            background: #4f46e5;
+            color: white;
+            padding: 15px;
+        }
+
+            #qc-ai-header h3 {
+                margin: 0;
+                font-size: 18px;
+            }
+
+            #qc-ai-header p {
+                margin: 4px 0 0;
+                font-size: 12px;
+                opacity: .9;
+            }
+
+        #qc-ai-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8fafc;
+        }
+
+        .qc-message {
+            margin-bottom: 12px;
+            max-width: 85%;
+            padding: 12px;
+            border-radius: 15px;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .qc-user {
+            background: #4f46e5;
+            color: white;
+            margin-left: auto;
+        }
+
+        .qc-ai {
+            background: white;
+            border: 1px solid #ddd;
+        }
+
+        #qc-ai-input-area {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #ddd;
+            background: white;
+        }
+
+        #qc-ai-input {
+            flex: 1;
+            border: 1px solid #ccc;
+            border-radius: 12px;
+            padding: 12px;
+            outline: none;
+        }
+
+        #qc-ai-send {
+            margin-left: 8px;
+            border: none;
+            background: #4f46e5;
+            color: white;
+            border-radius: 12px;
+            padding: 12px 18px;
+            cursor: pointer;
+        }
+
+        #qc-close {
+            float: right;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .qc-typing {
+            font-style: italic;
+            color: #666;
+        }
+
+        @media(max-width:500px) {
+
+            #qc-ai-chat {
+                width: 100%;
+                height: 100%;
+                right: 0;
+                bottom: 0;
+                border-radius: 0;
+            }
+
+            #qc-ai-button {
+                bottom: 15px;
+                right: 15px;
+            }
+        }
+    </style>
+
+    <button id="qc-ai-button" style="display:none">🤖</button>
+
+    <div id="qc-ai-chat">
+
+        <div id="qc-ai-header">
+            <span id="qc-close">✕</span>
+
+            <h3>QejaConnect AI</h3>
+
+            <p>
+                Built for QejaConnect using OpenAI technology
+            </p>
+        </div>
+
+        <div id="qc-ai-messages">
+
+            <div class="qc-message qc-ai">
+                Hello 👋
+
+                I'm QejaConnect AI.
+
+                I can help you navigate QejaConnect, find houses,
+                understand listings and answer questions about the platform.
+
+
+            </div>
+
+        </div>
+
+        <div id="qc-ai-input-area">
+
+            <input id="qc-ai-input"
+                   placeholder="Ask me anything...">
+
+            <button id="qc-ai-send">
+                Send
+            </button>
+
+        </div>
+
+    </div>
+
+    <script>
+
+        const aiButton =
+        document.getElementById("qc-ai-button");
+
+        const aiChat =
+        document.getElementById("qc-ai-chat");
+
+        const closeBtn =
+        document.getElementById("qc-close");
+
+        const sendBtn =
+        document.getElementById("qc-ai-send");
+
+        const input =
+        document.getElementById("qc-ai-input");
+
+        const messages =
+        document.getElementById("qc-ai-messages");
+
+        aiButton.onclick = () => {
+        aiChat.style.display = "flex";
+        };
+
+        closeBtn.onclick = () => {
+        aiChat.style.display = "none";
+        };
+
+        function addMessage(text,type){
+
+        const div =
+        document.createElement("div");
+
+        div.className =
+        "qc-message " + type;
+
+        div.textContent = text;
+
+        messages.appendChild(div);
+
+        messages.scrollTop =
+        messages.scrollHeight;
+        }
+
+        async function sendMessage(){
+
+        const message =
+        input.value.trim();
+
+        if(!message) return;
+
+        addMessage(message,"qc-user");
+
+        input.value="";
+
+        const typing =
+        document.createElement("div");
+
+        typing.className =
+        "qc-message qc-ai qc-typing";
+
+        typing.innerText =
+        "Thinking...";
+
+        messages.appendChild(typing);
+
+        messages.scrollTop =
+        messages.scrollHeight;
+
+        try{
+
+        const token =
+        localStorage.getItem("token");
+
+        const response =
+        await fetch(
+        "https://qeja-backend-azkf.onrender.com/ai/chat",
+        {
+        method:"POST",
+
+        headers:{
+        "Content-Type":"application/json",
+        "Authorization":"Bearer "+token
+        },
+
+        body:JSON.stringify({
+        message
+        })
+        });
+
+        const data =
+        await response.json();
+
+        typing.remove();
+
+        addMessage(
+        data.reply ||
+        "No response received.",
+        "qc-ai"
+        );
+
+        }catch(error){
+
+        typing.remove();
+
+        addMessage(
+        "Unable to connect to QejaConnect AI.",
+        "qc-ai"
+        );
+        }
+        }
+
+        sendBtn.onclick =
+        sendMessage;
+
+        input.addEventListener(
+        "keypress",
+        function(e){
+        if(e.key==="Enter"){
+        sendMessage();
+        }
+        });
+
+    </script>
+    <script>
+        function searchProperty() {
+        const location = document.querySelector('input').value.toLowerCase();
+        document.querySelectorAll('.property-card').forEach(card => {
+        card.style.display = card.innerText.toLowerCase().includes(location) ? "block" : "none";
+        });
+        }
+
+        function handleInterestedClick() {
+        if (!currentProperty) { alert("No property selected"); return; }
+        interested(currentProperty.landlord_id);
+        }
+    </script>
+
+    <script>
+        let currentProperty = null;
+
+        function openPopup(property) {
+        currentProperty = property;
+        document.getElementById("popup-image").src        = property.image_url;
+        document.getElementById("popup-title").innerText  = property.title       || "No title";
+        document.getElementById("popup-price").innerText  = property.price       || "No price";
+        document.getElementById("popup-location").innerText = property.location  || "No location";
+        document.getElementById("popup-description").innerText = property.description || "No description";
+        const mapBtn = document.getElementById("map-btn");
+        if (property.maps_url) { mapBtn.href = property.maps_url; mapBtn.style.display = "block"; }
+        else { mapBtn.style.display = "none"; }
+        document.getElementById("popup").style.display = "flex";
+        }
+
+        function closePopup() {
+        document.getElementById("popup").style.display = "none";
+        }
+
+        async function interested(landlord_id) {
+        const btn        = document.getElementById("interest-btn");
+        const token      = localStorage.getItem("token");
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
+
+        if (!loggedUser || !token) { alert("Please login first"); return; }
+
+        btn.disabled  = true;
+        btn.innerText = "Sending...";
+
+        try {
+        const res  = await fetch("https://qeja-backend-azkf.onrender.com/interested", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ landlord_id, tenant_id: loggedUser.id, message: "Hi, I am interested in this property" })
+        });
+        const data = await res.json();
+        if (data.success) {
+        alert("Chat started successfully ✅");
+        localStorage.setItem("chatLandlord", landlord_id);
+        window.location.href = "hostdashboard.html";
+        } else {
+        alert(data.message || "Failed");
+        }
+        } catch (err) {
+        console.error(err);
+        alert("Network error");
+        }
+
+        btn.disabled  = false;
+        btn.innerText = "Interested";
+        }
+    </script>
+
+    <script>
+        // ── Renders an update as a grid card ──────────────────────
+        function buildUpdateCard(u) {
+        const typeMap = {
+        announcement: { badge: "badge-announcement", emoji: "📢" },
+        maintenance:  { badge: "badge-maintenance",  emoji: "🔧" },
+        alert:        { badge: "badge-alert",         emoji: "🚨" },
+        feature:      { badge: "badge-feature",       emoji: "✨" },
+        promotion:    { badge: "badge-promotion",     emoji: "🎁" },
+        };
+        const meta = typeMap[u.type] || typeMap.announcement;
+        const label = u.type ? u.type.charAt(0).toUpperCase() + u.type.slice(1) : "Announcement";
+        const dateStr = new Date(u.created_at).toLocaleDateString("en-KE", { day:"numeric", month:"short", year:"numeric" });
+
+        return `
+        <div class="update-card">
+        <div class="update-card-banner">
+        <div class="update-meta-row">
+        <span class="update-type-badge ${meta.badge}">${meta.emoji} ${label}</span>
+        <span class="update-date" style="color:#94a3b8;">${dateStr}</span>
+        </div>
+        ${u.image_url ? `<img src="${u.image_url}" alt="${u.title}">` : ""}
+        </div>
+        <div class="update-card-body">
+        <h3>${u.title}</h3>
+        <p>${u.body.length > 160 ? u.body.slice(0, 160) + "…" : u.body}</p>
+        ${u.cta_url ? `<a class="update-cta-btn" href="${u.cta_url}" target="_blank">${u.cta_label || "Learn more"} ↗</a>` : ""}
+        </div>
+        </div>`;
+        }
+
+        // ── Load updates + properties together ───────────────────
+        async function loadFeed() {
+        const grid = document.getElementById("propertyGrid");
+        const strip = document.getElementById("updatesStrip");
+
+        try {
+        // Fetch in parallel
+        const [propsRes, updatesRes] = await Promise.all([
+        fetch("https://qeja-backend-azkf.onrender.com/properties"),
+        fetch("https://qeja-backend-azkf.onrender.com/updates")
+        ]);
+
+        const [propsData, updatesData] = await Promise.all([
+        propsRes.json(),
+        updatesRes.json()
+        ]);
+
+        // ── Render updates strip (above properties) ───────────
+        if (updatesData.success && updatesData.updates.length) {
+        strip.innerHTML = `
+        <div class="feed-divider"><span>📣 Platform Updates</span></div>
+        <div class="property-grid" id="updatesGrid"></div>
+        <div class="feed-divider" style="margin-top:28px;"><span>🏠 Available Properties</span></div>`;
+
+        const ugrid = document.getElementById("updatesGrid");
+        updatesData.updates.forEach(u => {
+        ugrid.innerHTML += buildUpdateCard(u);
+        });
+        }
+
+        // ── Render properties ─────────────────────────────────
+        grid.innerHTML = "";
+        if (propsData.success && propsData.properties.length) {
+        propsData.properties.forEach(property => {
+        grid.innerHTML += `
+        <div class="property-card">
+        <img src="${property.image_url}" />
+        <div class="property-info">
+        <h3>${property.title}</h3>
+        <div class="price">Ksh ${property.price}</div>
+        <div class="location">${property.location}</div>
+        <p>${property.description}</p>
+        <small>Posted by: ${property.landlord_name || "Unknown"}</small>
+        <button class="view-btn" onclick='openPopup(${JSON.stringify(property)})'>View Details</button>
+        </div>
+        </div>`;
+        });
+        } else {
+        grid.innerHTML = `<p style="text-align:center;color:#999;padding:40px;">No properties available right now.</p>`;
+        }
+
+        } catch (err) {
+        console.error(err);
+        grid.innerHTML = `<p style="text-align:center;color:#f87171;padding:40px;">Failed to load properties.</p>`;
+        }
+        }
+
+        // Replace the old loadProperties() call:
+        loadFeed();
+    </script>
+    <script>
+        function toggleTheme() {
+        document.body.classList.toggle("dark");
+        localStorage.setItem("theme", document.body.classList.contains("dark") ? "dark" : "light");
+        }
+
+        function toggleMenu() {
+        document.getElementById("sideMenu").classList.toggle("active");
+        document.getElementById("overlay").classList.toggle("active");
+        }
+
+        function closeMenu() {
+        document.getElementById("sideMenu").classList.remove("active");
+        document.getElementById("overlay").classList.remove("active");
+        }
+
+        window.onload = function () {
+        if (localStorage.getItem("theme") === "dark") document.body.classList.add("dark");
+        };
+    </script>
+
+    <script>
+        (async function initMenuBadges() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // Highlight current page
+        const path = location.pathname.split('/').pop();
+        document.querySelectorAll('.side-menu a').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href && path && href.includes(path)) a.classList.add('active-link');
+        });
+
+        try {
+        // Messages badge
+        const msgRes  = await fetch('https://qeja-backend-azkf.onrender.com/my-messages', {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const msgData = await msgRes.json();
+        if (msgData.success) {
+        let seen = [];
+        try { seen = JSON.parse(localStorage.getItem('seenReplies') || '[]'); } catch {}
+        const unread = msgData.messages.filter(m => m.reply && !seen.includes(m.id)).length;
+        const msgBadge = document.getElementById('navNotifBadge');
+        if (msgBadge && unread > 0) { msgBadge.textContent = unread; msgBadge.style.display = 'inline-block'; }
+        }
+
+        // Dashboard badge
+        const userId = JSON.parse(localStorage.getItem('loggedUser') || '{}')?.id;
+        if (!userId) return;
+        const reqRes  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
+        const reqData = await reqRes.json();
+        if (reqData.success && reqData.data?.length) {
+        let seenReqs = [];
+        try { seenReqs = JSON.parse(localStorage.getItem('seenRequests') || '[]'); } catch {}
+        const unseen = reqData.data.filter(r => !seenReqs.includes(r.id)).length;
+        const dashBadge = document.getElementById('menuDashboardBadge');
+        if (dashBadge && unseen > 0) { dashBadge.textContent = unseen; dashBadge.style.display = 'inline-block'; }
+        }
+        } catch (err) {
+        console.error('Menu badge error:', err);
+        }
+        })();
+    </script>
+
+</body>
+</html>
