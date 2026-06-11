@@ -380,6 +380,24 @@
             .step-dot.done {
                 background: #22c55e;
             }
+        .customalert {
+            position: fixed;
+            left: 50%;
+            margin-right: 20%;
+            top: 200px;
+            transform: translateX(-50%);
+            width: 60%;
+            max-width: 600px;
+            background: yellow;
+            border: 3px solid red;
+            border-left: 20px solid red;
+            padding:10px;
+            display:none;
+            height: 100px;
+            text-align: center;
+            z-index: 10001;
+            justify-content: center;
+        }
     </style>
 </head>
 
@@ -424,8 +442,12 @@
             <button type="submit" id="submitBtn"></button>
 
         </form>
+        <div class="customalert">
+            <h3 style="color:red">⚠️ Only landlords are allowed to list products</h3>
+            <a href="home.html"><button style="width:60px;background:indigo; border:none;color:red">Ok</button></a>
+        </div>
     </div>
-
+    
 
 
     <div class="modal-overlay" id="mpesaModal">
@@ -477,7 +499,7 @@
         document.getElementById("image").addEventListener("change", function () {
         const label = document.getElementById("uploadLabel");
         if (this.files[0]) {
-        label.textContent = "✅ " + this.files[0].name;
+        label.textContent = "🟢 " + this.files[0].name;
         label.classList.add("has-file");
         } else {
         label.textContent = "📷 Choose Property Image";
@@ -503,8 +525,8 @@
         // Block tenants
         const role = localStorage.getItem("role") || loggedUser.role;
         if (role !== "landlord") {
-        alert("Only landlords can list properties.");
-        window.location.href = "home.html";
+        document.querySelector('.customalert').style.display="block";
+        
         return;
         }
 
@@ -517,6 +539,7 @@
         fd.append("landlord_id",  loggedUser.id);
         fd.append("title",        document.getElementById("title").value);
         fd.append("price",        document.getElementById("price").value);
+        fd.append("units",        document.getElementById("units").value);
         fd.append("location",     document.getElementById("location").value);
         fd.append("type",         document.getElementById("type").value);
         fd.append("description",  document.getElementById("description").value);
@@ -581,7 +604,7 @@
         statusEl.innerHTML = `<div class="spinner"></div><p style="color:#94a3b8;font-size:13px;">STK push sent — check your phone</p>`;
 
         try {
-        // 1️⃣ Initiate STK push
+        // Initiate STK push
         const units = localStorage.getItem('rooms') || 195; 
 
         const stkRes = await fetch(`${API_BASE}/mpesa/stk-push`, {
@@ -596,7 +619,7 @@
         const stkData = await stkRes.json();
 
         if (!stkData.success) {
-        showMpesaStatus("error", stkData.message || "Failed to send STK push.");
+        showMpesaStatus("error", stkData.message || "Failed. Try again.");
         payBtn.disabled = false;
         payBtn.textContent = "Retry";
         setStep(1);

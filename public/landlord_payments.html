@@ -1,0 +1,691 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payments | Qeja Connect</title>
+    <script>
+        (function () {
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
+        })();
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --navy: #1a1535;
+            --indigo: #4f46e5;
+            --violet: darkviolet;
+            --bg: #f4f4f4;
+            --card: #ffffff;
+            --text: #222;
+            --muted: #666;
+            --border: #e2e8f0;
+            --green: #16a34a;
+            --amber: #d97706;
+            --red: #dc2626;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        header {
+            width: 100%;
+            background: var(--navy);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-left: 10px;
+        }
+
+        #logo {
+            width: 46px;
+            height: 46px;
+            border-radius: 9px;
+            object-fit: cover;
+        }
+
+        .brand h2 {
+            color: white;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .brand p {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            margin: 0;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 14px;
+            border-radius: 8px;
+        }
+
+            .back-btn:hover {
+                background: rgba(255,255,255,0.2);
+            }
+
+        .page {
+            max-width: 1050px;
+            margin: 0 auto;
+            padding: 28px 16px;
+        }
+
+        .page-title {
+            font-size: 1.7rem;
+            color: var(--indigo);
+            margin-bottom: 4px;
+        }
+
+        .page-sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        /* ── SUMMARY CARDS ── */
+        .summary-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .sum-card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 18px 16px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            border-top: 4px solid var(--indigo);
+            text-align: center;
+        }
+
+            .sum-card.green {
+                border-top-color: var(--green);
+            }
+
+            .sum-card.amber {
+                border-top-color: var(--amber);
+            }
+
+            .sum-card.red {
+                border-top-color: var(--red);
+            }
+
+            .sum-card .num {
+                font-size: 1.7rem;
+                font-weight: 800;
+                color: var(--indigo);
+            }
+
+            .sum-card.green .num {
+                color: var(--green);
+            }
+
+            .sum-card.amber .num {
+                color: var(--amber);
+            }
+
+            .sum-card.red .num {
+                color: var(--red);
+            }
+
+            .sum-card .lbl {
+                font-size: 11px;
+                color: var(--muted);
+                margin-top: 4px;
+            }
+
+        /* ── TENANT SELECTOR ── */
+        .tenant-selector {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 18px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            flex-wrap: wrap;
+        }
+
+            .tenant-selector label {
+                font-size: 13px;
+                font-weight: 600;
+                color: var(--muted);
+                white-space: nowrap;
+            }
+
+            .tenant-selector select {
+                flex: 1;
+                min-width: 200px;
+                padding: 10px 14px;
+                border: 1px solid var(--border);
+                border-radius: 9px;
+                font-size: 14px;
+                outline: none;
+                cursor: pointer;
+            }
+
+        /* ── PAYMENT TABLE ── */
+        .payments-section h2 {
+            font-size: 1.1rem;
+            color: var(--indigo);
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .payments-table {
+            background: var(--card);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 30px;
+        }
+
+        .pt-header {
+            background: linear-gradient(135deg, var(--navy), #312e81);
+            color: white;
+            display: grid;
+            grid-template-columns: 60px 1fr 120px 140px 160px 120px;
+            padding: 14px 20px;
+            font-size: 12px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .pt-row {
+            display: grid;
+            grid-template-columns: 60px 1fr 120px 140px 160px 120px;
+            padding: 14px 20px;
+            border-bottom: 1px solid var(--border);
+            font-size: 13px;
+            align-items: center;
+            transition: background 0.15s;
+        }
+
+            .pt-row:last-child {
+                border-bottom: none;
+            }
+
+            .pt-row:hover {
+                background: #f8fafc;
+            }
+
+            .pt-row.paid {
+                background: #f0fdf4;
+            }
+
+            .pt-row.overdue {
+                background: #fff7ed;
+            }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .sp-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .sp-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .sp-overdue {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .ref-code {
+            font-family: monospace;
+            font-size: 12px;
+            color: var(--indigo);
+            background: #eef2ff;
+            padding: 3px 8px;
+            border-radius: 6px;
+            word-break: break-all;
+        }
+
+        .btn-confirm-pay {
+            padding: 6px 14px;
+            border: none;
+            border-radius: 7px;
+            background: var(--green);
+            color: white;
+            font-size: 11px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+            .btn-confirm-pay:hover {
+                background: #15803d;
+            }
+
+        .confirmed-badge {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 5px 10px;
+            border-radius: 7px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        /* ── RECENT PAYMENTS FEED ── */
+        .feed-card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+            display: flex;
+            gap: 16px;
+            align-items: flex-start;
+        }
+
+        .feed-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+        }
+
+        .fi-paid {
+            background: #d1fae5;
+        }
+
+        .fi-pending {
+            background: #fef3c7;
+        }
+
+        .fi-overdue {
+            background: #fee2e2;
+        }
+
+        .feed-body {
+            flex: 1;
+        }
+
+            .feed-body h4 {
+                font-size: 0.95rem;
+                color: var(--text);
+                margin-bottom: 4px;
+            }
+
+            .feed-body .meta {
+                font-size: 12px;
+                color: var(--muted);
+            }
+
+            .feed-body .ref {
+                font-family: monospace;
+                font-size: 12px;
+                color: var(--indigo);
+                margin-top: 4px;
+            }
+
+        .feed-amount {
+            font-weight: 800;
+            color: var(--green);
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        /* ── EMPTY / LOADER ── */
+        .loader {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--muted);
+        }
+
+            .empty .icon {
+                font-size: 3.5rem;
+                margin-bottom: 10px;
+            }
+
+        /* ── DARK ── */
+        body.dark {
+            background: #121212;
+            color: #eaeaea;
+        }
+
+            body.dark .sum-card,
+            body.dark .payments-table,
+            body.dark .tenant-selector,
+            body.dark .feed-card {
+                background: #1e1e1e;
+            }
+
+            body.dark .pt-row {
+                border-color: #2a2a2a;
+            }
+
+                body.dark .pt-row:hover {
+                    background: #2a2a2a;
+                }
+
+                body.dark .pt-row.paid {
+                    background: #022c22;
+                }
+
+                body.dark .pt-row.overdue {
+                    background: #2d0a0a;
+                }
+
+            body.dark .tenant-selector select {
+                background: #2a2a2a;
+                color: white;
+                border-color: #444;
+            }
+
+            body.dark .ref-code {
+                background: #1e1b4b;
+                color: #a5b4fc;
+            }
+
+        @media (max-width: 700px) {
+            .pt-header, .pt-row {
+                grid-template-columns: 40px 1fr 100px;
+            }
+
+                .pt-header .h-amount, .pt-row .r-amount,
+                .pt-header .h-ref, .pt-row .r-ref,
+                .pt-header .h-confirm, .pt-row .r-confirm {
+                    display: none;
+                }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo" alt="logo">
+            <div class="brand">
+                <h2>Qeja Connect</h2>
+                <p>Payments Dashboard</p>
+            </div>
+        </div>
+        <a href="landlord_tenants.html" class="back-btn">← My Tenants</a>
+    </header>
+
+    <div class="page">
+        <h1 class="page-title">💰 Rent Payments</h1>
+        <p class="page-sub">Track all rent payments from your tenants with M-Pesa references.</p>
+
+        <div class="summary-row" id="summaryRow">
+            <div class="sum-card green"><div class="num" id="sumCollected">—</div><div class="lbl">Total Collected (Ksh)</div></div>
+            <div class="sum-card"><div class="num" id="sumPaidCount">—</div><div class="lbl">Payments Received</div></div>
+            <div class="sum-card amber"><div class="num" id="sumPending">—</div><div class="lbl">Pending Payments</div></div>
+            <div class="sum-card red"><div class="num" id="sumOverdue">—</div><div class="lbl">Overdue Payments</div></div>
+        </div>
+
+        <div class="tenant-selector">
+            <label>Filter by Tenant:</label>
+            <select id="tenantFilter" onchange="filterByTenant()">
+                <option value="all">All Tenants</option>
+            </select>
+        </div>
+
+        <div class="payments-section">
+            <h2>📋 Recent Payments</h2>
+            <div id="recentFeed"><div class="loader">Loading payments…</div></div>
+        </div>
+
+        <div class="payments-section">
+            <h2>📅 Payment Schedule</h2>
+            <div class="payments-table">
+                <div class="pt-header">
+                    <div>#</div>
+                    <div>Tenant / Month</div>
+                    <div class="h-amount">Amount</div>
+                    <div>Status</div>
+                    <div class="h-ref">M-Pesa Ref</div>
+                    <div class="h-confirm">Confirm</div>
+                </div>
+                <div id="scheduleBody"><div class="loader" style="grid-column:1/-1;">Loading…</div></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token      = localStorage.getItem('token');
+        const loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+        let allPayments  = [];
+        let allTenancies = [];
+
+        async function loadPayments() {
+        try {
+        const [pmtRes, tenRes] = await Promise.all([
+        fetch(`https://qeja-backend-azkf.onrender.com/landlord/payments/${loggedUser.id}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        }),
+        fetch(`https://qeja-backend-azkf.onrender.com/tenancy/landlord/${loggedUser.id}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        })
+        ]);
+
+        const pmtData = await pmtRes.json();
+        const tenData = await tenRes.json();
+
+        if (tenData.success) {
+        allTenancies = tenData.tenancies || [];
+        populateTenantFilter(allTenancies);
+        }
+
+        if (pmtData.success) {
+        allPayments = pmtData.payments || [];
+        updateSummary(allPayments, allTenancies);
+        renderRecentFeed(allPayments);
+        renderSchedule(allTenancies, allPayments);
+        } else {
+        document.getElementById('recentFeed').innerHTML = `<div class="empty"><div class="icon">💳</div><h3>No payments recorded yet.</h3></div>`;
+        if (allTenancies.length) renderSchedule(allTenancies, []);
+        }
+        } catch (e) {
+        document.getElementById('recentFeed').innerHTML = `<div class="empty"><div class="icon">⚠️</div><h3>Failed to load payments.</h3></div>`;
+        }
+        }
+
+        function populateTenantFilter(tenancies) {
+        const sel = document.getElementById('tenantFilter');
+        tenancies.forEach(t => {
+        const opt = document.createElement('option');
+        opt.value = t.tenant_id;
+        opt.textContent = `${t.tenant_name || 'Tenant'} — ${t.property_title || 'Property'}`;
+        sel.appendChild(opt);
+        });
+        }
+
+        function updateSummary(payments, tenancies) {
+        const paid     = payments.filter(p => p.status === 'confirmed' || p.status === 'paid');
+        const pending  = payments.filter(p => p.status === 'pending' || p.status === 'unconfirmed');
+        let overdue    = 0;
+        tenancies.forEach(t => {
+        const start = new Date(t.start_date);
+        const now   = new Date();
+        for (let i = 0; i < (t.duration_months || 30); i++) {
+        const due = new Date(start); due.setMonth(due.getMonth() + i);
+        if (due < now) {
+        const isPaid = payments.find(p => p.tenancy_id === t.id && p.month_index === i);
+        if (!isPaid) overdue++;
+        }
+        }
+        });
+        const total = paid.reduce((s, p) => s + Number(p.amount || 0), 0);
+        document.getElementById('sumCollected').textContent = Number(total).toLocaleString();
+        document.getElementById('sumPaidCount').textContent = paid.length;
+        document.getElementById('sumPending').textContent   = pending.length;
+        document.getElementById('sumOverdue').textContent   = overdue;
+        }
+
+        function renderRecentFeed(payments) {
+        const feed = document.getElementById('recentFeed');
+        if (!payments.length) {
+        feed.innerHTML = `<div class="empty"><div class="icon">💳</div><h3>No payments received yet.</h3><p>Payments will appear here once tenants begin paying rent.</p></div>`;
+        return;
+        }
+        const sorted = [...payments].sort((a, b) => new Date(b.paid_at || b.created_at) - new Date(a.paid_at || a.created_at));
+        let html = '';
+        sorted.slice(0, 20).forEach(p => {
+        const status    = p.status === 'confirmed' || p.status === 'paid' ? 'paid' : 'pending';
+        const fiClass   = `feed-icon fi-${status}`;
+        const emoji     = status === 'paid' ? '✅' : '⏳';
+        const confirmed = p.landlord_confirmed;
+        html += `
+        <div class="feed-card">
+        <div class="${fiClass}">${emoji}</div>
+        <div class="feed-body">
+        <h4>${p.tenant_name || 'Tenant'} — Month ${p.month_number || (p.month_index + 1) || '?'}</h4>
+        <div class="meta">
+        📍 ${p.property_title || '—'} &nbsp;|&nbsp; 📅 ${formatDate(p.paid_at || p.created_at)}
+        </div>
+        ${p.mpesa_ref ? `<div class="ref">M-Pesa: <strong>${p.mpesa_ref}</strong></div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+        <div class="feed-amount">Ksh ${Number(p.amount).toLocaleString()}</div>
+        ${confirmed
+        ? `<span class="confirmed-badge">✅ Confirmed</span>`
+        : `<button class="btn-confirm-pay" onclick="confirmPayment(${p.id})">Confirm Receipt</button>`}
+        </div>
+        </div>`;
+        });
+        feed.innerHTML = html;
+        }
+
+        function renderSchedule(tenancies, payments) {
+        const body = document.getElementById('scheduleBody');
+        if (!tenancies.length) {
+        body.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="icon">📅</div><h3>No active tenancies yet.</h3></div>`;
+        return;
+        }
+        let html = '';
+        let row  = 0;
+        tenancies.forEach(t => {
+        const start = new Date(t.start_date);
+        const dur   = t.duration_months || 30;
+        const now   = new Date();
+        for (let i = 0; i < dur; i++) {
+        row++;
+        const due = new Date(start); due.setMonth(due.getMonth() + i); due.setDate(1);
+        const paid = payments.find(p => p.tenancy_id === t.id && (p.month_index === i || p.month_number === i + 1));
+        let status = 'pending';
+        if (paid)         status = 'paid';
+        else if (due < now) status = 'overdue';
+        const ref = paid?.mpesa_ref || paid?.reference || '—';
+        const confirmed = paid?.landlord_confirmed;
+        html += `
+        <div class="pt-row ${status}">
+        <div style="color:var(--muted);font-size:12px;">${row}</div>
+        <div>
+        <strong>${t.tenant_name || 'Tenant'}</strong>
+        <div style="font-size:11px;color:var(--muted);">Month ${i + 1} — ${monthLabel(start, i)}</div>
+        </div>
+        <div class="r-amount" style="font-weight:600;">Ksh ${Number(t.rent_amount).toLocaleString()}</div>
+        <div><span class="status-pill sp-${status}">${status.toUpperCase()}</span></div>
+        <div class="r-ref">${paid ? `<span class="ref-code">${ref}</span>` : '<span style="color:#ccc;">—</span>'}</div>
+        <div class="r-confirm">
+        ${paid && !confirmed
+        ? `<button class="btn-confirm-pay" onclick="confirmPayment(${paid.id})">Confirm</button>`
+        : paid && confirmed
+        ? `<span class="confirmed-badge">✅</span>`
+        : '<span style="color:#ccc;font-size:12px;">—</span>'}
+        </div>
+        </div>`;
+        }
+        });
+        body.innerHTML = html;
+        }
+
+        async function confirmPayment(paymentId) {
+        try {
+        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/payments/${paymentId}/confirm`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ landlord_id: loggedUser.id })
+        });
+        const data = await res.json();
+        if (data.success) { alert('✅ Payment confirmed!'); loadPayments(); }
+        else alert(data.message || 'Failed to confirm.');
+        } catch { alert('Network error.'); }
+        }
+
+        function filterByTenant() {
+        const val = document.getElementById('tenantFilter').value;
+        const filtered = val === 'all' ? allPayments : allPayments.filter(p => String(p.tenant_id) === val);
+        const tenFiltered = val === 'all' ? allTenancies : allTenancies.filter(t => String(t.tenant_id) === val);
+        renderRecentFeed(filtered);
+        renderSchedule(tenFiltered, allPayments);
+        }
+
+        function monthLabel(startDate, offset) {
+        const d = new Date(startDate); d.setMonth(d.getMonth() + offset);
+        return d.toLocaleDateString('en-KE', { month: 'short', year: 'numeric' });
+        }
+
+        function formatDate(d) {
+        if (!d) return '—';
+        return new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+        }
+
+        window.onload = function () {
+        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+        // If coming from a specific tenant
+        const tid = localStorage.getItem('viewTenantId');
+        if (tid) {
+        setTimeout(() => {
+        const sel = document.getElementById('tenantFilter');
+        if (sel) { sel.value = tid; filterByTenant(); }
+        localStorage.removeItem('viewTenantId');
+        }, 1500);
+        }
+        loadPayments();
+        };
+    </script>
+</body>
+</html>

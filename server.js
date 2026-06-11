@@ -8,7 +8,9 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const streamifier = require("streamifier");
 const cloudinary = require("cloudinary").v2;
-
+const router  = express.Router();
+const db      = require('./db');           
+const auth    = require('./middleware/auth'); 
 
 
 const app = express();
@@ -1350,6 +1352,303 @@ app.delete("/admin/updates/:id", adminAuth, (req, res) => {
     res.json({ success: true, message: "Update deleted" });
   });
 });
+
+
+
+
+
+// ─────────────────────────────────────────────────────────────────
+// BOOKINGS
+// ─────────────────────────────────────────────────────────────────
+
+// POST /bookings — tenant creates a booking request
+router.post('/bookings', auth, async (req, res) => {
+  try {
+    const { tenant_id, landlord_id, property_id, message } = req.body;
+    if (!tenant_id || !landlord_id || !property_id)
+      return res.json({ success: false, message: 'Missing required fields' });
+
+    // Prevent duplicate pending booking for same property
+    const [existing] = await db.query(
+      `SELECT id FROM bookings
+       WHERE tenant_id=? AND property_id=? AND status='pending'`,
+      [tenant_id, property_id]
+    );
+    if (existing.length)
+      return res.json({ success: false, message: 'You already have a pending booking for this property.' });
+
+    const [result] = await db.query(
+      `INSERT INTO bookings (tenant_id, landlord_id, property_id, message)
+       VALUES (?, ?, ?, ?)`,
+      [tenant_id, landlord_id, property_id, message || 'I would like to book this property.']
+    );
+    res.json({ success: true, booking_id: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET /bookings/tenant/:id — tenant fetches their bookings
+router.get('/bookings/tenant/:id', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT b.*,
+              p.title, p.location, p.price, p.image_url, p.description, p.type,
+              u.name AS landlord_name, u.phone AS landlord_phone
+       FROM bookings b
+       JOIN properties p ON b.property_id = p.id
+       JOIN users      u ON b.landlord_id  = u.id
+       WHERE b.tenant_id = ?
+       ORDER BY b.created_at DESC`,
+      [req.params.id]
+    );
+    res.json({ success: true, bookings: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET /landlord/interests/:id — landlord fetches booking requests (existing + enhanced)
+// Replace or augment your existing /landlord/interests/:id route:
+router.get('/landlord/interests/:id', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT b.*,
+              p.title AS property_title, p.location, p.price, p.image_url,
+              t.name  AS tenant_name,  t.phone AS tenant_phone, t.email AS tenant_email,
+              ten.id  AS tenancy_id,   ten.rent_amount, ten.start_date
+       FROM bookings b
+       JOIN properties p  ON b.property_id = p.id
+       JOIN users      t  ON b.tenant_id   = t.id
+       LEFT JOIN tenancies ten ON ten.booking_id = b.id
+       WHERE b.landlord_id = ?
+       ORDER BY b.created_at DESC`,
+      [req.params.id]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /bookings/:id/approve
+router.post('/bookings/:id/approve', auth, async (req, res) => {
+  try {
+    await db.query(
+      `UPDATE bookings SET status='approved' WHERE id=? AND landlord_id=?`,
+      [req.params.id, req.body.landlord_id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /bookings/:id/reject
+router.post('/bookings/:id/reject', auth, async (req, res) => {
+  try {
+    await db.query(
+      `UPDATE bookings SET status='rejected' WHERE id=? AND landlord_id=?`,
+      [req.params.id, req.body.landlord_id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /bookings/:id/cancel (tenant cancels)
+router.post('/bookings/:id/cancel', auth, async (req, res) => {
+  try {
+    await db.query(
+      `UPDATE bookings SET status='rejected' WHERE id=? AND status='pending'`,
+      [req.params.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
+// ─────────────────────────────────────────────────────────────────
+// TENANCIES
+// ─────────────────────────────────────────────────────────────────
+
+// POST /tenancy/start — landlord starts a session
+router.post('/tenancy/start', auth, async (req, res) => {
+  try {
+    const { booking_id, landlord_id, tenant_id, property_id,
+            rent_amount, start_date, duration_months } = req.body;
+
+    if (!booking_id || !rent_amount || !start_date)
+      return res.json({ success: false, message: 'Missing fields' });
+
+    // Check for existing active tenancy
+    const [existing] = await db.query(
+      `SELECT id FROM tenancies WHERE booking_id=?`, [booking_id]
+    );
+    if (existing.length)
+      return res.json({ success: false, message: 'Tenancy session already started for this booking.' });
+
+    const [result] = await db.query(
+      `INSERT INTO tenancies
+         (booking_id, tenant_id, landlord_id, property_id, rent_amount, start_date, duration_months)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [booking_id, tenant_id, landlord_id, property_id,
+       rent_amount, start_date, duration_months || 30]
+    );
+
+    // Mark booking as active
+    await db.query(
+      `UPDATE bookings SET status='active' WHERE id=?`, [booking_id]
+    );
+
+    res.json({ success: true, tenancy_id: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET /tenancy/tenant/:id — tenant fetches their active tenancy
+router.get('/tenancy/tenant/:id', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT ten.*,
+              p.title    AS property_title, p.location, p.image_url,
+              u.name     AS landlord_name,  u.phone AS landlord_phone,
+              t.name     AS tenant_name,    t.phone AS tenant_phone
+       FROM tenancies ten
+       JOIN properties p ON ten.property_id  = p.id
+       JOIN users      u ON ten.landlord_id  = u.id
+       JOIN users      t ON ten.tenant_id    = t.id
+       WHERE ten.tenant_id=? AND ten.status='active'
+       LIMIT 1`,
+      [req.params.id]
+    );
+    if (!rows.length) return res.json({ success: false, message: 'No active tenancy' });
+
+    // Attach payments
+    const [payments] = await db.query(
+      `SELECT * FROM rent_payments WHERE tenancy_id=? ORDER BY month_index ASC`,
+      [rows[0].id]
+    );
+    rows[0].payments = payments;
+    res.json({ success: true, tenancy: rows[0] });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// GET /tenancy/landlord/:id — landlord fetches all their tenancies
+router.get('/tenancy/landlord/:id', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT ten.*,
+              p.title AS property_title, p.location,
+              t.name  AS tenant_name,   t.phone AS tenant_phone, t.email AS tenant_email
+       FROM tenancies ten
+       JOIN properties p ON ten.property_id = p.id
+       JOIN users      t ON ten.tenant_id   = t.id
+       WHERE ten.landlord_id=?
+       ORDER BY ten.created_at DESC`,
+      [req.params.id]
+    );
+    res.json({ success: true, tenancies: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /tenancy/payment-confirm — called after STK push succeeds (tenant side)
+router.post('/tenancy/payment-confirm', auth, async (req, res) => {
+  try {
+    const { tenancy_id, landlord_id, tenant_id, month_index, mpesa_ref, amount } = req.body;
+
+    // Upsert payment record
+    await db.query(
+      `INSERT INTO rent_payments
+         (tenancy_id, tenant_id, landlord_id, month_index, month_number, amount, mpesa_ref, status, paid_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', NOW())
+       ON DUPLICATE KEY UPDATE
+         mpesa_ref=VALUES(mpesa_ref), status='paid', paid_at=NOW()`,
+      [tenancy_id, tenant_id, landlord_id, month_index, month_index + 1, amount, mpesa_ref]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
+// ─────────────────────────────────────────────────────────────────
+// PAYMENTS (Landlord side)
+// ─────────────────────────────────────────────────────────────────
+
+// GET /landlord/payments/:id
+router.get('/landlord/payments/:id', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT rp.*,
+              t.name  AS tenant_name,  t.phone AS tenant_phone,
+              p.title AS property_title, p.location
+       FROM rent_payments rp
+       JOIN users      t  ON rp.tenant_id   = t.id
+       JOIN tenancies  ten ON rp.tenancy_id = ten.id
+       JOIN properties p  ON ten.property_id = p.id
+       WHERE rp.landlord_id=?
+       ORDER BY rp.paid_at DESC`,
+      [req.params.id]
+    );
+    res.json({ success: true, payments: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// POST /payments/:id/confirm — landlord confirms receipt of payment
+router.post('/payments/:id/confirm', auth, async (req, res) => {
+  try {
+    await db.query(
+      `UPDATE rent_payments SET landlord_confirmed=1
+       WHERE id=? AND landlord_id=?`,
+      [req.params.id, req.body.landlord_id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+
+
+
+router.get('/mpesa/status/:checkoutRequestId', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT * FROM mpesa_callbacks WHERE checkout_request_id=? LIMIT 1`,
+      [req.params.checkoutRequestId]
+    );
+    if (!rows.length) return res.json({ status: 'pending' });
+    const r = rows[0];
+    if (r.result_code === '0' || r.result_code === 0) {
+      return res.json({ status: 'completed', paid: true, mpesa_ref: r.mpesa_ref, MpesaReceiptNumber: r.mpesa_ref });
+    }
+    return res.json({ status: 'failed', ResultCode: String(r.result_code) });
+  } catch (err) {
+    res.status(500).json({ status: 'pending' });
+  }
+});
+
+
 
 // =========================
 // START SERVER

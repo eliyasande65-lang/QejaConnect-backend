@@ -796,22 +796,220 @@
     </footer>
 
     <!-- POPUP -->
+    
+
+  
     <div id="popup" class="popup-container">
         <div class="popup-content">
             <span class="close-popup" onclick="closePopup()">&times;</span>
-            <img id="popup-image">
+            <img id="popup-image" alt="Property">
+
+            <!-- Badge row -->
+            <div style="padding:14px 15px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <span id="popup-type-badge" style="background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:0.5px;"></span>
+                <span id="popup-verified-badge" style="display:none;background:#d1fae5;color:#065f46;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;">✅ Verified</span>
+            </div>
+
             <h2 id="popup-title"></h2>
             <div class="popup-price" id="popup-price"></div>
-            <div class="popup-location" id="popup-location"></div>
-            <p id="popup-description"></p>
+            <div class="popup-location" id="popup-location" style="display:flex;align-items:center;gap:6px;padding:5px 15px;"></div>
+
+            <!-- Details grid -->
+            <div id="popup-details-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:10px 15px;"></div>
+
+            <p id="popup-description" style="padding:6px 15px;line-height:1.65;font-size:14px;color:#444;"></p>
+
             <div class="popup-features" id="popup-features"></div>
+
+            <!-- Landlord info -->
+            <div id="popup-landlord" style="margin:0 15px 14px;background:#f8fafc;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#1a1535,#312e81);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:1rem;" id="popup-landlord-avatar"></div>
+                <div>
+                    <div style="font-size:13px;font-weight:600;" id="popup-landlord-name"></div>
+                    <div style="font-size:11px;color:#888;">Property Owner</div>
+                </div>
+            </div>
+
+            <!-- Maps button -->
             <a id="map-btn" href="#" target="_blank"
-               style="display:none;width:calc(100% - 30px);margin:0 15px 10px;padding:14px;border-radius:12px;background:#1a73e8;color:white;font-size:15px;font-weight:bold;text-align:center;text-decoration:none;">
+               style="display:none;width:calc(100% - 30px);margin:0 15px 10px;padding:13px;border-radius:12px;background:#1a73e8;color:white;font-size:14px;font-weight:bold;text-align:center;text-decoration:none;display:none;">
                 🗺️ Open on Google Maps
             </a>
-            <button id="interest-btn" onclick="handleInterestedClick()">Interested</button>
+
+            <!-- Action buttons -->
+            <div style="display:flex;gap:10px;padding:0 15px 20px;flex-wrap:wrap;">
+                <button id="interest-btn" onclick="handleInterestedClick()"
+                        style="flex:1;padding:13px;border:none;border-radius:12px;background:#1a1535;color:white;font-size:14px;font-weight:bold;cursor:pointer;transition:0.3s;min-width:120px;">
+                    💬 Message Landlord
+                </button>
+                <button id="book-btn" onclick="handleBookClick()"
+                        style="flex:1;padding:13px;border:none;border-radius:12px;background:#4f46e5;color:white;font-size:14px;font-weight:bold;cursor:pointer;transition:0.3s;min-width:120px;">
+                    📌 Book Property
+                </button>
+            </div>
         </div>
     </div>
+
+    <!-- POPUP SCRIPTS (replace existing openPopup / interested scripts) -->
+    <script>
+        let currentProperty = null;
+
+        function openPopup(property) {
+        currentProperty = property;
+
+        document.getElementById("popup-image").src = property.image_url || '';
+        document.getElementById("popup-title").innerText  = property.title    || "No title";
+        document.getElementById("popup-price").innerText  = "Ksh " + (property.price || "—") + " / month";
+        document.getElementById("popup-location").innerHTML = `📍 ${property.location || "No location"}`;
+        document.getElementById("popup-description").innerText = property.description || "No description available.";
+
+        // Type badge
+        const badge = document.getElementById("popup-type-badge");
+        badge.textContent = property.type || "Rental";
+
+        // Verified badge
+        if (property.verified) document.getElementById("popup-verified-badge").style.display = "inline";
+        else document.getElementById("popup-verified-badge").style.display = "none";
+
+        // Details grid
+        const grid = document.getElementById("popup-details-grid");
+        const details = [
+        property.bedrooms   ? `🛏️ ${property.bedrooms} Bedroom${property.bedrooms > 1 ? 's' : ''}` : null,
+        property.bathrooms  ? `🚿 ${property.bathrooms} Bathroom${property.bathrooms > 1 ? 's' : ''}` : null,
+        property.floor      ? `🏢 Floor ${property.floor}` : null,
+        property.size       ? `📐 ${property.size}` : null,
+        property.available_from ? `📅 Available: ${property.available_from}` : null,
+        property.deposit    ? `💰 Deposit: Ksh ${property.deposit}` : null,
+        ].filter(Boolean);
+
+        grid.innerHTML = details.map(d =>
+        `<div style="background:#f8fafc;border-radius:8px;padding:10px;font-size:13px;">${d}</div>`
+        ).join('');
+        grid.style.display = details.length ? 'grid' : 'none';
+
+        // Landlord
+        const lname = property.landlord_name || "Landlord";
+        document.getElementById("popup-landlord-avatar").textContent = lname.slice(0, 2).toUpperCase();
+        document.getElementById("popup-landlord-name").textContent   = lname;
+
+        // Features
+        const featDiv = document.getElementById("popup-features");
+        featDiv.innerHTML = '';
+        if (property.features && Array.isArray(property.features)) {
+        property.features.forEach(f => {
+        const s = document.createElement('span');
+        s.textContent = f;
+        featDiv.appendChild(s);
+        });
+        }
+
+        // Maps
+        const mapBtn = document.getElementById("map-btn");
+        if (property.maps_url) {
+        mapBtn.href = property.maps_url;
+        mapBtn.style.display = "block";
+        } else {
+        mapBtn.style.display = "none";
+        }
+
+        document.getElementById("popup").style.display = "flex";
+        }
+
+        function closePopup() {
+        document.getElementById("popup").style.display = "none";
+        }
+
+        function handleInterestedClick() {
+        if (!currentProperty) { alert("No property selected"); return; }
+        interested(currentProperty.landlord_id);
+        }
+
+        async function handleBookClick() {
+        if (!currentProperty) { alert("No property selected"); return; }
+        const btn        = document.getElementById("book-btn");
+        const token      = localStorage.getItem("token");
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser") || "{}");
+
+        if (!loggedUser || !token) { alert("Please login first"); return; }
+
+        btn.disabled  = true;
+        btn.innerText = "Booking…";
+
+        try {
+        const res  = await fetch("https://qeja-backend-azkf.onrender.com/bookings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({
+        tenant_id:   loggedUser.id,
+        landlord_id: currentProperty.landlord_id,
+        property_id: currentProperty.id,
+        message:     "I would like to book this property."
+        })
+        });
+        const data = await res.json();
+        if (data.success) {
+        alert("📌 Booking request sent!\n\nYour request has been sent to the landlord. You'll be notified once they approve.\n\nTrack your booking under 'My Bookings'.");
+        closePopup();
+        window.location.href = "bookings.html";
+        } else {
+        alert(data.message || "Booking failed. Please try again.");
+        }
+        } catch (err) {
+        console.error(err);
+        alert("Network error. Please try again.");
+        }
+
+        btn.disabled  = false;
+        btn.innerText = "📌 Book Property";
+        }
+
+        async function interested(landlord_id) {
+        const btn        = document.getElementById("interest-btn");
+        const token      = localStorage.getItem("token");
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser") || "{}");
+
+        if (!loggedUser || !token) { alert("Please login first"); return; }
+
+        btn.disabled  = true;
+        btn.innerText = "Sending…";
+
+        try {
+        const res  = await fetch("https://qeja-backend-azkf.onrender.com/interested", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
+        body: JSON.stringify({ landlord_id, tenant_id: loggedUser.id, message: "Hi, I am interested in this property" })
+        });
+        const data = await res.json();
+        if (data.success) {
+        alert("Chat started successfully ✅");
+        localStorage.setItem("chatLandlord", landlord_id);
+        window.location.href = "hostdashboard.html";
+        } else {
+        alert(data.message || "Failed");
+        }
+        } catch (err) {
+        console.error(err);
+        alert("Network error");
+        }
+
+        btn.disabled  = false;
+        btn.innerText = "💬 Message Landlord";
+        }
+
+        // Also add My Bookings link to side menu if not present
+        document.addEventListener("DOMContentLoaded", function() {
+        const menu = document.getElementById("sideMenu");
+        if (menu && !document.querySelector('a[href="bookings.html"]')) {
+        const link = document.createElement("a");
+        link.href = "bookings.html";
+        link.innerHTML = `📌 My Bookings`;
+        // Insert after Home link
+        const homeLink = menu.querySelector('a[href="home.html"]');
+        if (homeLink && homeLink.nextSibling) menu.insertBefore(link, homeLink.nextSibling);
+        else menu.appendChild(link);
+        }
+        });
+    </script>
     <!-- QEJACONNECT AI ASSISTANT -->
 
     <style>
@@ -1123,59 +1321,7 @@
         }
     </script>
 
-    <script>
-        let currentProperty = null;
-
-        function openPopup(property) {
-        currentProperty = property;
-        document.getElementById("popup-image").src        = property.image_url;
-        document.getElementById("popup-title").innerText  = property.title       || "No title";
-        document.getElementById("popup-price").innerText  = property.price       || "No price";
-        document.getElementById("popup-location").innerText = property.location  || "No location";
-        document.getElementById("popup-description").innerText = property.description || "No description";
-        const mapBtn = document.getElementById("map-btn");
-        if (property.maps_url) { mapBtn.href = property.maps_url; mapBtn.style.display = "block"; }
-        else { mapBtn.style.display = "none"; }
-        document.getElementById("popup").style.display = "flex";
-        }
-
-        function closePopup() {
-        document.getElementById("popup").style.display = "none";
-        }
-
-        async function interested(landlord_id) {
-        const btn        = document.getElementById("interest-btn");
-        const token      = localStorage.getItem("token");
-        const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
-
-        if (!loggedUser || !token) { alert("Please login first"); return; }
-
-        btn.disabled  = true;
-        btn.innerText = "Sending...";
-
-        try {
-        const res  = await fetch("https://qeja-backend-azkf.onrender.com/interested", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-        body: JSON.stringify({ landlord_id, tenant_id: loggedUser.id, message: "Hi, I am interested in this property" })
-        });
-        const data = await res.json();
-        if (data.success) {
-        alert("Chat started successfully ✅");
-        localStorage.setItem("chatLandlord", landlord_id);
-        window.location.href = "hostdashboard.html";
-        } else {
-        alert(data.message || "Failed");
-        }
-        } catch (err) {
-        console.error(err);
-        alert("Network error");
-        }
-
-        btn.disabled  = false;
-        btn.innerText = "Interested";
-        }
-    </script>
+    
 
     <script>
         // ── Renders an update as a grid card ──────────────────────
@@ -1265,7 +1411,7 @@
         }
         }
 
-        // Replace the old loadProperties() call:
+
         loadFeed();
     </script>
     <script>

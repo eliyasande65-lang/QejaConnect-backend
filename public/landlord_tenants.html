@@ -1,0 +1,811 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Tenants | Qeja Connect</title>
+    <script>
+        (function () {
+        if (!localStorage.getItem('token')) window.location.replace('login.html');
+        })();
+    </script>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+            --navy: #1a1535;
+            --indigo: #4f46e5;
+            --violet: darkviolet;
+            --bg: #f4f4f4;
+            --card: #ffffff;
+            --text: #222;
+            --muted: #666;
+            --border: #e2e8f0;
+            --green: #16a34a;
+            --amber: #d97706;
+            --red: #dc2626;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+        }
+
+        header {
+            width: 100%;
+            background: var(--navy);
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            margin-left: 10px;
+        }
+
+        #logo {
+            width: 46px;
+            height: 46px;
+            border-radius: 9px;
+            object-fit: cover;
+        }
+
+        .brand h2 {
+            color: white;
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        .brand p {
+            color: rgba(255,255,255,0.7);
+            font-size: 11px;
+            margin: 0;
+        }
+
+        .back-btn {
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            background: rgba(255,255,255,0.1);
+            padding: 8px 14px;
+            border-radius: 8px;
+        }
+
+            .back-btn:hover {
+                background: rgba(255,255,255,0.2);
+            }
+
+        .page {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 28px 16px;
+        }
+
+        .page-title {
+            font-size: 1.7rem;
+            color: var(--indigo);
+            margin-bottom: 4px;
+        }
+
+        .page-sub {
+            color: var(--muted);
+            font-size: 13px;
+            margin-bottom: 28px;
+        }
+
+        /* ── STATS ROW ── */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 18px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.07);
+            text-align: center;
+        }
+
+            .stat-card .num {
+                font-size: 2rem;
+                font-weight: 800;
+                color: var(--indigo);
+            }
+
+            .stat-card .lbl {
+                font-size: 12px;
+                color: var(--muted);
+                margin-top: 4px;
+            }
+
+        /* ── TABS ── */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+        .tab {
+            padding: 9px 20px;
+            border-radius: 20px;
+            border: 2px solid var(--border);
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--muted);
+            transition: all 0.2s;
+        }
+
+            .tab.active {
+                background: var(--indigo);
+                color: white;
+                border-color: var(--indigo);
+            }
+
+        /* ── TENANT CARD ── */
+        .tenant-card {
+            background: var(--card);
+            border-radius: 16px;
+            padding: 22px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 18px;
+            border-left: 5px solid var(--indigo);
+            transition: transform 0.2s;
+        }
+
+            .tenant-card:hover {
+                transform: translateY(-2px);
+            }
+
+            .tenant-card.approved {
+                border-left-color: var(--green);
+            }
+
+            .tenant-card.rejected {
+                border-left-color: var(--red);
+            }
+
+            .tenant-card.active {
+                border-left-color: #3b82f6;
+            }
+
+        .tenant-top {
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .tenant-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--navy), #312e81);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.4rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .tenant-info {
+            flex: 1;
+        }
+
+            .tenant-info h3 {
+                font-size: 1.05rem;
+                color: var(--indigo);
+                margin-bottom: 4px;
+            }
+
+        .tenant-meta {
+            font-size: 12px;
+            color: var(--muted);
+        }
+
+            .tenant-meta span {
+                margin-right: 14px;
+            }
+
+        .property-strip {
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 12px 16px;
+            margin-bottom: 14px;
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 13px;
+        }
+
+            .property-strip .item {
+                display: flex;
+                flex-direction: column;
+            }
+
+                .property-strip .item .l {
+                    font-size: 11px;
+                    color: var(--muted);
+                    text-transform: uppercase;
+                    margin-bottom: 2px;
+                }
+
+                .property-strip .item .v {
+                    font-weight: 600;
+                    color: var(--text);
+                }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .sp-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .sp-approved {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .sp-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .sp-active {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .card-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 9px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-approve {
+            background: var(--green);
+            color: white;
+        }
+
+            .btn-approve:hover {
+                background: #15803d;
+            }
+
+        .btn-reject {
+            background: var(--red);
+            color: white;
+        }
+
+            .btn-reject:hover {
+                background: #b91c1c;
+            }
+
+        .btn-start {
+            background: linear-gradient(135deg, var(--navy), #312e81);
+            color: white;
+        }
+
+            .btn-start:hover {
+                background: var(--violet);
+            }
+
+        .btn-view {
+            background: #f1f5f9;
+            color: var(--text);
+        }
+
+            .btn-view:hover {
+                background: #e2e8f0;
+            }
+
+        /* ── CONFIRM TENANCY MODAL ── */
+        .modal-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.7);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 5000;
+            padding: 20px;
+        }
+
+            .modal-backdrop.open {
+                display: flex;
+            }
+
+        .modal {
+            background: white;
+            border-radius: 18px;
+            width: 100%;
+            max-width: 460px;
+            overflow: hidden;
+            animation: popIn 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        @keyframes popIn {
+            from {
+                transform: scale(0.85);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .modal-hd {
+            background: linear-gradient(135deg, var(--navy), #312e81);
+            padding: 22px;
+            color: white;
+        }
+
+            .modal-hd h3 {
+                margin: 0 0 4px;
+                font-size: 1.1rem;
+            }
+
+            .modal-hd p {
+                margin: 0;
+                font-size: 12px;
+                opacity: 0.85;
+            }
+
+        .modal-bd {
+            padding: 22px;
+        }
+
+            .modal-bd label {
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--muted);
+                display: block;
+                margin-bottom: 5px;
+            }
+
+            .modal-bd input, .modal-bd select {
+                width: 100%;
+                padding: 11px;
+                border: 1px solid var(--border);
+                border-radius: 9px;
+                font-size: 14px;
+                margin-bottom: 14px;
+                outline: none;
+            }
+
+                .modal-bd input:focus, .modal-bd select:focus {
+                    border-color: var(--indigo);
+                }
+
+        .modal-notice {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 14px;
+            font-size: 12px;
+            color: #1e40af;
+            line-height: 1.6;
+            margin-bottom: 16px;
+        }
+
+        .modal-ft {
+            display: flex;
+            gap: 10px;
+            padding: 0 22px 22px;
+        }
+
+        .btn-confirm {
+            flex: 1;
+            padding: 13px;
+            background: var(--green);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 14px;
+            cursor: pointer;
+        }
+
+        .btn-cancel2 {
+            padding: 13px 20px;
+            background: #f1f5f9;
+            color: var(--text);
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+        /* ── EMPTY / LOADER ── */
+        .loader {
+            text-align: center;
+            padding: 40px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 50px 20px;
+            color: var(--muted);
+        }
+
+            .empty .icon {
+                font-size: 3.5rem;
+                margin-bottom: 10px;
+            }
+
+        /* ── DARK ── */
+        body.dark {
+            background: #121212;
+            color: #eaeaea;
+        }
+
+            body.dark .tenant-card {
+                background: #1e1e1e;
+            }
+
+            body.dark .stat-card {
+                background: #1e1e1e;
+            }
+
+            body.dark .property-strip {
+                background: #2a2a2a;
+            }
+
+            body.dark .tab {
+                background: #2a2a2a;
+                color: #ccc;
+                border-color: #333;
+            }
+
+                body.dark .tab.active {
+                    background: var(--indigo);
+                    color: white;
+                }
+
+            body.dark .modal {
+                background: #1e1e1e;
+                color: #eaeaea;
+            }
+
+            body.dark .modal-bd input,
+            body.dark .modal-bd select {
+                background: #2a2a2a;
+                color: white;
+                border-color: #444;
+            }
+
+            body.dark .modal-notice {
+                background: #0c1a3d;
+                border-color: #1e40af;
+                color: #93c5fd;
+            }
+
+            body.dark .btn-view {
+                background: #2a2a2a;
+                color: #eaeaea;
+            }
+
+            body.dark .btn-cancel2 {
+                background: #2a2a2a;
+                color: #eaeaea;
+            }
+
+        @media (max-width: 600px) {
+            .tenant-top {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo" alt="logo">
+            <div class="brand">
+                <h2>Qeja Connect</h2>
+                <p>My Tenants</p>
+            </div>
+        </div>
+        <a href="hostdashboard.html" class="back-btn">← Dashboard</a>
+    </header>
+
+    <div class="page">
+        <h1 class="page-title">🏘️ My Tenants</h1>
+        <p class="page-sub">Manage booking requests, approve tenants, and start tenancy sessions.</p>
+
+        <div class="stats-row" id="statsRow">
+            <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total Requests</div></div>
+            <div class="stat-card"><div class="num" id="statPending" style="color:var(--amber)">—</div><div class="lbl">Pending</div></div>
+            <div class="stat-card"><div class="num" id="statApproved" style="color:var(--green)">—</div><div class="lbl">Approved</div></div>
+            <div class="stat-card"><div class="num" id="statActive" style="color:#3b82f6">—</div><div class="lbl">Active Tenancies</div></div>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" onclick="filterTenants('all', this)">All</div>
+            <div class="tab" onclick="filterTenants('pending', this)">⏳ Pending</div>
+            <div class="tab" onclick="filterTenants('approved', this)">✅ Approved</div>
+            <div class="tab" onclick="filterTenants('active', this)">🔑 Active</div>
+            <div class="tab" onclick="filterTenants('rejected', this)">❌ Rejected</div>
+        </div>
+
+        <div id="tenantsContainer">
+            <div class="loader">Loading tenant requests…</div>
+        </div>
+    </div>
+
+    <!-- ── CONFIRM SESSION MODAL ── -->
+    <div class="modal-backdrop" id="sessionModal">
+        <div class="modal">
+            <div class="modal-hd">
+                <h3>🔑 Start Tenancy Session</h3>
+                <p>Confirm the tenancy details and set the rent amount.</p>
+            </div>
+            <div class="modal-bd">
+                <div id="sessionTenantInfo" style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;"></div>
+                <label>Monthly Rent Amount (Ksh)</label>
+                <input type="number" id="rentAmount" placeholder="e.g. 12000" min="500">
+                <label>Tenancy Start Date</label>
+                <input type="date" id="startDate">
+                <label>Duration</label>
+                <select id="duration">
+                    <option value="30">30 Months (Standard)</option>
+                    <option value="12">12 Months</option>
+                    <option value="6">6 Months</option>
+                    <option value="24">24 Months</option>
+                </select>
+                <div class="modal-notice">
+                    ℹ️ Once confirmed, the tenant will be notified and their 30-month payment schedule will be activated. The tenant can pay monthly via M-Pesa STK Push and you'll receive payment confirmations here.
+                </div>
+            </div>
+            <div class="modal-ft">
+                <button class="btn-cancel2" onclick="closeModal()">Cancel</button>
+                <button class="btn-confirm" onclick="confirmSession()">✅ Start Tenancy</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token      = localStorage.getItem('token');
+        const loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
+        let allTenants   = [];
+        let selectedBooking = null;
+
+        async function loadTenants() {
+        try {
+        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${loggedUser.id}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        if (data.success) {
+        allTenants = data.data || [];
+        updateStats(allTenants);
+        renderTenants(allTenants);
+        // Mark seen
+        const ids = allTenants.map(t => t.id);
+        localStorage.setItem('seenRequests', JSON.stringify(ids));
+        } else showEmpty('No requests found.');
+        } catch { showEmpty('Failed to load. Please try again.'); }
+        }
+
+        function updateStats(list) {
+        document.getElementById('statTotal').textContent    = list.length;
+        document.getElementById('statPending').textContent  = list.filter(t => (t.status||'pending') === 'pending').length;
+        document.getElementById('statApproved').textContent = list.filter(t => t.status === 'approved').length;
+        document.getElementById('statActive').textContent   = list.filter(t => t.status === 'active').length;
+        }
+
+        function renderTenants(list) {
+        const c = document.getElementById('tenantsContainer');
+        if (!list.length) {
+        c.innerHTML = `<div class="empty"><div class="icon">📭</div><h3>No tenant requests here yet.</h3></div>`;
+        return;
+        }
+        let html = '';
+        list.forEach(t => {
+        const status      = t.status || 'pending';
+        const initials    = (t.tenant_name || 'T').slice(0, 2).toUpperCase();
+        const spClass     = `sp-${status}`;
+        const statusLabel = status.toUpperCase();
+        const emoji       = status === 'active' ? '🔑' : status === 'approved' ? '✅' : status === 'rejected' ? '❌' : '⏳';
+
+        let actions = '';
+        if (status === 'pending') {
+        actions = `
+        <button class="btn btn-approve" onclick="approveBooking(${t.id}, ${t.tenant_id})">✅ Approve</button>
+        <button class="btn btn-reject"  onclick="rejectBooking(${t.id})">❌ Reject</button>`;
+        } else if (status === 'approved') {
+        actions = `
+        <button class="btn btn-start" onclick="openSessionModal(${JSON.stringify(t).replace(/"/g,'&quot;')})">🔑 Start Tenancy Session</button>
+        <button class="btn btn-view"  onclick="viewPayments(${t.tenant_id})">💳 View Payments</button>`;
+        } else if (status === 'active') {
+        actions = `<button class="btn btn-view" onclick="viewPayments(${t.tenant_id})">💳 View Payments</button>`;
+        }
+
+        html += `
+        <div class="tenant-card ${status}" data-status="${status}">
+        <div class="tenant-top">
+        <div class="tenant-avatar">${initials}</div>
+        <div class="tenant-info">
+        <h3>${t.tenant_name || 'Tenant'}</h3>
+        <div class="tenant-meta">
+        <span>📞 ${t.tenant_phone || '—'}</span>
+        <span>📧 ${t.tenant_email || '—'}</span>
+        <span>📅 ${formatDate(t.created_at)}</span>
+        </div>
+        </div>
+        <span class="status-pill ${spClass}">${emoji} ${statusLabel}</span>
+        </div>
+        <div class="property-strip">
+        <div class="item"><div class="l">Property</div><div class="v">${t.property_title || '—'}</div></div>
+        <div class="item"><div class="l">Location</div><div class="v">${t.location || '—'}</div></div>
+        <div class="item"><div class="l">Asking Price</div><div class="v">Ksh ${t.price || '—'}/mo</div></div>
+        ${t.rent_amount ? `<div class="item"><div class="l">Set Rent</div><div class="v" style="color:var(--green);">Ksh ${Number(t.rent_amount).toLocaleString()}/mo</div></div>` : ''}
+        </div>
+        ${t.message ? `<div style="font-size:13px;color:var(--muted);margin-bottom:12px;">💬 "${t.message}"</div>` : ''}
+        <div class="card-actions">${actions}</div>
+        </div>`;
+        });
+        c.innerHTML = html;
+        }
+
+        function filterTenants(status, el) {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        el.classList.add('active');
+        const filtered = status === 'all' ? allTenants : allTenants.filter(t => (t.status||'pending') === status);
+        renderTenants(filtered);
+        }
+
+        async function approveBooking(bookingId, tenantId) {
+        if (!confirm('Approve this tenant\'s booking request?')) return;
+        try {
+        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/bookings/${bookingId}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ landlord_id: loggedUser.id })
+        });
+        const data = await res.json();
+        if (data.success) {
+        alert('✅ Booking approved! The tenant has been notified.');
+        loadTenants();
+        } else alert(data.message || 'Failed to approve.');
+        } catch { alert('Network error.'); }
+        }
+
+        async function rejectBooking(bookingId) {
+        if (!confirm('Reject this booking request? The tenant will be notified.')) return;
+        try {
+        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/bookings/${bookingId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ landlord_id: loggedUser.id })
+        });
+        const data = await res.json();
+        if (data.success) { alert('Booking rejected.'); loadTenants(); }
+        else alert(data.message || 'Failed.');
+        } catch { alert('Network error.'); }
+        }
+
+        function openSessionModal(t) {
+        selectedBooking = t;
+        document.getElementById('sessionTenantInfo').innerHTML = `
+        <strong>${t.tenant_name || 'Tenant'}</strong><br>
+        📍 ${t.property_title || 'Property'} — ${t.location || ''}<br>
+        📞 ${t.tenant_phone || '—'}`;
+        // Set default start date to today
+        const today = new Date().toISOString().split('T')[0];
+        document.getElementById('startDate').value = today;
+        document.getElementById('rentAmount').value = t.price || '';
+        document.getElementById('sessionModal').classList.add('open');
+        }
+
+        async function confirmSession() {
+        const rent  = parseFloat(document.getElementById('rentAmount').value);
+        const start = document.getElementById('startDate').value;
+        const dur   = parseInt(document.getElementById('duration').value);
+
+        if (!rent || rent < 500) { alert('Please enter a valid rent amount.'); return; }
+        if (!start)              { alert('Please select a start date.'); return; }
+
+        const btn = document.querySelector('.btn-confirm');
+        btn.disabled = true; btn.textContent = 'Starting…';
+
+        try {
+        const res  = await fetch('https://qeja-backend-azkf.onrender.com/tenancy/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+        booking_id:  selectedBooking.id,
+        landlord_id: loggedUser.id,
+        tenant_id:   selectedBooking.tenant_id,
+        property_id: selectedBooking.property_id,
+        rent_amount: rent,
+        start_date:  start,
+        duration_months: dur
+        })
+        });
+        const data = await res.json();
+        if (data.success) {
+        closeModal();
+        alert(`🎉 Tenancy session started!\n\nThe tenant has been notified. They can now begin paying rent monthly via M-Pesa.`);
+        loadTenants();
+        } else alert(data.message || 'Failed to start session.');
+        } catch { alert('Network error.'); }
+
+        btn.disabled = false; btn.textContent = '✅ Start Tenancy';
+        }
+
+        function viewPayments(tenantId) {
+        localStorage.setItem('viewTenantId', tenantId);
+        window.location.href = 'landlord_payments.html';
+        }
+
+        function closeModal() {
+        document.getElementById('sessionModal').classList.remove('open');
+        }
+
+        function formatDate(d) {
+        if (!d) return '—';
+        return new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric' });
+        }
+
+        function showEmpty(msg) {
+        document.getElementById('tenantsContainer').innerHTML =
+        `<div class="empty"><div class="icon">📭</div><h3>${msg}</h3></div>`;
+        }
+
+        window.onload = function () {
+        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+        loadTenants();
+        };
+    </script>
+</body>
+</html>

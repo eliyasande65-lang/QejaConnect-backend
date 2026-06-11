@@ -5,1149 +5,1174 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>QejaConnect — Admin Updates</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Instrument+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Clash+Display:wght@400;500;600;700&family=Instrument+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Syne:wght@600;700;800&display=swap" rel="stylesheet">
     <style>
-            :root {
-                --bg: #05080f;
-                --surface: #0a0f1c;
-                --surface2: #0f1628;
-                --border: #1a2540;
-                --border2: #243050;
-                --accent: #4f7cff;
-                --accent-glow: rgba(79,124,255,0.18);
-                --green: #00d084;
-                --green-glow: rgba(0,208,132,0.15);
-                --red: #ff4f6a;
-                --amber: #ffb340;
-                --purple: #a855f7;
-                --text: #dce6f8;
-                --muted: #4a5d80;
-                --muted2: #6b7fa8;
-                --card: #080c18;
-            }
+        :root {
+            --bg: #05080f;
+            --surface: #0a0f1c;
+            --surface2: #0f1628;
+            --border: #1a2540;
+            --border2: #243050;
+            --accent: #4f7cff;
+            --accent-glow: rgba(79,124,255,0.18);
+            --green: #00d084;
+            --green-glow: rgba(0,208,132,0.15);
+            --red: #ff4f6a;
+            --amber: #ffb340;
+            --purple: #a855f7;
+            --text: #dce6f8;
+            --muted: #4a5d80;
+            --muted2: #6b7fa8;
+            --card: #080c18;
+            --border-hi: rgba(79,124,255,0.4);
+            --mono: 'DM Mono', monospace;
+            --head: 'Syne', sans-serif;
+        }
 
-            *, *::before, *::after {
-                box-sizing: border-box;
-                margin: 0;
-                padding: 0;
-            }
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
 
-            body {
-                font-family: 'Instrument Sans', sans-serif;
-                background: var(--bg);
-                color: var(--text);
-                min-height: 100vh;
-                overflow-x: hidden;
-            }
+        body {
+            font-family: 'Instrument Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-            /* ═══════════════════════════════════════════
-           GRID
-        ═══════════════════════════════════════════ */
-            .shell {
-                display: grid;
-                grid-template-columns: 72px 1fr;
-                min-height: 100vh;
-            }
+        /* LOGIN GATE */
+        #loginGate {
+            position: fixed;
+            inset: 0;
+            z-index: 100;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: var(--bg);
+        }
 
-            @media (min-width: 900px) {
-                .shell {
-                    grid-template-columns: 240px 1fr;
-                }
-            }
+        .login-box {
+            background: var(--surface);
+            border: 1px solid var(--border-hi);
+            border-radius: 16px;
+            padding: 48px 40px;
+            width: 360px;
+            text-align: center;
+            box-shadow: 0 0 80px rgba(79,124,255,0.12);
+        }
 
-            /* ═══════════════════════════════════════════
-           SIDEBAR
-        ═══════════════════════════════════════════ */
-            aside {
-                background: var(--surface);
-                border-right: 1px solid var(--border);
-                display: flex;
-                flex-direction: column;
-                position: sticky;
-                top: 0;
-                height: 100vh;
-                overflow: hidden;
-            }
-
-            .sidebar-logo {
-                padding: 22px 16px 20px;
-                border-bottom: 1px solid var(--border);
-                display: flex;
-                align-items: center;
-                gap: 12px;
-                overflow: hidden;
-            }
-
-            .logo-icon {
-                width: 38px;
-                height: 38px;
-                background: linear-gradient(135deg, var(--accent), #2244cc);
-                border-radius: 10px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                font-size: 18px;
-                flex-shrink: 0;
-                box-shadow: 0 0 20px var(--accent-glow);
-            }
-
-            .logo-text {
-                overflow: hidden;
-            }
-
-                .logo-text h1 {
-                    font-family: 'Clash Display', sans-serif;
-                    font-size: 1rem;
-                    font-weight: 700;
-                    white-space: nowrap;
-                    background: linear-gradient(90deg, #fff 40%, #8ab4ff);
-                    -webkit-background-clip: text;
-                    -webkit-text-fill-color: transparent;
-                }
-
-                .logo-text span {
-                    font-size: 10px;
-                    letter-spacing: 2px;
-                    text-transform: uppercase;
-                    color: var(--muted);
-                }
-
-            nav {
-                flex: 1;
-                padding: 16px 10px;
-                display: flex;
-                flex-direction: column;
-                gap: 4px;
-                overflow: hidden;
-            }
-
-                nav a {
-                    display: flex;
-                    align-items: center;
-                    gap: 12px;
-                    padding: 11px 12px;
-                    border-radius: 10px;
-                    color: var(--muted2);
-                    text-decoration: none;
-                    font-size: 13.5px;
-                    font-weight: 500;
-                    white-space: nowrap;
-                    overflow: hidden;
-                    transition: background 0.2s, color 0.2s;
-                }
-
-                    nav a:hover {
-                        background: var(--border);
-                        color: var(--text);
-                    }
-
-                    nav a.active {
-                        background: var(--accent-glow);
-                        color: #7ca9ff;
-                        border: 1px solid rgba(79,124,255,0.25);
-                    }
-
-            .nav-icon {
-                font-size: 17px;
-                flex-shrink: 0;
-                width: 20px;
-                text-align: center;
-            }
-
-            .sidebar-footer {
-                padding: 14px 16px;
-                border-top: 1px solid var(--border);
-                font-size: 11px;
-                color: var(--muted);
-                white-space: nowrap;
-                overflow: hidden;
-            }
-
-            /* ═══════════════════════════════════════════
-           MAIN
-        ═══════════════════════════════════════════ */
-            main {
-                padding: 36px 40px;
-                overflow-y: auto;
-                background: radial-gradient(ellipse 60% 50% at 80% -10%, rgba(79,124,255,0.06) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 10% 80%, rgba(0,208,132,0.04) 0%, transparent 60%), var(--bg);
-                min-height: 100vh;
-            }
-
-            @media (max-width: 900px) {
-                main {
-                    padding: 24px 18px;
-                }
-            }
-
-            /* ═══════════════════════════════════════════
-           PAGE HEADER
-        ═══════════════════════════════════════════ */
-            .page-header {
-                margin-bottom: 32px;
-                display: flex;
-                align-items: flex-start;
-                justify-content: space-between;
-                flex-wrap: wrap;
-                gap: 12px;
-            }
-
-                .page-header h2 {
-                    font-family: 'Clash Display', sans-serif;
-                    font-size: clamp(1.6rem, 3vw, 2.2rem);
-                    font-weight: 700;
-                    letter-spacing: -0.5px;
-                    line-height: 1.15;
-                }
-
-                .page-header p {
-                    color: var(--muted2);
-                    font-size: 13.5px;
-                    margin-top: 4px;
-                }
-
-            .header-pill {
+            .login-box .badge {
                 display: inline-flex;
                 align-items: center;
-                gap: 6px;
-                background: var(--accent-glow);
-                border: 1px solid rgba(79,124,255,0.3);
-                color: #7ca9ff;
+                gap: 8px;
+                background: rgba(79,124,255,0.12);
+                border: 1px solid var(--border-hi);
+                border-radius: 999px;
+                padding: 6px 16px;
                 font-size: 11px;
-                font-weight: 600;
-                letter-spacing: 1.5px;
+                font-family: var(--mono);
+                letter-spacing: .12em;
+                color: #7ca9ff;
                 text-transform: uppercase;
-                padding: 5px 12px;
-                border-radius: 50px;
-                margin-bottom: 8px;
-                display: inline-block;
+                margin-bottom: 24px;
             }
 
-            /* ═══════════════════════════════════════════
-           COMPOSE CARD
-        ═══════════════════════════════════════════ */
-            .compose-card {
+            .login-box h1 {
+                font-family: var(--head);
+                font-size: 26px;
+                font-weight: 800;
+                margin-bottom: 8px;
+            }
+
+            .login-box p {
+                font-size: 13px;
+                color: var(--muted2);
+                margin-bottom: 32px;
+            }
+
+            .login-box input {
+                width: 100%;
                 background: var(--card);
                 border: 1px solid var(--border);
-                border-radius: 20px;
-                padding: 30px 32px;
-                margin-bottom: 36px;
-                position: relative;
-                overflow: hidden;
-            }
-
-                .compose-card::before {
-                    content: '';
-                    position: absolute;
-                    top: 0;
-                    left: 0;
-                    right: 0;
-                    height: 2px;
-                    background: linear-gradient(90deg, var(--accent), var(--green), var(--purple));
-                    border-radius: 20px 20px 0 0;
-                }
-
-            .section-heading {
-                font-family: 'Clash Display', sans-serif;
-                font-size: 1rem;
-                font-weight: 600;
-                letter-spacing: 0.3px;
-                margin-bottom: 24px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                color: var(--text);
-            }
-
-                .section-heading .dot {
-                    width: 8px;
-                    height: 8px;
-                    border-radius: 50%;
-                    background: var(--accent);
-                    box-shadow: 0 0 8px var(--accent);
-                    flex-shrink: 0;
-                }
-
-                    .section-heading .dot.green {
-                        background: var(--green);
-                        box-shadow: 0 0 8px var(--green);
-                    }
-
-            /* form layout */
-            .form-grid {
-                display: grid;
-                grid-template-columns: 1fr 1fr;
-                gap: 18px;
-                margin-bottom: 18px;
-            }
-
-            @media (max-width: 700px) {
-                .form-grid {
-                    grid-template-columns: 1fr;
-                }
-            }
-
-            .form-group {
-                display: flex;
-                flex-direction: column;
-                gap: 7px;
-            }
-
-                .form-group.full {
-                    grid-column: 1 / -1;
-                }
-
-            label {
-                font-size: 11px;
-                font-weight: 600;
-                letter-spacing: 1px;
-                text-transform: uppercase;
-                color: var(--muted2);
-            }
-
-            input, textarea, select {
-                background: var(--surface2);
-                border: 1.5px solid var(--border);
                 border-radius: 10px;
-                padding: 12px 15px;
+                padding: 14px 16px;
+                font-size: 15px;
+                font-family: var(--mono);
                 color: var(--text);
-                font-size: 14px;
-                font-family: 'Instrument Sans', sans-serif;
                 outline: none;
-                transition: border-color 0.2s, box-shadow 0.2s;
+                transition: border-color .2s;
+                margin-bottom: 14px;
+                letter-spacing: .1em;
             }
 
-                input:focus, textarea:focus, select:focus {
+                .login-box input:focus {
                     border-color: var(--accent);
                     box-shadow: 0 0 0 3px var(--accent-glow);
                 }
 
-                input::placeholder, textarea::placeholder {
-                    color: var(--muted);
-                }
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            font-family: var(--head);
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s, transform .1s;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
 
-            textarea {
-                resize: vertical;
-                min-height: 100px;
+            .btn-login:hover {
+                background: #3a63e0;
             }
 
-            select option {
-                background: var(--surface);
+            .btn-login:active {
+                transform: scale(.98);
             }
 
-            /* ── type chips ── */
-            .type-picker {
-                display: flex;
-                gap: 8px;
-                flex-wrap: wrap;
+        .login-err {
+            margin-top: 12px;
+            font-size: 13px;
+            color: var(--red);
+            display: none;
+        }
+
+        /* APP */
+        #app {
+            display: none;
+        }
+
+        /* SHELL */
+        .shell {
+            display: grid;
+            grid-template-columns: 72px 1fr;
+            min-height: 100vh;
+        }
+
+        @media (min-width: 900px) {
+            .shell {
+                grid-template-columns: 240px 1fr;
+            }
+        }
+
+        /* SIDEBAR */
+        aside {
+            background: var(--surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .sidebar-logo {
+            padding: 22px 16px 20px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            overflow: hidden;
+        }
+
+        .logo-icon {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent), #2244cc);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+            box-shadow: 0 0 20px var(--accent-glow);
+        }
+
+        .logo-text {
+            overflow: hidden;
+        }
+
+            .logo-text h1 {
+                font-family: 'Clash Display', sans-serif;
+                font-size: 1rem;
+                font-weight: 700;
+                white-space: nowrap;
+                background: linear-gradient(90deg, #fff 40%, #8ab4ff);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
             }
 
-            .type-chip {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                padding: 7px 15px;
-                border-radius: 50px;
-                border: 1.5px solid var(--border);
-                background: transparent;
-                color: var(--muted2);
-                font-size: 12.5px;
-                font-family: 'Instrument Sans', sans-serif;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.18s;
+            .logo-text span {
+                font-size: 10px;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: var(--muted);
             }
 
-                .type-chip:hover {
-                    border-color: var(--accent);
-                    color: var(--text);
-                }
+        nav {
+            flex: 1;
+            padding: 16px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            overflow: hidden;
+        }
 
-                .type-chip.selected {
-                    background: var(--accent-glow);
-                    border-color: var(--accent);
-                    color: #7ca9ff;
-                }
-
-                .type-chip[data-type="maintenance"].selected {
-                    background: rgba(255,179,64,0.12);
-                    border-color: var(--amber);
-                    color: var(--amber);
-                }
-
-                .type-chip[data-type="alert"].selected {
-                    background: rgba(255,79,106,0.12);
-                    border-color: var(--red);
-                    color: var(--red);
-                }
-
-                .type-chip[data-type="feature"].selected {
-                    background: var(--green-glow);
-                    border-color: var(--green);
-                    color: var(--green);
-                }
-
-                .type-chip[data-type="promotion"].selected {
-                    background: rgba(168,85,247,0.12);
-                    border-color: var(--purple);
-                    color: var(--purple);
-                }
-
-            /* ── upload zone ── */
-            .upload-zone {
-                border: 2px dashed var(--border2);
-                border-radius: 12px;
-                padding: 24px 20px;
-                text-align: center;
-                cursor: pointer;
-                transition: all 0.2s;
-                position: relative;
-            }
-
-                .upload-zone:hover {
-                    border-color: var(--accent);
-                    background: rgba(79,124,255,0.04);
-                }
-
-                .upload-zone.has-file {
-                    border-color: var(--green);
-                    background: var(--green-glow);
-                }
-
-                .upload-zone input {
-                    display: none;
-                }
-
-            .upload-icon {
-                font-size: 26px;
-                margin-bottom: 6px;
-            }
-
-            .upload-zone p {
-                font-size: 12.5px;
-                color: var(--muted2);
-            }
-
-            .upload-zone .file-name {
-                color: var(--green);
-                font-weight: 600;
-                margin-top: 4px;
-                font-size: 12px;
-            }
-
-            /* ── submit row ── */
-            .submit-row {
+            nav a {
                 display: flex;
                 align-items: center;
                 gap: 12px;
-                margin-top: 22px;
-                flex-wrap: wrap;
-            }
-
-            .btn-primary {
-                padding: 12px 26px;
-                background: var(--accent);
-                border: none;
-                border-radius: 10px;
-                color: white;
-                font-size: 13.5px;
-                font-weight: 600;
-                font-family: 'Instrument Sans', sans-serif;
-                cursor: pointer;
-                transition: all 0.2s;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                box-shadow: 0 4px 20px var(--accent-glow);
-            }
-
-                .btn-primary:hover {
-                    opacity: 0.88;
-                    transform: translateY(-1px);
-                    box-shadow: 0 6px 24px rgba(79,124,255,0.35);
-                }
-
-                .btn-primary:disabled {
-                    opacity: 0.35;
-                    cursor: not-allowed;
-                    transform: none;
-                    box-shadow: none;
-                }
-
-            .btn-ghost {
-                padding: 12px 18px;
-                background: transparent;
-                border: 1.5px solid var(--border2);
+                padding: 11px 12px;
                 border-radius: 10px;
                 color: var(--muted2);
-                font-size: 13.5px;
-                font-family: 'Instrument Sans', sans-serif;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-                .btn-ghost:hover {
-                    border-color: var(--red);
-                    color: var(--red);
-                }
-
-            #postStatus {
-                font-size: 13px;
-                font-weight: 500;
-            }
-
-            .ok {
-                color: var(--green);
-            }
-
-            .err {
-                color: var(--red);
-            }
-
-            /* ── status toast ── */
-            .toast {
-                position: fixed;
-                bottom: 28px;
-                right: 28px;
-                padding: 13px 20px;
-                border-radius: 12px;
+                text-decoration: none;
                 font-size: 13.5px;
                 font-weight: 500;
-                z-index: 9999;
-                transform: translateY(20px);
-                opacity: 0;
-                pointer-events: none;
-                transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
-                max-width: 320px;
-                display: flex;
-                align-items: center;
-                gap: 10px;
+                white-space: nowrap;
+                overflow: hidden;
+                transition: background 0.2s, color 0.2s;
             }
 
-                .toast.show {
-                    transform: translateY(0);
-                    opacity: 1;
-                    pointer-events: auto;
+                nav a:hover {
+                    background: var(--border);
+                    color: var(--text);
                 }
 
-                .toast.toast-ok {
-                    background: rgba(0,208,132,0.15);
-                    border: 1px solid rgba(0,208,132,0.4);
-                    color: var(--green);
+                nav a.active {
+                    background: var(--accent-glow);
+                    color: #7ca9ff;
+                    border: 1px solid rgba(79,124,255,0.25);
                 }
 
-                .toast.toast-err {
-                    background: rgba(255,79,106,0.12);
-                    border: 1px solid rgba(255,79,106,0.35);
-                    color: var(--red);
-                }
+        .nav-icon {
+            font-size: 17px;
+            flex-shrink: 0;
+            width: 20px;
+            text-align: center;
+        }
 
-            /* ═══════════════════════════════════════════
-           UPDATES LIST
-        ═══════════════════════════════════════════ */
-            .updates-section {
+        .sidebar-footer {
+            padding: 14px 16px;
+            border-top: 1px solid var(--border);
+            font-size: 11px;
+            color: var(--muted);
+            white-space: nowrap;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .btn-logout {
+            font-family: var(--mono);
+            font-size: 11px;
+            padding: 6px 12px;
+            border-radius: 7px;
+            background: rgba(255,79,106,.1);
+            border: 1px solid rgba(255,79,106,.3);
+            color: #ff9aaa;
+            cursor: pointer;
+            transition: background .2s;
+            width: 100%;
+            text-align: center;
+        }
+
+            .btn-logout:hover {
+                background: rgba(255,79,106,.2);
             }
 
-            .update-item {
-                background: var(--card);
-                border: 1px solid var(--border);
-                border-radius: 16px;
-                padding: 20px 22px;
-                margin-bottom: 12px;
-                display: grid;
-                grid-template-columns: 1fr auto;
-                gap: 16px;
-                align-items: start;
-                animation: slideUp 0.3s ease both;
-                transition: border-color 0.2s;
+        /* MAIN */
+        main {
+            padding: 36px 40px;
+            overflow-y: auto;
+            background: radial-gradient(ellipse 60% 50% at 80% -10%, rgba(79,124,255,0.06) 0%, transparent 70%), radial-gradient(ellipse 40% 30% at 10% 80%, rgba(0,208,132,0.04) 0%, transparent 60%), var(--bg);
+            min-height: 100vh;
+        }
+
+        @media (max-width: 900px) {
+            main {
+                padding: 24px 18px;
             }
+        }
 
-                .update-item:hover {
-                    border-color: var(--border2);
-                }
+        .page-header {
+            margin-bottom: 32px;
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
 
-            @keyframes slideUp {
-                from {
-                    opacity: 0;
-                    transform: translateY(10px);
-                }
-
-                to {
-                    opacity: 1;
-                    transform: translateY(0);
-                }
-            }
-
-            .update-left {
-                display: flex;
-                flex-direction: column;
-                gap: 7px;
-            }
-
-            .update-meta {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                flex-wrap: wrap;
-            }
-
-            .tag {
-                display: inline-block;
-                font-size: 9.5px;
-                font-weight: 700;
-                letter-spacing: 1.2px;
-                text-transform: uppercase;
-                padding: 3px 10px;
-                border-radius: 20px;
-            }
-
-            .tag-announcement {
-                background: var(--accent-glow);
-                color: #7ca9ff;
-            }
-
-            .tag-maintenance {
-                background: rgba(255,179,64,0.14);
-                color: var(--amber);
-            }
-
-            .tag-alert {
-                background: rgba(255,79,106,0.13);
-                color: var(--red);
-            }
-
-            .tag-feature {
-                background: var(--green-glow);
-                color: var(--green);
-            }
-
-            .tag-promotion {
-                background: rgba(168,85,247,0.13);
-                color: var(--purple);
-            }
-
-            .update-title {
+            .page-header h2 {
                 font-family: 'Clash Display', sans-serif;
-                font-size: 0.98rem;
-                font-weight: 600;
-                color: var(--text);
+                font-size: clamp(1.6rem, 3vw, 2.2rem);
+                font-weight: 700;
+                letter-spacing: -0.5px;
+                line-height: 1.15;
             }
 
-            .update-body {
-                font-size: 13px;
+            .page-header p {
                 color: var(--muted2);
-                line-height: 1.65;
+                font-size: 13.5px;
+                margin-top: 4px;
             }
 
-            .update-date {
-                font-size: 11px;
-                color: var(--muted);
+        .header-pill {
+            display: inline-block;
+            background: var(--accent-glow);
+            border: 1px solid rgba(79,124,255,0.3);
+            color: #7ca9ff;
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1.5px;
+            text-transform: uppercase;
+            padding: 5px 12px;
+            border-radius: 50px;
+            margin-bottom: 8px;
+        }
+
+        /* COMPOSE CARD */
+        .compose-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 30px 32px;
+            margin-bottom: 36px;
+            position: relative;
+            overflow: hidden;
+        }
+
+            .compose-card::before {
+                content: '';
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                height: 2px;
+                background: linear-gradient(90deg, var(--accent), var(--green), var(--purple));
+                border-radius: 20px 20px 0 0;
             }
 
-            .update-img {
-                width: 80px;
-                height: 64px;
-                border-radius: 9px;
-                object-fit: cover;
-                border: 1px solid var(--border);
+        .section-heading {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            margin-bottom: 24px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text);
+        }
+
+            .section-heading .dot {
+                width: 8px;
+                height: 8px;
+                border-radius: 50%;
+                background: var(--accent);
+                box-shadow: 0 0 8px var(--accent);
                 flex-shrink: 0;
             }
 
-            .update-actions {
-                display: flex;
-                gap: 8px;
-                margin-top: 8px;
-                flex-wrap: wrap;
-            }
-
-            .delete-btn {
-                padding: 5px 13px;
-                background: transparent;
-                border: 1px solid var(--border2);
-                border-radius: 7px;
-                color: var(--muted2);
-                font-size: 11.5px;
-                font-family: 'Instrument Sans', sans-serif;
-                cursor: pointer;
-                transition: all 0.2s;
-            }
-
-                .delete-btn:hover {
-                    border-color: var(--red);
-                    color: var(--red);
-                    background: rgba(255,79,106,0.07);
+                .section-heading .dot.green {
+                    background: var(--green);
+                    box-shadow: 0 0 8px var(--green);
                 }
 
-            .empty-state {
-                text-align: center;
-                padding: 48px 20px;
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 18px;
+            margin-bottom: 18px;
+        }
+
+        @media (max-width: 700px) {
+            .form-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+            .form-group.full {
+                grid-column: 1 / -1;
+            }
+
+        label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: var(--muted2);
+        }
+
+        input, textarea, select {
+            background: var(--surface2);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 15px;
+            color: var(--text);
+            font-size: 14px;
+            font-family: 'Instrument Sans', sans-serif;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+            input:focus, textarea:focus, select:focus {
+                border-color: var(--accent);
+                box-shadow: 0 0 0 3px var(--accent-glow);
+            }
+
+            input::placeholder, textarea::placeholder {
                 color: var(--muted);
             }
 
-                .empty-state .emoji {
-                    font-size: 2.2rem;
-                    margin-bottom: 10px;
-                }
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
 
-                .empty-state p {
-                    font-size: 13.5px;
-                }
+        select option {
+            background: var(--surface);
+        }
 
-            .skeleton {
-                background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
-                background-size: 200% 100%;
-                border-radius: 12px;
-                height: 80px;
-                margin-bottom: 12px;
-                animation: shimmer 1.5s infinite;
+        .type-picker {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .type-chip {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 7px 15px;
+            border-radius: 50px;
+            border: 1.5px solid var(--border);
+            background: transparent;
+            color: var(--muted2);
+            font-size: 12.5px;
+            font-family: 'Instrument Sans', sans-serif;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.18s;
+        }
+
+            .type-chip:hover {
+                border-color: var(--accent);
+                color: var(--text);
             }
 
-            @keyframes shimmer {
-                0% {
-                    background-position: 200% 0;
-                }
-
-                100% {
-                    background-position: -200% 0;
-                }
+            .type-chip.selected {
+                background: var(--accent-glow);
+                border-color: var(--accent);
+                color: #7ca9ff;
             }
 
-            /* ── stats strip ── */
-            .stats-strip {
-                display: flex;
-                gap: 14px;
-                margin-bottom: 28px;
-                flex-wrap: wrap;
+            .type-chip[data-type="maintenance"].selected {
+                background: rgba(255,179,64,0.12);
+                border-color: var(--amber);
+                color: var(--amber);
             }
 
-            .stat-pill {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                background: var(--surface2);
-                border: 1px solid var(--border);
-                border-radius: 12px;
-                padding: 10px 16px;
-                font-size: 13px;
-                transition: border-color 0.2s;
+            .type-chip[data-type="alert"].selected {
+                background: rgba(255,79,106,0.12);
+                border-color: var(--red);
+                color: var(--red);
             }
 
-                .stat-pill:hover {
-                    border-color: var(--border2);
-                }
-
-                .stat-pill .num {
-                    font-family: 'Clash Display', sans-serif;
-                    font-size: 1.2rem;
-                    font-weight: 600;
-                }
-
-                .stat-pill .lbl {
-                    color: var(--muted2);
-                    font-size: 11.5px;
-                }
-
-            /* scrollbar */
-            ::-webkit-scrollbar {
-                width: 5px;
+            .type-chip[data-type="feature"].selected {
+                background: var(--green-glow);
+                border-color: var(--green);
+                color: var(--green);
             }
 
-            ::-webkit-scrollbar-track {
-                background: transparent;
+            .type-chip[data-type="promotion"].selected {
+                background: rgba(168,85,247,0.12);
+                border-color: var(--purple);
+                color: var(--purple);
             }
 
-            ::-webkit-scrollbar-thumb {
-                background: var(--border2);
-                border-radius: 4px;
+        .upload-zone {
+            border: 2px dashed var(--border2);
+            border-radius: 12px;
+            padding: 24px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+            .upload-zone:hover {
+                border-color: var(--accent);
+                background: rgba(79,124,255,0.04);
             }
+
+            .upload-zone.has-file {
+                border-color: var(--green);
+                background: var(--green-glow);
+            }
+
+            .upload-zone input {
+                display: none;
+            }
+
+        .upload-icon {
+            font-size: 26px;
+            margin-bottom: 6px;
+        }
+
+        .upload-zone p {
+            font-size: 12.5px;
+            color: var(--muted2);
+        }
+
+        .upload-zone .file-name {
+            color: var(--green);
+            font-weight: 600;
+            margin-top: 4px;
+            font-size: 12px;
+        }
+
+        .submit-row {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-top: 22px;
+            flex-wrap: wrap;
+        }
+
+        .btn-primary {
+            padding: 12px 26px;
+            background: var(--accent);
+            border: none;
+            border-radius: 10px;
+            color: white;
+            font-size: 13.5px;
+            font-weight: 600;
+            font-family: 'Instrument Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            box-shadow: 0 4px 20px var(--accent-glow);
+        }
+
+            .btn-primary:hover {
+                opacity: 0.88;
+                transform: translateY(-1px);
+                box-shadow: 0 6px 24px rgba(79,124,255,0.35);
+            }
+
+            .btn-primary:disabled {
+                opacity: 0.35;
+                cursor: not-allowed;
+                transform: none;
+                box-shadow: none;
+            }
+
+        .btn-ghost {
+            padding: 12px 18px;
+            background: transparent;
+            border: 1.5px solid var(--border2);
+            border-radius: 10px;
+            color: var(--muted2);
+            font-size: 13.5px;
+            font-family: 'Instrument Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .btn-ghost:hover {
+                border-color: var(--red);
+                color: var(--red);
+            }
+
+        #postStatus {
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .ok {
+            color: var(--green);
+        }
+
+        .err {
+            color: var(--red);
+        }
+
+        /* TOAST */
+        .toast {
+            position: fixed;
+            bottom: 28px;
+            right: 28px;
+            padding: 13px 20px;
+            border-radius: 12px;
+            font-size: 13.5px;
+            font-weight: 500;
+            z-index: 9999;
+            transform: translateY(20px);
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s cubic-bezier(0.34,1.56,0.64,1);
+            max-width: 320px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+            .toast.show {
+                transform: translateY(0);
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .toast.toast-ok {
+                background: rgba(0,208,132,0.15);
+                border: 1px solid rgba(0,208,132,0.4);
+                color: var(--green);
+            }
+
+            .toast.toast-err {
+                background: rgba(255,79,106,0.12);
+                border: 1px solid rgba(255,79,106,0.35);
+                color: var(--red);
+            }
+
+        /* UPDATES LIST */
+        .update-item {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px 22px;
+            margin-bottom: 12px;
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 16px;
+            align-items: start;
+            animation: slideUp 0.3s ease both;
+            transition: border-color 0.2s;
+        }
+
+            .update-item:hover {
+                border-color: var(--border2);
+            }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .update-left {
+            display: flex;
+            flex-direction: column;
+            gap: 7px;
+        }
+
+        .update-meta {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: 9.5px;
+            font-weight: 700;
+            letter-spacing: 1.2px;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        .tag-announcement {
+            background: var(--accent-glow);
+            color: #7ca9ff;
+        }
+
+        .tag-maintenance {
+            background: rgba(255,179,64,0.14);
+            color: var(--amber);
+        }
+
+        .tag-alert {
+            background: rgba(255,79,106,0.13);
+            color: var(--red);
+        }
+
+        .tag-feature {
+            background: var(--green-glow);
+            color: var(--green);
+        }
+
+        .tag-promotion {
+            background: rgba(168,85,247,0.13);
+            color: var(--purple);
+        }
+
+        .update-title {
+            font-family: 'Clash Display', sans-serif;
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .update-body {
+            font-size: 13px;
+            color: var(--muted2);
+            line-height: 1.65;
+        }
+
+        .update-date {
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .update-img {
+            width: 80px;
+            height: 64px;
+            border-radius: 9px;
+            object-fit: cover;
+            border: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+
+        .update-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 8px;
+            flex-wrap: wrap;
+        }
+
+        .delete-btn {
+            padding: 5px 13px;
+            background: transparent;
+            border: 1px solid var(--border2);
+            border-radius: 7px;
+            color: var(--muted2);
+            font-size: 11.5px;
+            font-family: 'Instrument Sans', sans-serif;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .delete-btn:hover {
+                border-color: var(--red);
+                color: var(--red);
+                background: rgba(255,79,106,0.07);
+            }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 20px;
+            color: var(--muted);
+        }
+
+            .empty-state .emoji {
+                font-size: 2.2rem;
+                margin-bottom: 10px;
+            }
+
+            .empty-state p {
+                font-size: 13.5px;
+            }
+
+        .skeleton {
+            background: linear-gradient(90deg, var(--border) 25%, var(--border2) 50%, var(--border) 75%);
+            background-size: 200% 100%;
+            border-radius: 12px;
+            height: 80px;
+            margin-bottom: 12px;
+            animation: shimmer 1.5s infinite;
+        }
+
+        @keyframes shimmer {
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
+        }
+
+        /* STATS */
+        .stats-strip {
+            display: flex;
+            gap: 14px;
+            margin-bottom: 28px;
+            flex-wrap: wrap;
+        }
+
+        .stat-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 16px;
+            font-size: 13px;
+            transition: border-color 0.2s;
+        }
+
+            .stat-pill:hover {
+                border-color: var(--border2);
+            }
+
+            .stat-pill .num {
+                font-family: 'Clash Display', sans-serif;
+                font-size: 1.2rem;
+                font-weight: 600;
+            }
+
+            .stat-pill .lbl {
+                color: var(--muted2);
+                font-size: 11.5px;
+            }
+
+        ::-webkit-scrollbar {
+            width: 5px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: var(--border2);
+            border-radius: 4px;
+        }
     </style>
 </head>
 <body>
 
-    <div class="shell">
-
-        <!-- ═══ SIDEBAR ═══ -->
-        <aside>
-            <div class="sidebar-logo">
-                <div class="logo-icon">🏠</div>
-                <div class="logo-text">
-                    <h1>QejaConnect</h1>
-                    <span>Admin Panel</span>
-                </div>
-            </div>
-            <nav>
-                <a href="#" class="active">
-                    <span class="nav-icon">📢</span>
-                    <span>Updates</span>
-                </a>
-                <a href="javascript:void(0)" onclick="alert('Navigate to admin landlords page')">
-                    <span class="nav-icon">🏘</span>
-                    <span>Landlords</span>
-                </a>
-                <a href="javascript:void(0)" onclick="alert('Navigate to admin messages page')">
-                    <span class="nav-icon">💬</span>
-                    <span>Messages</span>
-                </a>
-                <a href="home.html">
-                    <span class="nav-icon">↗</span>
-                    <span>Live Site</span>
-                </a>
-            </nav>
-            <div class="sidebar-footer" id="adminLabel">Signed in as admin</div>
-        </aside>
-
-        <!-- ═══ MAIN ═══ -->
-        <main>
-
-            <!-- header -->
-            <div class="page-header">
-                <div>
-                    <div class="header-pill">📢 Admin Console</div>
-                    <h2>Updates &amp; Announcements</h2>
-                    <p>Post platform news, maintenance alerts, promotions and feature releases. Cards appear on the home feed.</p>
-                </div>
-            </div>
-
-            <!-- stats -->
-            <div class="stats-strip" id="statsStrip">
-                <div class="stat-pill">
-                    <span class="num" id="statTotal">—</span>
-                    <span class="lbl">Total updates</span>
-                </div>
-                <div class="stat-pill" style="border-color:rgba(79,124,255,0.35)">
-                    <span class="num" id="statAnnounce" style="color:var(--accent)">—</span>
-                    <span class="lbl">Announcements</span>
-                </div>
-                <div class="stat-pill" style="border-color:rgba(0,208,132,0.3)">
-                    <span class="num" id="statFeature" style="color:var(--green)">—</span>
-                    <span class="lbl">Features</span>
-                </div>
-                <div class="stat-pill" style="border-color:rgba(255,179,64,0.3)">
-                    <span class="num" id="statMaint" style="color:var(--amber)">—</span>
-                    <span class="lbl">Maintenance</span>
-                </div>
-            </div>
-
-            <!-- ── COMPOSE ── -->
-            <div class="compose-card">
-                <div class="section-heading">
-                    <span class="dot"></span>
-                    Compose New Update
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Title</label>
-                        <input type="text" id="upTitle" placeholder="e.g. New feature: instant notifications" maxlength="100">
-                    </div>
-                    <div class="form-group">
-                        <label>Type</label>
-                        <div class="type-picker" id="typePicker">
-                            <button class="type-chip selected" data-type="announcement">📢 Announcement</button>
-                            <button class="type-chip" data-type="maintenance">🔧 Maintenance</button>
-                            <button class="type-chip" data-type="alert">🚨 Alert</button>
-                            <button class="type-chip" data-type="feature">✨ Feature</button>
-                            <button class="type-chip" data-type="promotion">🎁 Promotion</button>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group full">
-                        <label>Body</label>
-                        <textarea id="upBody" placeholder="Write the full update content here…" maxlength="1000"></textarea>
-                    </div>
-                </div>
-
-                <div class="form-grid">
-                    <div class="form-group">
-                        <label>Cover image (optional)</label>
-                        <label class="upload-zone" id="uploadZone" for="upImage">
-                            <input type="file" id="upImage" accept="image/*">
-                            <div class="upload-icon">🖼️</div>
-                            <p>Click to attach an image</p>
-                            <p class="file-name" id="fileName"></p>
-                        </label>
-                    </div>
-                    <div class="form-group">
-                        <label>CTA link (optional)</label>
-                        <input type="url" id="upLink" placeholder="https://...">
-                        <br>
-                        <label>CTA label</label>
-                        <input type="text" id="upLinkLabel" placeholder="e.g. Learn more">
-                    </div>
-                </div>
-
-                <div class="submit-row">
-                    <button class="btn-primary" id="postBtn" onclick="postUpdate()">
-                        <span>🚀</span> Publish Update
-                    </button>
-                    <button class="btn-ghost" onclick="clearForm()">Clear</button>
-                    <span id="postStatus"></span>
-                </div>
-            </div>
-
-            <!-- ── PUBLISHED LIST ── -->
-            <div class="updates-section">
-                <div class="section-heading" style="margin-bottom:18px;">
-                    <span class="dot green"></span>
-                    Published Updates
-                </div>
-                <div id="updatesList">
-                    <div class="skeleton"></div>
-                    <div class="skeleton" style="height:60px;opacity:.6"></div>
-                    <div class="skeleton" style="height:50px;opacity:.35"></div>
-                </div>
-            </div>
-
-        </main>
+    <!-- LOGIN GATE -->
+    <div id="loginGate">
+        <div class="login-box">
+            <div class="badge">🔐 &nbsp;Restricted Access</div>
+            <h1>Admin Panel</h1>
+            <p>QejaConnect — Staff Portal</p>
+            <input type="password" id="secretInput" placeholder="Enter admin secret…" autocomplete="off">
+            <button class="btn-login" onclick="doLogin()">Authenticate</button>
+            <div class="login-err" id="loginErr">Incorrect secret. Try again.</div>
+        </div>
     </div>
 
-    <!-- toast -->
+    <!-- APP -->
+    <div id="app">
+        <div class="shell">
+
+            <aside>
+                <div class="sidebar-logo">
+                    <div class="logo-icon">🏠</div>
+                    <div class="logo-text">
+                        <h1>QejaConnect</h1>
+                        <span>Admin Panel</span>
+                    </div>
+                </div>
+                <nav>
+                    <a href="#" class="active"><span class="nav-icon">📢</span><span>Updates</span></a>
+                    <a href="admin.html"><span class="nav-icon">🏘</span><span>Landlords</span></a>
+                    <a href="admin.html"><span class="nav-icon">💬</span><span>Messages</span></a>
+                    <a href="home.html"><span class="nav-icon">↗</span><span>Live Site</span></a>
+                </nav>
+                <div class="sidebar-footer">
+                    <span>Signed in as admin</span>
+                    <button class="btn-logout" onclick="doLogout()">Sign out</button>
+                </div>
+            </aside>
+
+            <main>
+                <div class="page-header">
+                    <div>
+                        <div class="header-pill">📢 Admin Console</div>
+                        <h2>Updates &amp; Announcements</h2>
+                        <p>Post platform news, maintenance alerts, promotions and feature releases. Cards appear on the home feed.</p>
+                    </div>
+                </div>
+
+                <div class="stats-strip">
+                    <div class="stat-pill"><span class="num" id="statTotal">—</span><span class="lbl">Total updates</span></div>
+                    <div class="stat-pill" style="border-color:rgba(79,124,255,0.35)"><span class="num" id="statAnnounce" style="color:var(--accent)">—</span><span class="lbl">Announcements</span></div>
+                    <div class="stat-pill" style="border-color:rgba(0,208,132,0.3)"><span class="num" id="statFeature" style="color:var(--green)">—</span><span class="lbl">Features</span></div>
+                    <div class="stat-pill" style="border-color:rgba(255,179,64,0.3)"><span class="num" id="statMaint" style="color:var(--amber)">—</span><span class="lbl">Maintenance</span></div>
+                </div>
+
+                <div class="compose-card">
+                    <div class="section-heading"><span class="dot"></span>Compose New Update</div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Title</label>
+                            <input type="text" id="upTitle" placeholder="e.g. New feature: instant notifications" maxlength="100">
+                        </div>
+                        <div class="form-group">
+                            <label>Type</label>
+                            <div class="type-picker" id="typePicker">
+                                <button class="type-chip selected" data-type="announcement">📢 Announcement</button>
+                                <button class="type-chip" data-type="maintenance">🔧 Maintenance</button>
+                                <button class="type-chip" data-type="alert">🚨 Alert</button>
+                                <button class="type-chip" data-type="feature">✨ Feature</button>
+                                <button class="type-chip" data-type="promotion">🎁 Promotion</button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label>Body</label>
+                            <textarea id="upBody" placeholder="Write the full update content here…" maxlength="1000"></textarea>
+                        </div>
+                    </div>
+                    <div class="form-grid">
+                        <div class="form-group">
+                            <label>Cover image (optional)</label>
+                            <label class="upload-zone" id="uploadZone" for="upImage">
+                                <input type="file" id="upImage" accept="image/*">
+                                <div class="upload-icon">🖼️</div>
+                                <p>Click to attach an image</p>
+                                <p class="file-name" id="fileName"></p>
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label>CTA link (optional)</label>
+                            <input type="url" id="upLink" placeholder="https://...">
+                            <br>
+                            <label>CTA label</label>
+                            <input type="text" id="upLinkLabel" placeholder="e.g. Learn more">
+                        </div>
+                    </div>
+                    <div class="submit-row">
+                        <button class="btn-primary" id="postBtn" onclick="postUpdate()"><span>🚀</span> Publish Update</button>
+                        <button class="btn-ghost" onclick="clearForm()">Clear</button>
+                        <span id="postStatus"></span>
+                    </div>
+                </div>
+
+                <div class="updates-section">
+                    <div class="section-heading" style="margin-bottom:18px;"><span class="dot green"></span>Published Updates</div>
+                    <div id="updatesList">
+                        <div class="skeleton"></div>
+                        <div class="skeleton" style="height:60px;opacity:.6"></div>
+                        <div class="skeleton" style="height:50px;opacity:.35"></div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
     <div class="toast" id="toast"></div>
 
     <script>
         const API = "https://qeja-backend-azkf.onrender.com";
-        const ADMIN_SECRET = prompt("Enter admin secret to continue:") || "";
+        let ADMIN_SECRET = '';
 
-        if (!ADMIN_SECRET) {
-          document.body.innerHTML = `
-            <div style="display:flex;align-items:center;justify-content:center;height:100vh;
-              font-family:sans-serif;background:#05080f;color:#ff4f6a;flex-direction:column;gap:12px;">
-              <div style="font-size:2rem;">🔒</div>
-              <div style="font-size:1.1rem;font-weight:600;">Access denied — no secret provided.</div>
-            </div>`;
+        // ── Login / Logout ──
+        document.getElementById('secretInput').addEventListener('keydown', e => {
+        if (e.key === 'Enter') doLogin();
+        });
+
+        function doLogin() {
+        const val = document.getElementById('secretInput').value.trim();
+        if (!val) return;
+        ADMIN_SECRET = val;
+        document.getElementById('loginGate').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        loadUpdates();
+        }
+
+        function doLogout() {
+        ADMIN_SECRET = '';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('loginGate').style.display = 'flex';
+        document.getElementById('secretInput').value = '';
+        document.getElementById('loginErr').style.display = 'none';
         }
 
         function showToast(msg, type = "ok") {
-          const t = document.getElementById("toast");
-          t.className = `toast toast-${type} show`;
-          t.innerHTML = (type === "ok" ? "✅ " : "❌ ") + msg;
-          clearTimeout(t._timer);
-          t._timer = setTimeout(() => t.classList.remove("show"), 4000);
+        const t = document.getElementById("toast");
+        t.className = `toast toast-${type} show`;
+        t.innerHTML = (type === "ok" ? "✅ " : "❌ ") + msg;
+        clearTimeout(t._timer);
+        t._timer = setTimeout(() => t.classList.remove("show"), 4000);
         }
 
         function escHtml(str) {
-          return String(str)
-            .replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;");
+        return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
         }
 
         let selectedType = "announcement";
 
         document.getElementById("typePicker").addEventListener("click", e => {
-          const chip = e.target.closest(".type-chip");
-          if (!chip) return;
-          document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
-          chip.classList.add("selected");
-          selectedType = chip.dataset.type;
+        const chip = e.target.closest(".type-chip");
+        if (!chip) return;
+        document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
+        chip.classList.add("selected");
+        selectedType = chip.dataset.type;
         });
 
         document.getElementById("upImage").addEventListener("change", function () {
-          const zone = document.getElementById("uploadZone");
-          const name = document.getElementById("fileName");
-          if (this.files[0]) {
-            zone.classList.add("has-file");
-            name.textContent = "✅ " + this.files[0].name;
-          } else {
-            zone.classList.remove("has-file");
-            name.textContent = "";
-          }
+        const zone = document.getElementById("uploadZone");
+        const name = document.getElementById("fileName");
+        if (this.files[0]) { zone.classList.add("has-file"); name.textContent = "✅ " + this.files[0].name; }
+        else { zone.classList.remove("has-file"); name.textContent = ""; }
         });
 
         async function postUpdate() {
-          const title    = document.getElementById("upTitle").value.trim();
-          const body     = document.getElementById("upBody").value.trim();
-          const link     = document.getElementById("upLink").value.trim();
-          const label    = document.getElementById("upLinkLabel").value.trim();
-          const file     = document.getElementById("upImage").files[0];
-          const statusEl = document.getElementById("postStatus");
-          const btn      = document.getElementById("postBtn");
+        const title    = document.getElementById("upTitle").value.trim();
+        const body     = document.getElementById("upBody").value.trim();
+        const link     = document.getElementById("upLink").value.trim();
+        const label    = document.getElementById("upLinkLabel").value.trim();
+        const file     = document.getElementById("upImage").files[0];
+        const statusEl = document.getElementById("postStatus");
+        const btn      = document.getElementById("postBtn");
 
-          if (!title || !body) {
-            statusEl.className = "err";
-            statusEl.textContent = "Title and body are required.";
-            return;
-          }
+        if (!title || !body) { statusEl.className="err"; statusEl.textContent="Title and body are required."; return; }
 
-          btn.disabled = true;
-          btn.innerHTML = "<span>⏳</span> Publishing…";
-          statusEl.textContent = "";
+        btn.disabled = true;
+        btn.innerHTML = "<span>⏳</span> Publishing…";
+        statusEl.textContent = "";
 
-          const fd = new FormData();
-          fd.append("title", title);
-          fd.append("body", body);
-          fd.append("type", selectedType);
-          if (link)  fd.append("cta_url", link);
-          if (label) fd.append("cta_label", label);
-          if (file)  fd.append("image", file);
+        const fd = new FormData();
+        fd.append("title", title); fd.append("body", body); fd.append("type", selectedType);
+        if (link)  fd.append("cta_url", link);
+        if (label) fd.append("cta_label", label);
+        if (file)  fd.append("image", file);
 
-          try {
-            const res = await fetch(`${API}/admin/updates`, {
-              method: "POST",
-              headers: { "x-admin-secret": ADMIN_SECRET },
-              body: fd
-            });
+        try {
+        const res = await fetch(`${API}/admin/updates`, {
+        method: "POST",
+        headers: { "x-admin-secret": ADMIN_SECRET },
+        body: fd
+        });
 
-            const raw = await res.text();
-            let data;
-            try {
-              data = JSON.parse(raw);
-            } catch {
-              const msg = `Server returned non-JSON (status ${res.status}): ${raw.substring(0, 120)}`;
-              statusEl.className = "err";
-              statusEl.textContent = "❌ " + msg;
-              showToast(msg, "err");
-              return;
-            }
+        if (res.status === 403) {
+        showToast("Incorrect secret — access denied.", "err");
+        doLogout();
+        document.getElementById('loginErr').style.display = 'block';
+        return;
+        }
 
-            if (data.success) {
-              statusEl.className = "ok";
-              statusEl.textContent = "✅ Published!";
-              showToast("Update published successfully!", "ok");
-              clearForm();
-              loadUpdates();
-            } else {
-              const msg = data.message || "Failed to publish";
-              statusEl.className = "err";
-              statusEl.textContent = "❌ " + msg;
-              showToast(msg, "err");
-            }
-          } catch (err) {
-            const msg = err.message || "Network error — check your connection.";
-            statusEl.className = "err";
-            statusEl.textContent = "❌ " + msg;
-            showToast(msg, "err");
-            console.error("postUpdate error:", err);
-          } finally {
-            btn.disabled = false;
-            btn.innerHTML = "<span>🚀</span> Publish Update";
-          }
+        const raw = await res.text();
+        let data;
+        try { data = JSON.parse(raw); }
+        catch {
+        const msg = `Server returned non-JSON (status ${res.status}): ${raw.substring(0,120)}`;
+        statusEl.className="err"; statusEl.textContent="❌ "+msg; showToast(msg,"err"); return;
+        }
+
+        if (data.success) {
+        statusEl.className="ok"; statusEl.textContent="✅ Published!";
+        showToast("Update published successfully!", "ok");
+        clearForm(); loadUpdates();
+        } else {
+        const msg = data.message || "Failed to publish";
+        statusEl.className="err"; statusEl.textContent="❌ "+msg; showToast(msg,"err");
+        }
+        } catch (err) {
+        const msg = err.message || "Network error";
+        statusEl.className="err"; statusEl.textContent="❌ "+msg; showToast(msg,"err");
+        } finally {
+        btn.disabled=false; btn.innerHTML="<span>🚀</span> Publish Update";
+        }
         }
 
         function clearForm() {
-          document.getElementById("upTitle").value = "";
-          document.getElementById("upBody").value = "";
-          document.getElementById("upLink").value = "";
-          document.getElementById("upLinkLabel").value = "";
-          document.getElementById("upImage").value = "";
-          document.getElementById("fileName").textContent = "";
-          document.getElementById("uploadZone").classList.remove("has-file");
-          document.getElementById("postStatus").textContent = "";
-          selectedType = "announcement";
-          document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
-          document.querySelector('[data-type="announcement"]').classList.add("selected");
+        ["upTitle","upBody","upLink","upLinkLabel"].forEach(id => document.getElementById(id).value = "");
+        document.getElementById("upImage").value = "";
+        document.getElementById("fileName").textContent = "";
+        document.getElementById("uploadZone").classList.remove("has-file");
+        document.getElementById("postStatus").textContent = "";
+        selectedType = "announcement";
+        document.querySelectorAll(".type-chip").forEach(c => c.classList.remove("selected"));
+        document.querySelector('[data-type="announcement"]').classList.add("selected");
         }
 
         async function deleteUpdate(id) {
-          if (!confirm("Delete this update? This cannot be undone.")) return;
-          try {
-            const res = await fetch(`${API}/admin/updates/${id}`, {
-              method: "DELETE",
-              headers: { "x-admin-secret": ADMIN_SECRET }
-            });
-
-            const raw = await res.text();
-            let data;
-            try {
-              data = JSON.parse(raw);
-            } catch {
-              showToast(`Server error (status ${res.status})`, "err");
-              return;
-            }
-
-            if (data.success) {
-              showToast("Update deleted.", "ok");
-              loadUpdates();
-            } else {
-              showToast(data.message || "Delete failed", "err");
-            }
-          } catch (err) {
-            showToast(err.message || "Network error", "err");
-            console.error("deleteUpdate error:", err);
-          }
+        if (!confirm("Delete this update? This cannot be undone.")) return;
+        try {
+        const res = await fetch(`${API}/admin/updates/${id}`, {
+        method: "DELETE",
+        headers: { "x-admin-secret": ADMIN_SECRET }
+        });
+        if (res.status === 403) { showToast("Access denied.", "err"); doLogout(); return; }
+        const raw = await res.text();
+        let data;
+        try { data = JSON.parse(raw); } catch { showToast(`Server error (status ${res.status})`,"err"); return; }
+        if (data.success) { showToast("Update deleted.", "ok"); loadUpdates(); }
+        else showToast(data.message || "Delete failed", "err");
+        } catch (err) { showToast(err.message || "Network error", "err"); }
         }
 
         async function loadUpdates() {
-          const container = document.getElementById("updatesList");
-          container.innerHTML = `
-            <div class="skeleton"></div>
-            <div class="skeleton" style="height:60px;opacity:.6"></div>`;
-
-          try {
-            const res = await fetch(`${API}/updates`);
-            const raw = await res.text();
-
-            let data;
-            try {
-              data = JSON.parse(raw);
-            } catch {
-              container.innerHTML = `
-                <p class="err" style="padding:20px;">
-                  ❌ Server returned non-JSON (status ${res.status}). 
-                  Response: ${escHtml(raw.substring(0, 120))}
-                </p>`;
-              return;
-            }
-
-            if (!data.success || !data.updates || !data.updates.length) {
-              document.getElementById("statTotal").textContent    = 0;
-              document.getElementById("statAnnounce").textContent = 0;
-              document.getElementById("statFeature").textContent  = 0;
-              document.getElementById("statMaint").textContent    = 0;
-              container.innerHTML = `
-                <div class="empty-state">
-                  <div class="emoji">📭</div>
-                  <p>No updates published yet. Use the form above to post one.</p>
-                </div>`;
-              return;
-            }
-
-            const all = data.updates;
-            document.getElementById("statTotal").textContent    = all.length;
-            document.getElementById("statAnnounce").textContent = all.filter(u => u.type === "announcement").length;
-            document.getElementById("statFeature").textContent  = all.filter(u => u.type === "feature").length;
-            document.getElementById("statMaint").textContent    = all.filter(u => u.type === "maintenance").length;
-
-            container.innerHTML = "";
-            all.forEach(u => {
-              const tag     = `tag-${u.type || "announcement"}`;
-              const label   = (u.type || "announcement").charAt(0).toUpperCase() + (u.type || "announcement").slice(1);
-              const dateStr = new Date(u.created_at).toLocaleDateString("en-KE", {
-                day: "numeric", month: "short", year: "numeric",
-                hour: "2-digit", minute: "2-digit"
-              });
-
-              container.innerHTML += `
-                <div class="update-item" id="upitem-${u.id}">
-                  <div class="update-left">
-                    <div class="update-meta">
-                      <span class="tag ${tag}">${escHtml(label)}</span>
-                      <span class="update-date">${dateStr}</span>
-                    </div>
-                    <div class="update-title">${escHtml(u.title)}</div>
-                    <div class="update-body">${escHtml(u.body)}</div>
-                    ${u.cta_url ? `<a href="${u.cta_url}" target="_blank"
-                      style="color:#7ca9ff;font-size:12.5px;margin-top:2px;">
-                      ${escHtml(u.cta_label || u.cta_url)} ↗</a>` : ""}
-                    <div class="update-actions">
-                      <button class="delete-btn" onclick="deleteUpdate(${u.id})">🗑 Delete</button>
-                    </div>
-                  </div>
-                  ${u.image_url ? `<img class="update-img" src="${u.image_url}" alt="cover">` : ""}
-                </div>`;
-            });
-
-          } catch (err) {
-            container.innerHTML = `
-              <p class="err" style="padding:20px;">
-                ❌ Failed to load: ${escHtml(err.message)}
-              </p>`;
-            console.error("loadUpdates error:", err);
-          }
+        const container = document.getElementById("updatesList");
+        container.innerHTML = `<div class="skeleton"></div><div class="skeleton" style="height:60px;opacity:.6"></div>`;
+        try {
+        const res = await fetch(`${API}/updates`);
+        const raw = await res.text();
+        let data;
+        try { data = JSON.parse(raw); }
+        catch {
+        container.innerHTML = `<p class="err" style="padding:20px;">❌ Server returned non-JSON (status ${res.status}). Response: ${escHtml(raw.substring(0,120))}</p>`;
+        return;
         }
 
-        loadUpdates();
+        if (!data.success || !data.updates || !data.updates.length) {
+        ["statTotal","statAnnounce","statFeature","statMaint"].forEach(id => document.getElementById(id).textContent = 0);
+        container.innerHTML = `<div class="empty-state"><div class="emoji">📭</div><p>No updates published yet. Use the form above to post one.</p></div>`;
+        return;
+        }
+
+        const all = data.updates;
+        document.getElementById("statTotal").textContent    = all.length;
+        document.getElementById("statAnnounce").textContent = all.filter(u => u.type==="announcement").length;
+        document.getElementById("statFeature").textContent  = all.filter(u => u.type==="feature").length;
+        document.getElementById("statMaint").textContent    = all.filter(u => u.type==="maintenance").length;
+
+        container.innerHTML = "";
+        all.forEach(u => {
+        const tag   = `tag-${u.type||"announcement"}`;
+        const lbl   = (u.type||"announcement").charAt(0).toUpperCase() + (u.type||"announcement").slice(1);
+        const dateStr = new Date(u.created_at).toLocaleDateString("en-KE",{day:"numeric",month:"short",year:"numeric",hour:"2-digit",minute:"2-digit"});
+        container.innerHTML += `
+        <div class="update-item" id="upitem-${u.id}">
+        <div class="update-left">
+        <div class="update-meta">
+        <span class="tag ${tag}">${escHtml(lbl)}</span>
+        <span class="update-date">${dateStr}</span>
+        </div>
+        <div class="update-title">${escHtml(u.title)}</div>
+        <div class="update-body">${escHtml(u.body)}</div>
+        ${u.cta_url?`<a href="${u.cta_url}" target="_blank" style="color:#7ca9ff;font-size:12.5px;margin-top:2px;">${escHtml(u.cta_label||u.cta_url)} ↗</a>`:""}
+        <div class="update-actions"><button class="delete-btn" onclick="deleteUpdate(${u.id})">🗑 Delete</button></div>
+        </div>
+        ${u.image_url?`<img class="update-img" src="${u.image_url}" alt="cover">`:""}
+        </div>`;
+        });
+        } catch (err) {
+        container.innerHTML = `<p class="err" style="padding:20px;">❌ Failed to load: ${escHtml(err.message)}</p>`;
+        }
+        }
     </script>
 </body>
 </html>
