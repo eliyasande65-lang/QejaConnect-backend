@@ -592,7 +592,7 @@
             <div class="modal-bd">
                 <div id="sessionTenantInfo" style="background:#f8fafc;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;"></div>
                 <label>Monthly Rent Amount (Ksh)</label>
-                <input type="number" id="rentAmount" placeholder="e.g. 12000" min="500">
+                <input type="number" id="rentAmount" placeholder="e.g. 12000" min="1">
                 <label>Tenancy Start Date</label>
                 <input type="date" id="startDate">
                 <label>Duration</label>
@@ -752,7 +752,7 @@
         const start = document.getElementById('startDate').value;
         const dur   = parseInt(document.getElementById('duration').value);
 
-        if (!rent || rent < 500) { alert('Please enter a valid rent amount.'); return; }
+        if (!rent || rent < 1) { alert('Please enter a valid rent amount.'); return; }
         if (!start)              { alert('Please select a start date.'); return; }
 
         const btn = document.querySelector('.btn-confirm');

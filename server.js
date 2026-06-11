@@ -1621,15 +1621,25 @@ router.post('/payments/:id/confirm', auth, async (req, res) => {
 router.get('/mpesa/status/:checkoutRequestId', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
-      `SELECT * FROM mpesa_callbacks WHERE checkout_request_id=? LIMIT 1`,
+      `SELECT status, transaction_id, amount, phone, result_desc
+       FROM mpesa_payments WHERE checkout_request_id=? LIMIT 1`,
       [req.params.checkoutRequestId]
     );
     if (!rows.length) return res.json({ status: 'pending' });
     const r = rows[0];
-    if (r.result_code === '0' || r.result_code === 0) {
-      return res.json({ status: 'completed', paid: true, mpesa_ref: r.mpesa_ref, MpesaReceiptNumber: r.mpesa_ref });
+
+    if (r.status === 'completed' || r.status === 'used') {
+      return res.json({
+        status: 'completed',
+        paid: true,
+        mpesa_ref: r.transaction_id,
+        MpesaReceiptNumber: r.transaction_id
+      });
     }
-    return res.json({ status: 'failed', ResultCode: String(r.result_code) });
+    if (r.status === 'failed') {
+      return res.json({ status: 'failed', message: r.result_desc });
+    }
+    return res.json({ status: 'pending' });
   } catch (err) {
     console.error(err);
     res.status(500).json({ status: 'pending' });

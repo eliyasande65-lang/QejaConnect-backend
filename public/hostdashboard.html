@@ -428,9 +428,10 @@
     </div>
 
     <button class="add" onclick="location.href='addproperty.html'">+ Add Property</button>
+    <button class="add" onclick="location.href='landlord_tenants.html'">Inquiries</button>
     <div class="section-title">Your Properties</div>
     <div class="dashboard" id="myProperties"></div>
-    
+
     <div class="dashboard" id="dashboard"></div>
 
     <div class="section-title">Your Chats</div>
@@ -442,7 +443,7 @@
 
     <div class="dashboard tab-content active" id="landlordChats"></div>
     <div class="dashboard tab-content" id="tenantChats"></div>
-    
+
     <script>
         const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
         const token      = localStorage.getItem("token");
@@ -589,72 +590,72 @@
         document.body.classList.toggle("dark");
         }
         async function loadMyProperties() {
-            const container = document.getElementById("myProperties");
-            if (!userId || !token) {
-                container.innerHTML = `<div class="empty">Please login first</div>`;
-                return;
-            }
-            try {
-                const res = await fetch(
-                    `https://qeja-backend-azkf.onrender.com/landlord-properties/${userId}`,
-                    { headers: { "Authorization": "Bearer " + token } }
-                );
-                const data = await res.json();
+        const container = document.getElementById("myProperties");
+        if (!userId || !token) {
+        container.innerHTML = `<div class="empty">Please login first</div>`;
+        return;
+        }
+        try {
+        const res = await fetch(
+        `https://qeja-backend-azkf.onrender.com/landlord-properties/${userId}`,
+        { headers: { "Authorization": "Bearer " + token } }
+        );
+        const data = await res.json();
 
-                if (!data.success || !data.properties?.length) {
-                    container.innerHTML = `<div class="empty">No properties listed yet. Click "+ Add Property" to get started.</div>`;
-                    return;
-                }
+        if (!data.success || !data.properties?.length) {
+        container.innerHTML = `<div class="empty">No properties listed yet. Click "+ Add Property" to get started.</div>`;
+        return;
+        }
 
-                const now = new Date();
+        const now = new Date();
 
-                container.innerHTML = `<div class="properties-grid">` +
-                    data.properties.map(p => {
-                        const expiry = p.listing_expires_at ? new Date(p.listing_expires_at) : null;
-                        const isExpired = expiry && now > expiry;
+        container.innerHTML = `<div class="properties-grid">` +
+        data.properties.map(p => {
+        const expiry = p.listing_expires_at ? new Date(p.listing_expires_at) : null;
+        const isExpired = expiry && now > expiry;
 
-                        const badge = isExpired
-                            ? `<span class="inactive-badge">⛔ Inactive</span>`
-                            : `<span class="pub-badge">✓ Published</span>`;
+        const badge = isExpired
+        ? `<span class="inactive-badge">⛔ Inactive</span>`
+        : `<span class="pub-badge">✓ Published</span>`;
 
-                        const expiryLine = expiry
-                            ? isExpired
-                                ? `<div class="prop-expires">⛔ Expired: ${expiry.toLocaleDateString()}</div>`
-                                : `<div class="prop-expires">🗓 Expires: ${expiry.toLocaleDateString()}</div>`
-                            : "";
+        const expiryLine = expiry
+        ? isExpired
+        ? `<div class="prop-expires">⛔ Expired: ${expiry.toLocaleDateString()}</div>`
+        : `<div class="prop-expires">🗓 Expires: ${expiry.toLocaleDateString()}</div>`
+        : "";
 
-                        const relistBtn = isExpired
-                            ? `<br><a class="relist-btn" href="addproperty.html">🔄 Upload Again</a>`
-                            : "";
+        const relistBtn = isExpired
+        ? `<br><a class="relist-btn" href="addproperty.html">🔄 Upload Again</a>`
+        : "";
 
-                        return `
-                        <div class="prop-card ${isExpired ? "inactive" : ""}">
-                            ${badge}
-                            <h3>${p.title}</h3>
-                            <div class="prop-meta">
-                                <div class="prop-row">💰 <strong class="prop-price">${p.price}</strong></div>
-                                <div class="prop-row">📍 ${p.location}</div>
-                            </div>
-                            <span class="prop-type">${p.type}</span>
-                            ${expiryLine}
-                            ${relistBtn}
-                        </div>`;
-                    }).join("") +
-                `</div>`;
+        return `
+        <div class="prop-card ${isExpired ? "inactive" : ""}">
+        ${badge}
+        <h3>${p.title}</h3>
+        <div class="prop-meta">
+        <div class="prop-row">💰 <strong class="prop-price">${p.price}</strong></div>
+        <div class="prop-row">📍 ${p.location}</div>
+        </div>
+        <span class="prop-type">${p.type}</span>
+        ${expiryLine}
+        ${relistBtn}
+        </div>`;
+        }).join("") +
+        `</div>`;
 
-            } catch (err) {
-                console.error("loadMyProperties error:", err);
-                container.innerHTML = `<div class="empty">Failed to load properties.</div>`;
-            }
+        } catch (err) {
+        console.error("loadMyProperties error:", err);
+        container.innerHTML = `<div class="empty">Failed to load properties.</div>`;
+        }
         }
 
         window.onload = function () {
-            loadRequests();
-            loadLandlordChats();
-            loadTenantChats();
-            loadMyProperties();
+        loadRequests();
+        loadLandlordChats();
+        loadTenantChats();
+        loadMyProperties();
         };
-        
+
     </script>
     <script>
         (async function initMenuBadges() {
@@ -715,6 +716,6 @@
         }
         })();
     </script>
-    
+
 </body>
 </html>
