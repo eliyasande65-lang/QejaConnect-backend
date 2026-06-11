@@ -9,9 +9,7 @@ const multer = require("multer");
 const streamifier = require("streamifier");
 const cloudinary = require("cloudinary").v2;
 const router  = express.Router();
-const db      = require('./db');           
-const auth    = require('./middleware/auth'); 
-
+const dbPromise = db.promise();
 
 const app = express();
 
@@ -86,7 +84,7 @@ function adminAuth(req, res, next) {
   }
   next();
 }
-
+app.use(router);
 // =========================
 // ROOT
 // =========================
