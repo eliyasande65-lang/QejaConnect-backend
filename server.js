@@ -8,9 +8,15 @@ const jwt = require("jsonwebtoken");
 const multer = require("multer");
 const streamifier = require("streamifier");
 const cloudinary = require("cloudinary").v2;
-const router  = express.Router();
-const dbPromise = db.promise();
+const axios = require("axios");
+const {
+  generateRegistrationOptions,
+  verifyRegistrationResponse,
+  generateAuthenticationOptions,
+  verifyAuthenticationResponse
+} = require('@simplewebauthn/server');
 
+const router = express.Router();
 const app = express();
 
 cloudinary.config({
@@ -39,6 +45,9 @@ const db = mysql.createPool({
   connectionLimit: 10,
   queueLimit: 0
 });
+
+// Promise-based wrapper for the same pool — used by router.* (async/await) routes
+const dbPromise = db.promise();
 
 db.getConnection((err, connection) => {
   if (err) console.log("DB Error:", err.message);
@@ -84,7 +93,7 @@ function adminAuth(req, res, next) {
   }
   next();
 }
-app.use(router);
+
 // =========================
 // ROOT
 // =========================
@@ -209,6 +218,7 @@ app.get("/landlord-properties/:id", auth, (req, res) => {
     res.json({ success: true, properties: results });
   });
 });
+
 // =========================
 // GET ALL LANDLORDS — verified only
 // =========================
@@ -616,8 +626,6 @@ app.patch("/admin/landlords/:id/verify", adminAuth, (req, res) => {
 // =========================
 // M-PESA
 // =========================
-const axios = require("axios");
-
 async function getMpesaToken() {
   const key    = process.env.MPESA_CONSUMER_KEY;
   const secret = process.env.MPESA_CONSUMER_SECRET;
@@ -882,13 +890,6 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
 // =========================
 // WEBAUTHN — FINGERPRINT LOGIN
 // =========================
-const {
-  generateRegistrationOptions,
-  verifyRegistrationResponse,
-  generateAuthenticationOptions,
-  verifyAuthenticationResponse
-} = require('@simplewebauthn/server');
-
 const RP_NAME = 'QejaConnect';
 const RP_ID   = 'eliyasande65-lang.github.io';
 const ORIGIN  = 'https://eliyasande65-lang.github.io';
@@ -913,8 +914,6 @@ app.post('/auth/webauthn/register/start', async (req, res) => {
       },
     });
 
-    // FIX: store as object with challenge + expiry (was storing raw string,
-    // causing register/finish to fail on entry.challenge / entry.expires checks)
     challenges.set(String(userId), {
       challenge: options.challenge,
       expires: Date.now() + 5 * 60 * 1000
@@ -1017,7 +1016,6 @@ app.post('/auth/webauthn/login/start', (req, res) => {
           expires: Date.now() + 5 * 60 * 1000
         });
 
-        // FIX: was missing — client never received the options, login could never proceed
         res.json(options);
 
       } catch (err2) {
@@ -1172,7 +1170,7 @@ app.post("/upload-tenant-pic", auth, upload.single("image"), (req, res) => {
 });
 
 // ============================================================
-//  NEW ROUTE 1 — Admin: get all contact messages (paginated)
+//  Admin: get all contact messages (paginated)
 //  GET /admin/messages?page=1&limit=20&replied=0|1
 // ============================================================
 app.get("/admin/messages", adminAuth, (req, res) => {
@@ -1233,7 +1231,7 @@ app.get("/admin/messages", adminAuth, (req, res) => {
 });
 
 // ============================================================
-//  NEW ROUTE 2 — Admin: reply to a contact message
+//  Admin: reply to a contact message
 //  POST /admin/messages/:id/reply
 // ============================================================
 app.post("/admin/messages/:id/reply", adminAuth, (req, res) => {
@@ -1258,7 +1256,7 @@ app.post("/admin/messages/:id/reply", adminAuth, (req, res) => {
 });
 
 // ============================================================
-//  NEW ROUTE 3 — User: fetch their own messages + admin replies
+//  User: fetch their own messages + admin replies
 //  GET /my-messages   (requires auth token)
 // ============================================================
 app.get("/my-messages", auth, (req, res) => {
@@ -1352,11 +1350,8 @@ app.delete("/admin/updates/:id", adminAuth, (req, res) => {
 });
 
 
-
-
-
 // ─────────────────────────────────────────────────────────────────
-// BOOKINGS
+// BOOKINGS  (use dbPromise — async/await style)
 // ─────────────────────────────────────────────────────────────────
 
 // POST /bookings — tenant creates a booking request
@@ -1366,8 +1361,7 @@ router.post('/bookings', auth, async (req, res) => {
     if (!tenant_id || !landlord_id || !property_id)
       return res.json({ success: false, message: 'Missing required fields' });
 
-    // Prevent duplicate pending booking for same property
-    const [existing] = await db.query(
+    const [existing] = await dbPromise.query(
       `SELECT id FROM bookings
        WHERE tenant_id=? AND property_id=? AND status='pending'`,
       [tenant_id, property_id]
@@ -1375,7 +1369,7 @@ router.post('/bookings', auth, async (req, res) => {
     if (existing.length)
       return res.json({ success: false, message: 'You already have a pending booking for this property.' });
 
-    const [result] = await db.query(
+    const [result] = await dbPromise.query(
       `INSERT INTO bookings (tenant_id, landlord_id, property_id, message)
        VALUES (?, ?, ?, ?)`,
       [tenant_id, landlord_id, property_id, message || 'I would like to book this property.']
@@ -1390,7 +1384,7 @@ router.post('/bookings', auth, async (req, res) => {
 // GET /bookings/tenant/:id — tenant fetches their bookings
 router.get('/bookings/tenant/:id', auth, async (req, res) => {
   try {
-    const [rows] = await db.query(
+    const [rows] = await dbPromise.query(
       `SELECT b.*,
               p.title, p.location, p.price, p.image_url, p.description, p.type,
               u.name AS landlord_name, u.phone AS landlord_phone
@@ -1408,11 +1402,10 @@ router.get('/bookings/tenant/:id', auth, async (req, res) => {
   }
 });
 
-// GET /landlord/interests/:id — landlord fetches booking requests (existing + enhanced)
-// Replace or augment your existing /landlord/interests/:id route:
+// GET /landlord/interests/:id — landlord fetches booking requests
 router.get('/landlord/interests/:id', auth, async (req, res) => {
   try {
-    const [rows] = await db.query(
+    const [rows] = await dbPromise.query(
       `SELECT b.*,
               p.title AS property_title, p.location, p.price, p.image_url,
               t.name  AS tenant_name,  t.phone AS tenant_phone, t.email AS tenant_email,
@@ -1435,12 +1428,13 @@ router.get('/landlord/interests/:id', auth, async (req, res) => {
 // POST /bookings/:id/approve
 router.post('/bookings/:id/approve', auth, async (req, res) => {
   try {
-    await db.query(
+    await dbPromise.query(
       `UPDATE bookings SET status='approved' WHERE id=? AND landlord_id=?`,
       [req.params.id, req.body.landlord_id]
     );
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -1448,12 +1442,13 @@ router.post('/bookings/:id/approve', auth, async (req, res) => {
 // POST /bookings/:id/reject
 router.post('/bookings/:id/reject', auth, async (req, res) => {
   try {
-    await db.query(
+    await dbPromise.query(
       `UPDATE bookings SET status='rejected' WHERE id=? AND landlord_id=?`,
       [req.params.id, req.body.landlord_id]
     );
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -1461,12 +1456,13 @@ router.post('/bookings/:id/reject', auth, async (req, res) => {
 // POST /bookings/:id/cancel (tenant cancels)
 router.post('/bookings/:id/cancel', auth, async (req, res) => {
   try {
-    await db.query(
+    await dbPromise.query(
       `UPDATE bookings SET status='rejected' WHERE id=? AND status='pending'`,
       [req.params.id]
     );
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
@@ -1485,14 +1481,13 @@ router.post('/tenancy/start', auth, async (req, res) => {
     if (!booking_id || !rent_amount || !start_date)
       return res.json({ success: false, message: 'Missing fields' });
 
-    // Check for existing active tenancy
-    const [existing] = await db.query(
+    const [existing] = await dbPromise.query(
       `SELECT id FROM tenancies WHERE booking_id=?`, [booking_id]
     );
     if (existing.length)
       return res.json({ success: false, message: 'Tenancy session already started for this booking.' });
 
-    const [result] = await db.query(
+    const [result] = await dbPromise.query(
       `INSERT INTO tenancies
          (booking_id, tenant_id, landlord_id, property_id, rent_amount, start_date, duration_months)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -1500,8 +1495,7 @@ router.post('/tenancy/start', auth, async (req, res) => {
        rent_amount, start_date, duration_months || 30]
     );
 
-    // Mark booking as active
-    await db.query(
+    await dbPromise.query(
       `UPDATE bookings SET status='active' WHERE id=?`, [booking_id]
     );
 
@@ -1515,7 +1509,7 @@ router.post('/tenancy/start', auth, async (req, res) => {
 // GET /tenancy/tenant/:id — tenant fetches their active tenancy
 router.get('/tenancy/tenant/:id', auth, async (req, res) => {
   try {
-    const [rows] = await db.query(
+    const [rows] = await dbPromise.query(
       `SELECT ten.*,
               p.title    AS property_title, p.location, p.image_url,
               u.name     AS landlord_name,  u.phone AS landlord_phone,
@@ -1530,8 +1524,7 @@ router.get('/tenancy/tenant/:id', auth, async (req, res) => {
     );
     if (!rows.length) return res.json({ success: false, message: 'No active tenancy' });
 
-    // Attach payments
-    const [payments] = await db.query(
+    const [payments] = await dbPromise.query(
       `SELECT * FROM rent_payments WHERE tenancy_id=? ORDER BY month_index ASC`,
       [rows[0].id]
     );
@@ -1546,7 +1539,7 @@ router.get('/tenancy/tenant/:id', auth, async (req, res) => {
 // GET /tenancy/landlord/:id — landlord fetches all their tenancies
 router.get('/tenancy/landlord/:id', auth, async (req, res) => {
   try {
-    const [rows] = await db.query(
+    const [rows] = await dbPromise.query(
       `SELECT ten.*,
               p.title AS property_title, p.location,
               t.name  AS tenant_name,   t.phone AS tenant_phone, t.email AS tenant_email
@@ -1569,8 +1562,7 @@ router.post('/tenancy/payment-confirm', auth, async (req, res) => {
   try {
     const { tenancy_id, landlord_id, tenant_id, month_index, mpesa_ref, amount } = req.body;
 
-    // Upsert payment record
-    await db.query(
+    await dbPromise.query(
       `INSERT INTO rent_payments
          (tenancy_id, tenant_id, landlord_id, month_index, month_number, amount, mpesa_ref, status, paid_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', NOW())
@@ -1593,7 +1585,7 @@ router.post('/tenancy/payment-confirm', auth, async (req, res) => {
 // GET /landlord/payments/:id
 router.get('/landlord/payments/:id', auth, async (req, res) => {
   try {
-    const [rows] = await db.query(
+    const [rows] = await dbPromise.query(
       `SELECT rp.*,
               t.name  AS tenant_name,  t.phone AS tenant_phone,
               p.title AS property_title, p.location
@@ -1615,23 +1607,23 @@ router.get('/landlord/payments/:id', auth, async (req, res) => {
 // POST /payments/:id/confirm — landlord confirms receipt of payment
 router.post('/payments/:id/confirm', auth, async (req, res) => {
   try {
-    await db.query(
+    await dbPromise.query(
       `UPDATE rent_payments SET landlord_confirmed=1
        WHERE id=? AND landlord_id=?`,
       [req.params.id, req.body.landlord_id]
     );
     res.json({ success: true });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
 
 
-
-
+// GET /mpesa/status/:checkoutRequestId
 router.get('/mpesa/status/:checkoutRequestId', auth, async (req, res) => {
   try {
-    const [rows] = await db.query(
+    const [rows] = await dbPromise.query(
       `SELECT * FROM mpesa_callbacks WHERE checkout_request_id=? LIMIT 1`,
       [req.params.checkoutRequestId]
     );
@@ -1642,11 +1634,13 @@ router.get('/mpesa/status/:checkoutRequestId', auth, async (req, res) => {
     }
     return res.json({ status: 'failed', ResultCode: String(r.result_code) });
   } catch (err) {
+    console.error(err);
     res.status(500).json({ status: 'pending' });
   }
 });
 
-
+// Mount the router (must come after all router.* routes are registered above)
+app.use(router);
 
 // =========================
 // START SERVER
