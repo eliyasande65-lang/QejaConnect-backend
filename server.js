@@ -1387,10 +1387,10 @@ router.get('/bookings/tenant/:id', auth, async (req, res) => {
     const [rows] = await dbPromise.query(
       `SELECT b.*,
               p.title, p.location, p.price, p.image_url, p.description, p.type,
-              u.name AS landlord_name, u.phone AS landlord_phone
+              l.fullname AS landlord_name, l.phone AS landlord_phone
        FROM bookings b
        JOIN properties p ON b.property_id = p.id
-       JOIN users      u ON b.landlord_id  = u.id
+       JOIN landlords  l ON b.landlord_id  = l.id
        WHERE b.tenant_id = ?
        ORDER BY b.created_at DESC`,
       [req.params.id]
@@ -1401,14 +1401,13 @@ router.get('/bookings/tenant/:id', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 // GET /landlord/interests/:id — landlord fetches booking requests
 router.get('/landlord/interests/:id', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
       `SELECT b.*,
               p.title AS property_title, p.location, p.price, p.image_url,
-              t.name  AS tenant_name,  t.phone AS tenant_phone, t.email AS tenant_email,
+              t.fullname AS tenant_name, t.email AS tenant_email,
               ten.id  AS tenancy_id,   ten.rent_amount, ten.start_date
        FROM bookings b
        JOIN properties p  ON b.property_id = p.id
@@ -1424,7 +1423,6 @@ router.get('/landlord/interests/:id', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 // POST /bookings/:id/approve
 router.post('/bookings/:id/approve', auth, async (req, res) => {
   try {
@@ -1512,11 +1510,11 @@ router.get('/tenancy/tenant/:id', auth, async (req, res) => {
     const [rows] = await dbPromise.query(
       `SELECT ten.*,
               p.title    AS property_title, p.location, p.image_url,
-              u.name     AS landlord_name,  u.phone AS landlord_phone,
-              t.name     AS tenant_name,    t.phone AS tenant_phone
+              l.fullname AS landlord_name,  l.phone AS landlord_phone,
+              t.fullname AS tenant_name
        FROM tenancies ten
        JOIN properties p ON ten.property_id  = p.id
-       JOIN users      u ON ten.landlord_id  = u.id
+       JOIN landlords  l ON ten.landlord_id  = l.id
        JOIN users      t ON ten.tenant_id    = t.id
        WHERE ten.tenant_id=? AND ten.status='active'
        LIMIT 1`,
@@ -1535,14 +1533,13 @@ router.get('/tenancy/tenant/:id', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-
 // GET /tenancy/landlord/:id — landlord fetches all their tenancies
 router.get('/tenancy/landlord/:id', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
       `SELECT ten.*,
               p.title AS property_title, p.location,
-              t.name  AS tenant_name,   t.phone AS tenant_phone, t.email AS tenant_email
+              t.fullname AS tenant_name, t.email AS tenant_email
        FROM tenancies ten
        JOIN properties p ON ten.property_id = p.id
        JOIN users      t ON ten.tenant_id   = t.id
@@ -1587,7 +1584,7 @@ router.get('/landlord/payments/:id', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
       `SELECT rp.*,
-              t.name  AS tenant_name,  t.phone AS tenant_phone,
+              t.fullname AS tenant_name,
               p.title AS property_title, p.location
        FROM rent_payments rp
        JOIN users      t  ON rp.tenant_id   = t.id
