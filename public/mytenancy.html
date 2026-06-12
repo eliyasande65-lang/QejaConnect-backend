@@ -831,7 +831,7 @@
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({
         phone,
-        amount:     amt,
+        amount:     amt+200,
         tenancy_id: currentTenancy.id,
         month_index: monthIdx,
         account_ref: `QEJA-${loggedUser.id}-M${monthIdx + 1}`,

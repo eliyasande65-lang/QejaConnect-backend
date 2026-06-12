@@ -161,7 +161,7 @@
             background: rgba(0,0,0,0.5);
             top: 90px;
             display: none;
-            z-index: 9998;
+            z-index: 10000;
         }
 
             .overlay.active {
@@ -338,7 +338,7 @@
             display: none;
             justify-content: center;
             align-items: center;
-            z-index: 5000;
+            z-index: 10005;
             padding: 20px;
         }
 
@@ -352,6 +352,7 @@
             max-height: 90vh;
             overflow-y: auto;
             animation: popupShow 0.25s ease;
+            z-index:10003
         }
 
             .popup-content img {
@@ -643,6 +644,14 @@
             justify-content: space-between;
             margin-bottom: 6px;
         }
+        .head{
+            background:#1a1535;
+            height:60px;
+            width:100%;
+            text-align:center;
+            color:white;
+            font-size:2em;
+        }
 
         .update-date {
             font-size: 12px;
@@ -803,6 +812,7 @@
     <div id="popup" class="popup-container">
         <div class="popup-content">
             <span class="close-popup" onclick="closePopup()">&times;</span>
+            <div class="head">QejaConnect</div>
             <img id="popup-image" alt="Property">
 
             <!-- Badge row -->

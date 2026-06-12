@@ -91,20 +91,48 @@ function fireNotification() {
     data: { url: '/QejaConnect/welcome.html' }
   });
 }
+// Handle push notifications from backend
+self.addEventListener("push", event => {
+  let data = {
+    title: "QejaConnect",
+    body: "You have a new notification",
+    url: "/QejaConnect/welcome.html"
+  };
 
+  if (event.data) {
+    data = event.data.json();
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/QejaConnect/logo.jpg",
+      badge: "/QejaConnect/logo.jpg",
+      vibrate: [200, 100, 200],
+      data: {
+        url: data.url || "/QejaConnect/welcome.html"
+      }
+    })
+  );
+});
 // When user taps the notification, open the app
 self.addEventListener('notificationclick', event => {
   event.notification.close();
+
+  const targetUrl =
+    event.notification.data?.url ||
+    '/QejaConnect/welcome.html';
+
   event.waitUntil(
-    clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientList => {
-      // If app is already open, focus it
-      for (const client of clientList) {
-        if (client.url.includes('/QejaConnect/') && 'focus' in client) {
-          return client.focus();
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then(clientList => {
+        for (const client of clientList) {
+          if ('focus' in client) {
+            client.navigate(targetUrl);
+            return client.focus();
+          }
         }
-      }
-      // Otherwise open a new window
-      return clients.openWindow('/QejaConnect/welcome.html');
-    })
+        return clients.openWindow(targetUrl);
+      })
   );
 });

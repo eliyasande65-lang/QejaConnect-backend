@@ -9,6 +9,7 @@ const multer = require("multer");
 const streamifier = require("streamifier");
 const cloudinary = require("cloudinary").v2;
 const axios = require("axios");
+const webpush = require("web-push");
 const {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -24,7 +25,11 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
-
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY
+);
 // =========================
 // MIDDLEWARE
 // =========================
@@ -93,7 +98,7 @@ function adminAuth(req, res, next) {
   }
   next();
 }
-
+let subscriptions = [];
 // =========================
 // ROOT
 // =========================
@@ -180,7 +185,44 @@ app.post("/login", (req, res) => {
     });
   });
 });
+//notification subscription
+app.post("/subscribe", (req, res) => {
+  const subscription = req.body;
 
+  subscriptions.push(subscription);
+
+  res.status(201).json({
+    success: true,
+    message: "Subscribed"
+  });
+});
+//
+app.post("/send-push", async (req, res) => {
+  const payload = JSON.stringify({
+    title: "🏠 New Property Added",
+    body: "Check out the latest listing on QejaConnect!",
+    url: "/QejaConnect/welcome.html"
+  });
+
+  try {
+    await Promise.all(
+      subscriptions.map(sub =>
+        webpush.sendNotification(sub, payload)
+      )
+    );
+
+    res.json({
+      success: true,
+      message: "Notifications sent"
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
 // =========================
 // GET ALL PROPERTIES — verified landlords only
 // =========================
