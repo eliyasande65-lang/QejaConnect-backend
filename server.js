@@ -179,19 +179,13 @@ router.get('/admin/tenants', adminAuth, async (req, res) => {
 // ADMIN: EMAIL A TENANT
 // POST /admin/tenants/:id/email
 // Body: { subject, message }
-// =========================
 const nodemailer = require("nodemailer");
 
 const mailTransporter = nodemailer.createTransport({
-  host: "smtp.office365.com",
-  port: 587,
-  secure: false, // STARTTLS
+  service: "gmail",
   auth: {
     user: process.env.MAIL_USER,
     pass: process.env.MAIL_PASS
-  },
-  tls: {
-    ciphers: "SSLv3"
   }
 });
 
