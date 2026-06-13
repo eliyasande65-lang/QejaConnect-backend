@@ -466,7 +466,10 @@
                     <label>Email Address</label>
                     <input type="email" name="email" id="email" placeholder="you@gmail.com" required>
                 </div>
-
+                <div class="field">
+                    <label>Phone Number</label>
+                    <input type="tel" name="phone" id="phone" placeholder="e.g. 0712345678" required>
+                </div>
                 <div class="section-label">🔒 Set Password</div>
 
                 <div class="field">
@@ -622,7 +625,11 @@
         const email    = document.getElementById('email').value.trim();
         const password = document.getElementById('password').value;
         const confirm  = document.getElementById('confirm').value;
+        const phone = document.getElementById('phone').value.trim();
 
+        if (!phone || !/^(\+254|0)[71]\d{8}$/.test(phone)) {
+            showToast('Please enter a valid Kenyan phone number.', 'warning'); return;
+        }
         if (!fullname) { showToast('Please enter your full name.', 'warning'); return; }
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {

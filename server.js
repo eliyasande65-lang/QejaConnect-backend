@@ -110,10 +110,14 @@ app.get("/", (req, res) => {
 // SIGNUP
 // =========================
 app.post("/signup", async (req, res) => {
-  const { fullname, email, password } = req.body;
+  const { fullname, email, phone, password } = req.body;
 
-  if (!fullname || !email || !password) {
+  if (!fullname || !email || !phone || !password) {
     return res.status(400).json({ success: false, message: "All fields required" });
+  }
+
+  if (!/^(\+254|0)[71]\d{8}$/.test(phone)) {
+    return res.status(400).json({ success: false, message: "Invalid phone number format" });
   }
 
   if (password.length < 6) {
@@ -121,14 +125,99 @@ app.post("/signup", async (req, res) => {
   }
 
   const hashed = await bcrypt.hash(password, 10);
-  const sql = `INSERT INTO users (fullname, email, password) VALUES (?, ?, ?)`;
+  const sql = `INSERT INTO users (fullname, email, phone, password) VALUES (?, ?, ?, ?)`;
 
-  db.query(sql, [fullname, email, hashed], (err) => {
+  db.query(sql, [fullname, email, phone, hashed], (err) => {
     if (err) {
       return res.status(500).json({ success: false, message: err.sqlMessage });
     }
     res.json({ success: true, message: "User created" });
   });
+});
+
+// =========================
+// ADMIN: LIST/SEARCH TENANTS (paginated)
+// GET /admin/tenants?page=1&limit=20&search=keyword
+// =========================
+router.get('/admin/tenants', adminAuth, async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, parseInt(req.query.limit) || 20);
+    const offset = (page - 1) * limit;
+    const search = (req.query.search || '').trim();
+
+    let where  = '';
+    let params = [];
+
+    if (search) {
+      where  = `WHERE fullname LIKE ? OR email LIKE ? OR phone LIKE ?`;
+      params = [`%${search}%`, `%${search}%`, `%${search}%`];
+    }
+
+    const [countRows] = await dbPromise.query(
+      `SELECT COUNT(*) AS total FROM users ${where}`, params
+    );
+    const total = countRows[0].total;
+
+    const [rows] = await dbPromise.query(
+      `SELECT id, fullname, email, phone, profile_pic, created_at
+       FROM users
+       ${where}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({ success: true, total, page, limit, tenants: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// =========================
+// ADMIN: EMAIL A TENANT
+// POST /admin/tenants/:id/email
+// Body: { subject, message }
+// =========================
+const nodemailer = require("nodemailer");
+
+const mailTransporter = nodemailer.createTransport({
+  service: "gmail", // or your provider
+  auth: {
+    user: process.env.MAIL_USER,
+    pass: process.env.MAIL_PASS
+  }
+});
+
+router.post('/admin/tenants/:id/email', adminAuth, async (req, res) => {
+  try {
+    const { subject, message } = req.body;
+    if (!subject || !message) {
+      return res.status(400).json({ success: false, message: 'Subject and message required' });
+    }
+
+    const [rows] = await dbPromise.query(
+      `SELECT email, fullname FROM users WHERE id = ?`, [req.params.id]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: 'Tenant not found' });
+    }
+
+    const tenant = rows[0];
+
+    await mailTransporter.sendMail({
+      from: `"QejaConnect" <${process.env.MAIL_USER}>`,
+      to: tenant.email,
+      subject,
+      text: message
+    });
+
+    res.json({ success: true, message: `Email sent to ${tenant.fullname}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Failed to send email' });
+  }
 });
 
 // =========================

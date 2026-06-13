@@ -3,149 +3,720 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Admin - Tenants</title>
+    <title>Admin · Tenants</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 
     <style>
-        body {
-            font-family: Arial;
-            background: #f4f4f4;
+        :root {
+            --bg: #0d0a1a;
+            --surface: #13102a;
+            --card: #1a1535;
+            --border: rgba(139, 92, 246, 0.18);
+            --border-focus: #7c3aed;
+            --accent: #7c3aed;
+            --accent-light: #a78bfa;
+            --accent-glow: rgba(124, 58, 237, 0.25);
+            --text: #f1f0f7;
+            --muted: #8b84a8;
+            --dim: rgba(255,255,255,0.06);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
-            padding: 20px;
+            padding: 0;
         }
 
-        h1 {
-            text-align: center;
-            color: indigo;
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 32px 16px 64px;
         }
 
-        .login-box {
-            max-width: 300px;
-            margin: 50px auto;
-            padding: 20px;
-            background: white;
+            body::before, body::after {
+                content: '';
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(120px);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            body::before {
+                width: 500px;
+                height: 500px;
+                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
+                top: -100px;
+                left: -150px;
+            }
+
+            body::after {
+                width: 400px;
+                height: 400px;
+                background: radial-gradient(circle, rgba(49,10,120,0.18) 0%, transparent 70%);
+                bottom: 0;
+                right: -120px;
+            }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        .header {
+            margin-bottom: 24px;
+        }
+
+            .header h1 {
+                font-family: 'DM Serif Display', serif;
+                font-size: clamp(1.6rem, 4vw, 2.2rem);
+                font-weight: 400;
+            }
+
+            .header p {
+                color: var(--muted);
+                font-size: 0.9rem;
+                margin-top: 6px;
+            }
+
+        /* Toolbar */
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .search-wrap {
+            flex: 1;
+            min-width: 220px;
+            position: relative;
+        }
+
+            .search-wrap input {
+                width: 100%;
+                padding: 12px 16px 12px 40px;
+                background: var(--card);
+                border: 1.5px solid var(--border);
+                border-radius: 10px;
+                color: var(--text);
+                font-family: 'DM Sans', sans-serif;
+                font-size: 0.95rem;
+                outline: none;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+
+                .search-wrap input:focus {
+                    border-color: var(--border-focus);
+                    box-shadow: 0 0 0 3px var(--accent-glow);
+                }
+
+        .search-icon {
+            position: absolute;
+            left: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--muted);
+            font-size: 16px;
+            pointer-events: none;
+        }
+
+        .stat-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: var(--card);
+            border: 1px solid var(--border);
             border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.2);
-            text-align: center;
+            padding: 12px 18px;
+            font-size: 0.9rem;
+            color: var(--muted);
+            white-space: nowrap;
         }
 
-        input {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-        }
+            .stat-pill strong {
+                color: var(--accent-light);
+                font-size: 1.05rem;
+            }
 
-        button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 10px;
-            background: indigo;
-            color: white;
-            border: none;
-            cursor: pointer;
+        /* Table card */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            margin-top: 20px;
-            background: white;
-            display: none;
         }
 
-        th, td {
-            border: 1px solid #ccc;
-            padding: 10px;
+        thead th {
             text-align: left;
+            font-size: 0.72rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--accent-light);
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
         }
 
-        th {
-            background: indigo;
+        tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            font-size: 0.9rem;
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(124,58,237,0.05);
+        }
+
+        .tenant-cell {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .avatar {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.95rem;
             color: white;
+            flex-shrink: 0;
+            object-fit: cover;
+        }
+
+        .tenant-name {
+            font-weight: 500;
+        }
+
+        .tenant-id {
+            font-size: 0.72rem;
+            color: var(--muted);
+        }
+
+        .muted-text {
+            color: var(--muted);
+        }
+
+        .btn {
+            padding: 8px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            background: var(--dim);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            white-space: nowrap;
+        }
+
+            .btn:hover {
+                border-color: var(--accent);
+                background: rgba(124,58,237,0.1);
+            }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border: none;
+            color: white;
+        }
+
+            .btn-primary:hover {
+                opacity: 0.9;
+            }
+
+        .empty-state, .loading-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: var(--muted);
+        }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+
+        .page-info {
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 16px;
+        }
+
+            .modal-overlay.open {
+                display: flex;
+            }
+
+        .modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 18px;
+            padding: 28px;
+            max-width: 480px;
+            width: 100%;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+        }
+
+            .modal h2 {
+                font-family: 'DM Serif Display', serif;
+                font-size: 1.4rem;
+                font-weight: 400;
+                margin-bottom: 4px;
+            }
+
+            .modal .modal-sub {
+                color: var(--muted);
+                font-size: 0.85rem;
+                margin-bottom: 20px;
+            }
+
+        .field {
+            margin-bottom: 16px;
+        }
+
+            .field label {
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--muted);
+                margin-bottom: 6px;
+            }
+
+            .field input, .field textarea {
+                width: 100%;
+                padding: 12px 16px;
+                background: var(--dim);
+                border: 1.5px solid var(--border);
+                border-radius: 10px;
+                color: var(--text);
+                font-family: 'DM Sans', sans-serif;
+                font-size: 0.92rem;
+                outline: none;
+                resize: vertical;
+                transition: border-color 0.2s, box-shadow 0.2s;
+            }
+
+                .field input:focus, .field textarea:focus {
+                    border-color: var(--border-focus);
+                    box-shadow: 0 0 0 3px var(--accent-glow);
+                }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1535;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 13px 20px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            z-index: 1100;
+            max-width: 360px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+
+            #toast.success {
+                border-left: 4px solid var(--success);
+            }
+
+            #toast.error {
+                border-left: 4px solid var(--error);
+            }
+
+            #toast.warning {
+                border-left: 4px solid var(--warning);
+            }
+
+            #toast.info {
+                border-left: 4px solid var(--accent-light);
+            }
+
+        /* Responsive: hide some columns on small screens */
+        @media (max-width: 700px) {
+            .col-phone, .col-joined {
+                display: none;
+            }
+        }
+
+        /* Admin key gate */
+        .gate {
+            max-width: 420px;
+            margin: 80px auto;
         }
     </style>
 </head>
-
 <body>
+    <div class="page">
 
-    <h1>Tenant Submissions (Admin)</h1>
+        <div class="header">
+            <h1>Tenant Directory</h1>
+            <p>View, search, and message all registered tenants</p>
+        </div>
 
-    <div class="login-box" id="loginBox">
-        <h3>Admin Login</h3>
-        <input type="password" id="pass" placeholder="Enter admin password">
-        <button onclick="login()">Access</button>
+        <!-- Admin key gate -->
+        <div class="card gate" id="gate">
+            <div style="padding: 28px;">
+                <div class="field">
+                    <label>Admin Secret Key</label>
+                    <input type="password" id="adminKey" placeholder="Enter admin secret">
+                </div>
+                <button class="btn btn-primary" style="width:100%;" id="unlockBtn">Unlock</button>
+            </div>
+        </div>
+
+        <!-- Main content (hidden until unlocked) -->
+        <div id="mainContent" style="display:none;">
+
+            <div class="toolbar">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Search by name, email, or phone…">
+                </div>
+                <div class="stat-pill">Total tenants: <strong id="totalCount">—</strong></div>
+            </div>
+
+            <div class="card">
+                <div style="overflow-x:auto;">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Tenant</th>
+                                <th class="col-phone">Phone</th>
+                                <th>Email</th>
+                                <th class="col-joined">Joined</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tenantsBody">
+                            <tr><td colspan="5"><div class="loading-state">Loading tenants…</div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div class="pagination" id="pagination"></div>
+
+        </div>
     </div>
 
-    <table id="tenantTable">
-        <tr>
-            <th>Name</th>
-            <th>Email</th>
-            <th>Phone</th>
-            <th>Location</th>
-        </tr>
-    </table>
+    <!-- Email Modal -->
+    <div class="modal-overlay" id="emailModal">
+        <div class="modal">
+            <h2>Message Tenant</h2>
+            <p class="modal-sub" id="emailModalSub">Send an email to this tenant</p>
+
+            <div class="field">
+                <label>Subject</label>
+                <input type="text" id="emailSubject" placeholder="e.g. Regarding your booking">
+            </div>
+
+            <div class="field">
+                <label>Message</label>
+                <textarea id="emailBody" rows="6" placeholder="Type your message here…"></textarea>
+            </div>
+
+            <div class="modal-actions">
+                <button class="btn" id="cancelEmailBtn">Cancel</button>
+                <button class="btn btn-primary" id="sendEmailBtn">Send Email</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
+    </div>
 
     <script>
-        let loggedIn = false;
-        let tenants = [];
+        const API = 'https://qeja-backend-azkf.onrender.com';
 
-        function login(){
-            let pass = document.getElementById("pass").value;
+        let adminSecret = '';
+        let currentPage = 1;
+        const limit = 20;
+        let searchTimer;
+        let activeTenant = null;
 
-            if(pass === "admin123"){
-                loggedIn = true;
-                document.getElementById("loginBox").style.display = "none";
-                document.getElementById("tenantTable").style.display = "table";
-                loadData();
-            } else {
-                alert("Wrong password");
-            }
+        // ── Toast ──────────────────────────────────────────────────
+        let toastTimer;
+        function showToast(message, type = 'info', duration = 3500) {
+        const toast = document.getElementById('toast');
+        const icon  = document.getElementById('toast-icon');
+        const msg   = document.getElementById('toast-msg');
+        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+        toast.className = '';
+        toast.classList.add(type);
+        icon.textContent = icons[type] || 'ℹ️';
+        msg.textContent  = message;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
         }
 
-        function loadData(){
+        // ── Admin gate ─────────────────────────────────────────────
+        document.getElementById('unlockBtn').addEventListener('click', () => {
+        const key = document.getElementById('adminKey').value.trim();
+        if (!key) { showToast('Please enter the admin secret.', 'warning'); return; }
+        adminSecret = key;
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        sessionStorage.setItem('qeja_admin_secret', key);
+        loadTenants();
+        });
 
-            const params = new URLSearchParams(window.location.search);
+        // Restore session
+        window.addEventListener('DOMContentLoaded', () => {
+        const saved = sessionStorage.getItem('qeja_admin_secret');
+        if (saved) {
+        adminSecret = saved;
+        document.getElementById('gate').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
+        loadTenants();
+        }
+        });
 
-            let name = params.get("name");
-            let email = params.get("email");
-            let phone = params.get("phone");
-            let location = params.get("location");
+        // ── Load tenants ───────────────────────────────────────────
+        async function loadTenants() {
+        const search = document.getElementById('searchInput').value.trim();
+        const tbody = document.getElementById('tenantsBody');
+        tbody.innerHTML = `<tr><td colspan="5"><div class="loading-state">Loading tenants…</div></td></tr>`;
 
-            // prevent empty reload rows
-            if(name && email){
+        try {
+        const params = new URLSearchParams({
+        page: currentPage,
+        limit: limit
+        });
+        if (search) params.set('search', search);
 
-                // store in memory
-                tenants.push({name, email, phone, location});
+        const res = await fetch(`${API}/admin/tenants?${params.toString()}`, {
+        headers: { 'x-admin-secret': adminSecret }
+        });
+        const data = await res.json();
 
-                renderTable();
-            }
+        if (!res.ok || !data.success) {
+        if (res.status === 403) {
+        showToast('Invalid admin secret.', 'error');
+        sessionStorage.removeItem('qeja_admin_secret');
+        document.getElementById('gate').style.display = 'block';
+        document.getElementById('mainContent').style.display = 'none';
+        return;
+        }
+        throw new Error(data.message || 'Failed to load tenants');
         }
 
-        function renderTable(){
+        renderTenants(data.tenants);
+        document.getElementById('totalCount').textContent = data.total;
+        renderPagination(data.total, data.page, data.limit);
 
-            let table = document.getElementById("tenantTable");
-
-            // remove old rows except header
-            table.innerHTML = `
-                <tr>
-                    <th>Name</th>
-                    <th>Email</th>
-                    <th>Phone</th>
-                    <th>Location</th>
-                </tr>
-            `;
-
-            tenants.forEach(t => {
-                let row = table.insertRow();
-
-                row.innerHTML = `
-                    <td>${t.name}</td>
-                    <td>${t.email}</td>
-                    <td>${t.phone}</td>
-                    <td>${t.location}</td>
-                `;
-            });
+        } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">⚠️ Could not load tenants. ${err.message}</div></td></tr>`;
         }
+        }
+
+        function initials(name) {
+        return (name || '?')
+        .trim()
+        .split(/\s+/)
+        .map(p => p[0])
+        .slice(0, 2)
+        .join('')
+        .toUpperCase();
+        }
+
+        function renderTenants(tenants) {
+        const tbody = document.getElementById('tenantsBody');
+
+        if (!tenants || tenants.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No tenants found.</div></td></tr>`;
+        return;
+        }
+
+        tbody.innerHTML = tenants.map(t => {
+        const joined = t.created_at ? new Date(t.created_at).toLocaleDateString('en-KE', { year: 'numeric', month: 'short', day: 'numeric' }) : '—';
+        const avatar = t.profile_pic
+        ? `<img class="avatar" src="${t.profile_pic}" alt="">`
+        : `<div class="avatar">${initials(t.fullname)}</div>`;
+
+        return `
+        <tr>
+        <td>
+        <div class="tenant-cell">
+        ${avatar}
+        <div>
+        <div class="tenant-name">${escapeHtml(t.fullname || 'Unnamed')}</div>
+        <div class="tenant-id">ID #${t.id}</div>
+        </div>
+        </div>
+        </td>
+        <td class="col-phone">${escapeHtml(t.phone || '—')}</td>
+        <td class="muted-text">${escapeHtml(t.email || '—')}</td>
+        <td class="col-joined muted-text">${joined}</td>
+        <td>
+        <button class="btn btn-primary" onclick="openEmailModal(${t.id}, '${escapeHtml(t.fullname || '')}', '${escapeHtml(t.email || '')}')">✉️ Message</button>
+        </td>
+        </tr>
+        `;
+        }).join('');
+        }
+
+        function escapeHtml(str) {
+        return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+        }
+
+        function renderPagination(total, page, limit) {
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        const pag = document.getElementById('pagination');
+
+        if (totalPages <= 1) { pag.innerHTML = ''; return; }
+
+        pag.innerHTML = `
+        <button class="btn" id="prevPage" ${page <= 1 ? 'disabled' : ''}>← Prev</button>
+        <span class="page-info">Page ${page} of ${totalPages}</span>
+        <button class="btn" id="nextPage" ${page >= totalPages ? 'disabled' : ''}>Next →</button>
+        `;
+
+        document.getElementById('prevPage')?.addEventListener('click', () => {
+        if (currentPage > 1) { currentPage--; loadTenants(); }
+        });
+        document.getElementById('nextPage')?.addEventListener('click', () => {
+        if (currentPage < totalPages) { currentPage++; loadTenants(); }
+        });
+        }
+
+        // ── Search (debounced) ──────────────────────────────────────
+        document.getElementById('searchInput').addEventListener('input', () => {
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+        currentPage = 1;
+        loadTenants();
+        }, 350);
+        });
+
+        // ── Email modal ───────────────────────────────────────────
+        function openEmailModal(id, name, email) {
+        activeTenant = { id, name, email };
+        document.getElementById('emailModalSub').textContent = `To: ${name} <${email}>`;
+        document.getElementById('emailSubject').value = '';
+        document.getElementById('emailBody').value = '';
+        document.getElementById('emailModal').classList.add('open');
+        }
+
+        document.getElementById('cancelEmailBtn').addEventListener('click', () => {
+        document.getElementById('emailModal').classList.remove('open');
+        });
+
+        document.getElementById('emailModal').addEventListener('click', (e) => {
+        if (e.target.id === 'emailModal') {
+        document.getElementById('emailModal').classList.remove('open');
+        }
+        });
+
+        document.getElementById('sendEmailBtn').addEventListener('click', async () => {
+        const subject = document.getElementById('emailSubject').value.trim();
+        const message = document.getElementById('emailBody').value.trim();
+
+        if (!subject || !message) {
+        showToast('Please fill in both subject and message.', 'warning');
+        return;
+        }
+
+        const btn = document.getElementById('sendEmailBtn');
+        btn.textContent = 'Sending…';
+        btn.disabled = true;
+
+        try {
+        const res = await fetch(`${API}/admin/tenants/${activeTenant.id}/email`, {
+        method: 'POST',
+        headers: {
+        'Content-Type': 'application/json',
+        'x-admin-secret': adminSecret
+        },
+        body: JSON.stringify({ subject, message })
+        });
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+        showToast(data.message || 'Email sent!', 'success');
+        document.getElementById('emailModal').classList.remove('open');
+        } else {
+        showToast(data.message || 'Failed to send email.', 'error');
+        }
+        } catch (err) {
+        console.error(err);
+        showToast('Server error. Please try again.', 'error');
+        } finally {
+        btn.textContent = 'Send Email';
+        btn.disabled = false;
+        }
+        });
     </script>
-
 </body>
 </html>
