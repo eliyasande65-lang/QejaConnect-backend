@@ -1874,6 +1874,136 @@ router.get('/mpesa/status/:checkoutRequestId', auth, async (req, res) => {
 app.use(router);
 
 // =========================
+// ADMIN: REFERRALS OVERVIEW (paginated)
+// GET /admin/referrals?page=1&limit=20&status=pending|paid&search=keyword
+// =========================
+router.get('/admin/referrals', adminAuth, async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, parseInt(req.query.limit) || 20);
+    const offset = (page - 1) * limit;
+    const status = req.query.status; // 'pending' | 'paid' | undefined (all)
+    const search = (req.query.search || '').trim();
+
+    let where  = [];
+    let params = [];
+
+    if (status === 'pending' || status === 'paid') {
+      where.push('re.status = ?');
+      params.push(status);
+    }
+
+    if (search) {
+      where.push('(referrer.fullname LIKE ? OR referrer.email LIKE ? OR referrer.referral_code LIKE ? OR referred.fullname LIKE ?)');
+      params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
+    }
+
+    const whereSql = where.length ? `WHERE ${where.join(' AND ')}` : '';
+
+    const [countRows] = await dbPromise.query(
+      `SELECT COUNT(*) AS total
+       FROM referral_earnings re
+       JOIN users referrer ON re.referrer_id = referrer.id
+       JOIN users referred ON re.referred_id = referred.id
+       ${whereSql}`,
+      params
+    );
+    const total = countRows[0].total;
+
+    const [rows] = await dbPromise.query(
+      `SELECT
+         re.id, re.tenancy_id, re.month_index, re.rent_amount, re.reward_amount,
+         re.status, re.paid_at, re.created_at,
+         referrer.id AS referrer_id, referrer.fullname AS referrer_name,
+         referrer.email AS referrer_email, referrer.phone AS referrer_phone,
+         referrer.referral_code,
+         referred.id AS referred_id, referred.fullname AS referred_name,
+         referred.email AS referred_email
+       FROM referral_earnings re
+       JOIN users referrer ON re.referrer_id = referrer.id
+       JOIN users referred ON re.referred_id = referred.id
+       ${whereSql}
+       ORDER BY re.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    // Summary totals (across full filtered set, not just this page)
+    const [summaryRows] = await dbPromise.query(
+      `SELECT
+         COALESCE(SUM(re.reward_amount), 0) AS totalReward,
+         COALESCE(SUM(CASE WHEN re.status='paid'    THEN re.reward_amount ELSE 0 END), 0) AS totalPaid,
+         COALESCE(SUM(CASE WHEN re.status='pending' THEN re.reward_amount ELSE 0 END), 0) AS totalPending,
+         COUNT(DISTINCT re.referrer_id) AS activeReferrers
+       FROM referral_earnings re
+       JOIN users referrer ON re.referrer_id = referrer.id
+       JOIN users referred ON re.referred_id = referred.id
+       ${whereSql}`,
+      params
+    );
+
+    res.json({
+      success: true,
+      total, page, limit,
+      summary: summaryRows[0],
+      referrals: rows
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// =========================
+// ADMIN: MARK A REFERRAL EARNING AS PAID
+// PATCH /admin/referrals/:id/pay
+// =========================
+router.patch('/admin/referrals/:id/pay', adminAuth, async (req, res) => {
+  try {
+    const [result] = await dbPromise.query(
+      `UPDATE referral_earnings SET status='paid', paid_at=NOW() WHERE id=? AND status='pending'`,
+      [req.params.id]
+    );
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: 'Earning not found or already paid' });
+    }
+    res.json({ success: true, message: 'Marked as paid' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+
+// =========================
+// ADMIN: REFERRAL LEADERBOARD (top referrers by earnings)
+// GET /admin/referrals/leaderboard?limit=20
+// =========================
+router.get('/admin/referrals/leaderboard', adminAuth, async (req, res) => {
+  try {
+    const limit = Math.min(100, parseInt(req.query.limit) || 20);
+
+    const [rows] = await dbPromise.query(
+      `SELECT
+         u.id, u.fullname, u.email, u.phone, u.referral_code,
+         COUNT(re.id) AS referral_count,
+         COALESCE(SUM(re.reward_amount), 0) AS totalEarned,
+         COALESCE(SUM(CASE WHEN re.status='paid'    THEN re.reward_amount ELSE 0 END), 0) AS totalPaid,
+         COALESCE(SUM(CASE WHEN re.status='pending' THEN re.reward_amount ELSE 0 END), 0) AS totalPending
+       FROM users u
+       JOIN referral_earnings re ON re.referrer_id = u.id
+       GROUP BY u.id
+       ORDER BY totalEarned DESC
+       LIMIT ?`,
+      [limit]
+    );
+
+    res.json({ success: true, leaderboard: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
+// =========================
 // START SERVER
 // =========================
 const PORT = process.env.PORT || 3000;

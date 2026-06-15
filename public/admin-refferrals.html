@@ -1,0 +1,889 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Referrals & Payouts · QejaConnect Admin</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0d0a1a;
+            --surface: #13102a;
+            --card: #1a1535;
+            --border: rgba(139, 92, 246, 0.18);
+            --border-focus: #7c3aed;
+            --accent: #7c3aed;
+            --accent-light: #a78bfa;
+            --accent-glow: rgba(124, 58, 237, 0.25);
+            --text: #f1f0f7;
+            --muted: #8b84a8;
+            --dim: rgba(255,255,255,0.06);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --gold: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 32px 16px 64px;
+        }
+
+            body::before, body::after {
+                content: '';
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(120px);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            body::before {
+                width: 500px;
+                height: 500px;
+                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
+                top: -100px;
+                left: -150px;
+            }
+
+            body::after {
+                width: 400px;
+                height: 400px;
+                background: radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%);
+                bottom: 0;
+                right: -120px;
+            }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            margin-bottom: 28px;
+        }
+
+            .header .eyebrow {
+                font-size: 0.72rem;
+                font-weight: 600;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+                color: var(--accent-light);
+                margin-bottom: 8px;
+            }
+
+            .header h1 {
+                font-family: 'DM Serif Display', serif;
+                font-size: clamp(1.8rem, 5vw, 2.4rem);
+                font-weight: 400;
+                letter-spacing: -0.5px;
+            }
+
+            .header p {
+                color: var(--muted);
+                font-size: 0.92rem;
+                margin-top: 6px;
+                font-weight: 300;
+            }
+
+        /* Admin key gate */
+        .key-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            gap: 12px;
+            align-items: flex-end;
+            flex-wrap: wrap;
+        }
+
+            .key-card .field {
+                flex: 1;
+                min-width: 220px;
+            }
+
+            .key-card label {
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--muted);
+                margin-bottom: 6px;
+                letter-spacing: 0.02em;
+            }
+
+        input, select {
+            width: 100%;
+            padding: 11px 14px;
+            background: var(--dim);
+            border: 1.5px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.92rem;
+            outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+        }
+
+            input::placeholder {
+                color: var(--muted);
+            }
+
+            input:focus, select:focus {
+                border-color: var(--border-focus);
+                background: rgba(124,58,237,0.06);
+                box-shadow: 0 0 0 3px var(--accent-glow);
+            }
+
+        .btn {
+            padding: 11px 22px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.92rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            white-space: nowrap;
+        }
+
+            .btn:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+
+            .btn:active {
+                transform: translateY(0);
+            }
+
+            .btn.secondary {
+                background: var(--dim);
+                border: 1px solid var(--border);
+                color: var(--text);
+            }
+
+            .btn.small {
+                padding: 6px 14px;
+                font-size: 0.78rem;
+            }
+
+            .btn:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+                pointer-events: none;
+            }
+
+        /* Summary cards */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .summary-stat {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 16px;
+        }
+
+            .summary-stat .stat-value {
+                font-family: 'DM Serif Display', serif;
+                font-size: clamp(1.2rem, 4vw, 1.6rem);
+                color: var(--text);
+                margin-bottom: 4px;
+            }
+
+            .summary-stat.gold .stat-value {
+                color: var(--gold);
+            }
+
+            .summary-stat.success .stat-value {
+                color: var(--success);
+            }
+
+            .summary-stat.warning .stat-value {
+                color: var(--warning);
+            }
+
+            .summary-stat .stat-label {
+                font-size: 0.68rem;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+            }
+
+        /* Controls row */
+        .controls-row {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+            align-items: flex-end;
+        }
+
+            .controls-row .field {
+                min-width: 180px;
+            }
+
+                .controls-row .field.grow {
+                    flex: 1;
+                }
+
+            .controls-row label {
+                display: block;
+                font-size: 0.75rem;
+                font-weight: 500;
+                color: var(--muted);
+                margin-bottom: 6px;
+                letter-spacing: 0.02em;
+            }
+
+        /* Tabs */
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            padding: 10px 18px;
+            background: none;
+            border: none;
+            border-bottom: 2px solid transparent;
+            color: var(--muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.9rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: color 0.2s, border-color 0.2s;
+        }
+
+            .tab-btn.active {
+                color: var(--accent-light);
+                border-bottom-color: var(--accent);
+            }
+
+            .tab-btn:hover {
+                color: var(--text);
+            }
+
+        /* Section label */
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-light);
+            margin: 0 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .section-label::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: var(--border);
+            }
+
+        /* Table card */
+        .table-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .table-wrap {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            min-width: 720px;
+        }
+
+        thead th {
+            text-align: left;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--muted);
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+
+        tbody td {
+            padding: 14px 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+            vertical-align: middle;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        tbody tr:hover {
+            background: rgba(124,58,237,0.05);
+        }
+
+        .cell-name {
+            font-weight: 500;
+        }
+
+        .cell-sub {
+            font-size: 0.74rem;
+            color: var(--muted);
+            margin-top: 2px;
+        }
+
+        .code-pill {
+            display: inline-block;
+            font-family: monospace;
+            font-size: 0.78rem;
+            background: rgba(124,58,237,0.12);
+            color: var(--accent-light);
+            border: 1px solid rgba(139,92,246,0.3);
+            border-radius: 6px;
+            padding: 2px 8px;
+        }
+
+        .status-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+            .status-badge.pending {
+                background: rgba(245,158,11,0.15);
+                color: var(--warning);
+                border: 1px solid rgba(245,158,11,0.3);
+            }
+
+            .status-badge.paid {
+                background: rgba(16,185,129,0.15);
+                color: var(--success);
+                border: 1px solid rgba(16,185,129,0.3);
+            }
+
+        .amount-strong {
+            font-weight: 600;
+        }
+
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 26px;
+            height: 26px;
+            border-radius: 50%;
+            background: rgba(124,58,237,0.12);
+            color: var(--accent-light);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+            .rank-badge.gold {
+                background: rgba(251,191,36,0.15);
+                color: var(--gold);
+            }
+
+        /* Pagination */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px;
+            border-top: 1px solid var(--border);
+            font-size: 0.82rem;
+            color: var(--muted);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .empty-state, .loading-state {
+            text-align: center;
+            padding: 50px 24px;
+            color: var(--muted);
+        }
+
+            .empty-state .empty-icon {
+                font-size: 2.2rem;
+                margin-bottom: 12px;
+                display: block;
+            }
+
+            .empty-state p, .loading-state p {
+                font-size: 0.88rem;
+                line-height: 1.5;
+            }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1535;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 13px 20px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            z-index: 999;
+            max-width: 360px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+
+            #toast.success {
+                border-left: 4px solid var(--success);
+            }
+
+            #toast.error {
+                border-left: 4px solid var(--error);
+            }
+
+            #toast.info {
+                border-left: 4px solid var(--accent-light);
+            }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 720px) {
+            .summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+
+        <div class="header">
+            <div class="eyebrow">Admin · Referrals</div>
+            <h1>Referrals &amp; Payouts</h1>
+            <p>Track who referred whom, what they're owed, and mark payouts as completed.</p>
+        </div>
+
+        <!-- Admin key gate -->
+        <div class="key-card" id="keyCard">
+            <div class="field">
+                <label>Admin secret key</label>
+                <input type="password" id="adminKey" placeholder="Enter x-admin-secret">
+            </div>
+            <button class="btn" id="loadBtn">Load data</button>
+        </div>
+
+        <div id="appContent" class="hidden">
+
+            <!-- Summary -->
+            <div class="summary-grid">
+                <div class="summary-stat gold">
+                    <div class="stat-value" id="sumTotal">&mdash;</div>
+                    <div class="stat-label">Total Reward</div>
+                </div>
+                <div class="summary-stat warning">
+                    <div class="stat-value" id="sumPending">&mdash;</div>
+                    <div class="stat-label">Pending Payout</div>
+                </div>
+                <div class="summary-stat success">
+                    <div class="stat-value" id="sumPaid">&mdash;</div>
+                    <div class="stat-label">Paid Out</div>
+                </div>
+                <div class="summary-stat">
+                    <div class="stat-value" id="sumReferrers">&mdash;</div>
+                    <div class="stat-label">Active Referrers</div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="all">All Referrals</button>
+                <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
+            </div>
+
+            <!-- ALL REFERRALS TAB -->
+            <div id="tab-all">
+                <div class="controls-row">
+                    <div class="field grow">
+                        <label>Search (name, email, referral code)</label>
+                        <input type="text" id="searchInput" placeholder="e.g. John Kamau or REF1042">
+                    </div>
+                    <div class="field">
+                        <label>Status</label>
+                        <select id="statusFilter">
+                            <option value="">All</option>
+                            <option value="pending">Pending</option>
+                            <option value="paid">Paid</option>
+                        </select>
+                    </div>
+                    <button class="btn secondary" id="filterBtn">Filter</button>
+                </div>
+
+                <div class="section-label">Referral Earnings</div>
+
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Referrer</th>
+                                    <th>Referred Tenant</th>
+                                    <th>Rent</th>
+                                    <th>Reward (1%)</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="referralsBody">
+                                <tr><td colspan="7"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="pagination" id="pagination"></div>
+                </div>
+            </div>
+
+            <!-- LEADERBOARD TAB -->
+            <div id="tab-leaderboard" class="hidden">
+                <div class="section-label">Top Referrers</div>
+
+                <div class="table-card">
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Referrer</th>
+                                    <th>Referral Code</th>
+                                    <th>Referrals</th>
+                                    <th>Total Earned</th>
+                                    <th>Pending</th>
+                                    <th>Paid</th>
+                                </tr>
+                            </thead>
+                            <tbody id="leaderboardBody">
+                                <tr><td colspan="7"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+        const API = 'https://qeja-backend-azkf.onrender.com';
+
+        let currentPage = 1;
+        const PAGE_LIMIT = 20;
+        let adminKey = '';
+
+        // ── Toast ──────────────────────────────────────────────────
+        let toastTimer;
+        function showToast(message, type = 'info', duration = 3000) {
+        const toast = document.getElementById('toast');
+        const icon  = document.getElementById('toast-icon');
+        const msg   = document.getElementById('toast-msg');
+        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        toast.className = '';
+        toast.classList.add(type);
+        icon.textContent = icons[type] || 'ℹ️';
+        msg.textContent  = message;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ── Format helpers ──────────────────────────────────────────
+        function formatKES(amount) {
+        return 'KES ' + Number(amount || 0).toLocaleString('en-KE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+        });
+        }
+
+        function formatDate(dateStr) {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleDateString('en-KE', {
+        year: 'numeric', month: 'short', day: 'numeric'
+        });
+        }
+
+        function escapeHtml(str) {
+        return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+        }
+
+        // ── Fetch wrapper with admin header ─────────────────────────
+        async function adminFetch(path) {
+        const res = await fetch(`${API}${path}`, {
+        headers: { 'x-admin-secret': adminKey }
+        });
+        const data = await res.json();
+        if (!res.ok || data.success === false) {
+        throw new Error(data.message || 'Request failed');
+        }
+        return data;
+        }
+
+        // ── Load referrals (paginated) ──────────────────────────────
+        async function loadReferrals(page = 1) {
+        currentPage = page;
+        const tbody = document.getElementById('referralsBody');
+        tbody.innerHTML = `<tr><td colspan="7"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>`;
+
+        const search = document.getElementById('searchInput').value.trim();
+        const status = document.getElementById('statusFilter').value;
+
+        const params = new URLSearchParams({ page, limit: PAGE_LIMIT });
+        if (search) params.set('search', search);
+        if (status) params.set('status', status);
+
+        try {
+        const data = await adminFetch(`/admin/referrals?${params.toString()}`);
+
+        // Summary
+        const s = data.summary || {};
+        document.getElementById('sumTotal').textContent     = formatKES(s.totalReward);
+        document.getElementById('sumPending').textContent   = formatKES(s.totalPending);
+        document.getElementById('sumPaid').textContent      = formatKES(s.totalPaid);
+        document.getElementById('sumReferrers').textContent = (s.activeReferrers ?? 0).toLocaleString();
+
+        renderReferrals(data.referrals, data.total, data.page, data.limit);
+
+        } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load referrals.')}</p></div></td></tr>`;
+        document.getElementById('pagination').innerHTML = '';
+        }
+        }
+
+        function renderReferrals(referrals, total, page, limit) {
+        const tbody = document.getElementById('referralsBody');
+
+        if (!referrals || referrals.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral earnings found for these filters.</p></div></td></tr>`;
+        document.getElementById('pagination').innerHTML = '';
+        return;
+        }
+
+        tbody.innerHTML = referrals.map(r => `
+        <tr>
+        <td>
+        <div class="cell-name">${escapeHtml(r.referrer_name)}</div>
+        <div class="cell-sub">${escapeHtml(r.referrer_email)}${r.referral_code ? ` &middot; <span class="code-pill">${escapeHtml(r.referral_code)}</span>` : ''}</div>
+        </td>
+        <td>
+        <div class="cell-name">${escapeHtml(r.referred_name)}</div>
+        <div class="cell-sub">${escapeHtml(r.referred_email)}</div>
+        </td>
+        <td>${formatKES(r.rent_amount)}</td>
+        <td class="amount-strong">${formatKES(r.reward_amount)}</td>
+        <td><span class="status-badge ${r.status}">${r.status === 'paid' ? 'Paid' : 'Pending'}</span></td>
+        <td>${formatDate(r.paid_at || r.created_at)}</td>
+        <td>
+        ${r.status === 'pending'
+        ? `<button class="btn small" data-pay-id="${r.id}">Mark paid</button>`
+        : `<span class="cell-sub">${r.paid_at ? 'Paid ' + formatDate(r.paid_at) : '&mdash;'}</span>`}
+        </td>
+        </tr>
+        `).join('');
+
+        // Pagination
+        const totalPages = Math.max(1, Math.ceil(total / limit));
+        const pag = document.getElementById('pagination');
+        pag.innerHTML = `
+        <span>Showing page ${page} of ${totalPages} &middot; ${total.toLocaleString()} total</span>
+        <div style="display:flex; gap:8px;">
+        <button class="btn secondary small" id="prevPage" ${page <= 1 ? 'disabled' : ''}>Previous</button>
+        <button class="btn secondary small" id="nextPage" ${page >= totalPages ? 'disabled' : ''}>Next</button>
+        </div>
+        `;
+
+        document.getElementById('prevPage')?.addEventListener('click', () => loadReferrals(page - 1));
+        document.getElementById('nextPage')?.addEventListener('click', () => loadReferrals(page + 1));
+
+        // Mark paid buttons
+        tbody.querySelectorAll('[data-pay-id]').forEach(btn => {
+        btn.addEventListener('click', () => markAsPaid(btn.dataset.payId, btn));
+        });
+        }
+
+        // ── Mark a referral earning as paid ──────────────────────────
+        async function markAsPaid(id, btn) {
+        btn.disabled = true;
+        btn.textContent = 'Updating…';
+        try {
+        const res = await fetch(`${API}/admin/referrals/${id}/pay`, {
+        method: 'PATCH',
+        headers: { 'x-admin-secret': adminKey }
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to update');
+
+        showToast('Marked as paid.', 'success');
+        loadReferrals(currentPage);
+        } catch (err) {
+        console.error(err);
+        showToast(err.message || 'Could not mark as paid.', 'error');
+        btn.disabled = false;
+        btn.textContent = 'Mark paid';
+        }
+        }
+
+        // ── Load leaderboard ──────────────────────────────────────────
+        async function loadLeaderboard() {
+        const tbody = document.getElementById('leaderboardBody');
+        tbody.innerHTML = `<tr><td colspan="7"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>`;
+
+        try {
+        const data = await adminFetch('/admin/referrals/leaderboard?limit=50');
+        renderLeaderboard(data.leaderboard);
+        } catch (err) {
+        console.error(err);
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load leaderboard.')}</p></div></td></tr>`;
+        }
+        }
+
+        function renderLeaderboard(rows) {
+        const tbody = document.getElementById('leaderboardBody');
+
+        if (!rows || rows.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral activity yet.</p></div></td></tr>`;
+        return;
+        }
+
+        tbody.innerHTML = rows.map((r, i) => {
+        const rank = i + 1;
+        const rankClass = rank === 1 ? 'gold' : '';
+        return `
+        <tr>
+        <td><span class="rank-badge ${rankClass}">${rank}</span></td>
+        <td>
+        <div class="cell-name">${escapeHtml(r.fullname)}</div>
+        <div class="cell-sub">${escapeHtml(r.email)}</div>
+        </td>
+        <td>${r.referral_code ? `<span class="code-pill">${escapeHtml(r.referral_code)}</span>` : '&mdash;'}</td>
+        <td>${Number(r.referral_count).toLocaleString()}</td>
+        <td class="amount-strong">${formatKES(r.totalEarned)}</td>
+        <td>${formatKES(r.totalPending)}</td>
+        <td>${formatKES(r.totalPaid)}</td>
+        </tr>
+        `;
+        }).join('');
+        }
+
+        // ── Tabs ───────────────────────────────────────────────────
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+
+        const tab = btn.dataset.tab;
+        document.getElementById('tab-all').classList.toggle('hidden', tab !== 'all');
+        document.getElementById('tab-leaderboard').classList.toggle('hidden', tab !== 'leaderboard');
+
+        if (tab === 'leaderboard') {
+        loadLeaderboard();
+        }
+        });
+        });
+
+        // ── Filter button ─────────────────────────────────────────
+        document.getElementById('filterBtn').addEventListener('click', () => loadReferrals(1));
+        document.getElementById('searchInput').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') loadReferrals(1);
+        });
+
+        // ── Admin key gate ─────────────────────────────────────────
+        document.getElementById('loadBtn').addEventListener('click', async () => {
+        const key = document.getElementById('adminKey').value.trim();
+        if (!key) {
+        showToast('Please enter the admin secret key.', 'error');
+        return;
+        }
+
+        adminKey = key;
+        const btn = document.getElementById('loadBtn');
+        btn.textContent = 'Loading…';
+        btn.disabled = true;
+
+        try {
+        // Verify the key works before showing the dashboard
+        await adminFetch('/admin/referrals?page=1&limit=1');
+
+        document.getElementById('keyCard').classList.add('hidden');
+        document.getElementById('appContent').classList.remove('hidden');
+
+        loadReferrals(1);
+        } catch (err) {
+        console.error(err);
+        showToast('Invalid admin key or server error.', 'error');
+        btn.textContent = 'Load data';
+        btn.disabled = false;
+        }
+        });
+
+        document.getElementById('adminKey').addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') document.getElementById('loadBtn').click();
+        });
+    </script>
+</body>
+</html>

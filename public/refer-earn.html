@@ -399,6 +399,16 @@
                 line-height: 1.5;
             }
 
+            .empty-state a {
+                color: var(--accent-light);
+                font-weight: 600;
+                text-decoration: none;
+            }
+
+                .empty-state a:hover {
+                    color: #c4b5fd;
+                }
+
         .loading-state {
             text-align: center;
             padding: 50px 24px;
@@ -546,7 +556,7 @@
 
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
-        const SIGNUP_URL = 'https://eliyasande65-lang.github.io/QejaConnect/signup.html';
+        const SIGNUP_URL = 'https://eliyasande65-lang.github.io/QejaConnect/tenant.html';
 
         // ── Toast ──────────────────────────────────────────────────
         let toastTimer;
@@ -580,20 +590,45 @@
         });
         }
 
+        // ── Get logged-in user + token (matches login.html keys) ────
+        function getAuth() {
+        const rawUser =
+        localStorage.getItem('loggedUser') ||
+        sessionStorage.getItem('loggedUser');
+
+        const token =
+        localStorage.getItem('token') ||
+        sessionStorage.getItem('token');
+
+        let user = null;
+        try {
+        user = rawUser ? JSON.parse(rawUser) : null;
+        } catch (e) {
+        user = null;
+        }
+
+        return { user, token };
+        }
+
         // ── Load referral data ─────────────────────────────────────
         async function loadReferrals() {
-        const userData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const { user, token } = getAuth();
 
-        if (!userData || !token) {
+        if (!user || !token) {
         showToast('Please log in to view your referral details.', 'error');
+        document.getElementById('codeValue').textContent = '—';
+        document.getElementById('codeValue').classList.remove('loading');
+        document.getElementById('shareLink').textContent = '—';
+        document.getElementById('totalEarned').textContent  = '—';
+        document.getElementById('totalPending').textContent = '—';
+        document.getElementById('totalPaid').textContent    = '—';
         document.getElementById('earningsCard').innerHTML =
-        `<div class="empty-state"><span class="empty-icon">🔒</span><p>Please log in to view your referral code and earnings.</p></div>`;
+        `<div class="empty-state"><span class="empty-icon">🔒</span><p>Please <a href="login.html">log in</a> to view your referral code and earnings.</p></div>`;
         return;
         }
 
         try {
-        const res = await fetch(`${API}/referrals/${userData.id}`, {
+        const res = await fetch(`${API}/referrals/${user.id}`, {
         headers: { 'Authorization': `Bearer ${token}` }
         });
         const data = await res.json();
@@ -616,17 +651,19 @@
         document.getElementById('totalPaid').textContent    = formatKES(data.totalPaid);
 
         // Earnings history
-        renderEarnings(data.earnings, shareUrl);
+        renderEarnings(data.earnings);
 
         } catch (err) {
         console.error(err);
         document.getElementById('codeValue').textContent = '—';
+        document.getElementById('codeValue').classList.remove('loading');
         document.getElementById('earningsCard').innerHTML =
         `<div class="empty-state"><span class="empty-icon">⚠️</span><p>Could not load your referral data. Please try again later.</p></div>`;
+        showToast('Could not load referral data.', 'error');
         }
         }
 
-        function renderEarnings(earnings, shareUrl) {
+        function renderEarnings(earnings) {
         const card = document.getElementById('earningsCard');
 
         if (!earnings || earnings.length === 0) {
@@ -673,7 +710,7 @@
 
         document.getElementById('copyLinkBtn').addEventListener('click', () => {
         const link = document.getElementById('shareLink').textContent;
-        if (!link || link.includes('Loading')) return;
+        if (!link || link.includes('Loading') || link === '—') return;
         navigator.clipboard.writeText(link).then(() => {
         showToast('Referral link copied!', 'success');
         });
@@ -681,7 +718,7 @@
 
         document.getElementById('shareBtn').addEventListener('click', () => {
         const link = document.getElementById('shareLink').textContent;
-        if (!link || link.includes('Loading')) return;
+        if (!link || link.includes('Loading') || link === '—') return;
 
         if (navigator.share) {
         navigator.share({
