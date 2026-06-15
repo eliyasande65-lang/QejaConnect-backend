@@ -37,7 +37,7 @@ app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // =========================
-// DB — USE POOL (fixes timeout/reconnect issues)
+// DB - USE POOL (fixes timeout/reconnect issues)
 // =========================
 const db = mysql.createPool({
   host: process.env.DB_HOST,
@@ -51,7 +51,7 @@ const db = mysql.createPool({
   queueLimit: 0
 });
 
-// Promise-based wrapper for the same pool — used by router.* (async/await) routes
+// Promise-based wrapper for the same pool - used by router.* (async/await) routes
 const dbPromise = db.promise();
 
 db.getConnection((err, connection) => {
@@ -109,8 +109,9 @@ app.get("/", (req, res) => {
 // =========================
 // SIGNUP
 // =========================
+
 app.post("/signup", async (req, res) => {
-  const { fullname, email, phone, password } = req.body;
+  const { fullname, email, phone, password, referral_code } = req.body;
 
   if (!fullname || !email || !phone || !password) {
     return res.status(400).json({ success: false, message: "All fields required" });
@@ -124,17 +125,76 @@ app.post("/signup", async (req, res) => {
     return res.status(400).json({ success: false, message: "Password must be at least 6 characters" });
   }
 
-  const hashed = await bcrypt.hash(password, 10);
-  const sql = `INSERT INTO users (fullname, email, phone, password) VALUES (?, ?, ?, ?)`;
+  try {
+    let referredBy = null;
 
-  db.query(sql, [fullname, email, phone, hashed], (err) => {
-    if (err) {
-      return res.status(500).json({ success: false, message: err.sqlMessage });
+    if (referral_code && referral_code.trim()) {
+      const [refRows] = await dbPromise.query(
+        `SELECT id, referral_code FROM users WHERE referral_code = ?`,
+        [referral_code.trim().toUpperCase()]
+      );
+      if (refRows.length) {
+        referredBy = refRows[0].referral_code;
+      }
+      // If invalid code, silently ignore (don't block signup)
     }
+
+    const hashed = await bcrypt.hash(password, 10);
+
+    const [result] = await dbPromise.query(
+      `INSERT INTO users (fullname, email, phone, password, referred_by) VALUES (?, ?, ?, ?, ?)`,
+      [fullname, email, phone, hashed, referredBy]
+    );
+
+    // Generate and store this new user's own referral code
+    const myCode = `REF${1000 + result.insertId}`;
+    await dbPromise.query(`UPDATE users SET referral_code = ? WHERE id = ?`, [myCode, result.insertId]);
+
     res.json({ success: true, message: "User created" });
-  });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.sqlMessage || err.message });
+  }
 });
 
+
+// GET /referrals/:id - tenant's referral code + earnings summary
+router.get('/referrals/:id', auth, async (req, res) => {
+  try {
+    const [userRows] = await dbPromise.query(
+      `SELECT referral_code FROM users WHERE id = ?`, [req.params.id]
+    );
+    if (!userRows.length) return res.json({ success: false, message: 'User not found' });
+
+    const referral_code = userRows[0].referral_code;
+
+    const [earnings] = await dbPromise.query(
+      `SELECT re.id, re.rent_amount, re.reward_amount, re.status, re.paid_at, re.created_at,
+              u.fullname AS referred_name
+       FROM referral_earnings re
+       JOIN users u ON re.referred_id = u.id
+       WHERE re.referrer_id = ?
+       ORDER BY re.created_at DESC`,
+      [req.params.id]
+    );
+
+    const totalEarned = earnings.reduce((sum, e) => sum + parseFloat(e.reward_amount), 0);
+    const totalPaid   = earnings.filter(e => e.status === 'paid')
+                                 .reduce((sum, e) => sum + parseFloat(e.reward_amount), 0);
+    const totalPending = totalEarned - totalPaid;
+
+    res.json({
+      success: true,
+      referral_code,
+      totalEarned,
+      totalPaid,
+      totalPending,
+      earnings
+    });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error' });
+  }
+});
 // =========================
 // ADMIN: LIST/SEARCH TENANTS (paginated)
 // GET /admin/tenants?page=1&limit=20&search=keyword
@@ -312,7 +372,7 @@ app.post("/send-push", async (req, res) => {
   }
 });
 // =========================
-// GET ALL PROPERTIES — verified landlords only
+// GET ALL PROPERTIES - verified landlords only
 // =========================
 app.get("/properties", (req, res) => {
   const sql = `
@@ -350,7 +410,7 @@ app.get("/landlord-properties/:id", auth, (req, res) => {
 });
 
 // =========================
-// GET ALL LANDLORDS — verified only
+// GET ALL LANDLORDS - verified only
 // =========================
 app.get("/landlords", (req, res) => {
   const sql = `
@@ -367,7 +427,7 @@ app.get("/landlords", (req, res) => {
 });
 
 // =========================
-// GET SINGLE LANDLORD BY ID — verified only
+// GET SINGLE LANDLORD BY ID - verified only
 // =========================
 app.get("/landlords/:id", (req, res) => {
   const { id } = req.params;
@@ -392,7 +452,7 @@ app.get("/landlords/:id", (req, res) => {
 });
 
 // =========================
-// INTERESTED → START CHAT
+// INTERESTED -> START CHAT
 // =========================
 app.post("/interested", auth, (req, res) => {
   const { landlord_id, tenant_id, message } = req.body;
@@ -1018,7 +1078,7 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
 });
 
 // =========================
-// WEBAUTHN — FINGERPRINT LOGIN
+// WEBAUTHN - FINGERPRINT LOGIN
 // =========================
 const RP_NAME = 'QejaConnect';
 const RP_ID   = 'eliyasande65-lang.github.io';
@@ -1026,7 +1086,7 @@ const ORIGIN  = 'https://eliyasande65-lang.github.io';
 
 const challenges = new Map();
 
-// ── Register Start ────────────────────────────────────────
+// -- Register Start --------------------------------------------
 app.post('/auth/webauthn/register/start', async (req, res) => {
   try {
     const { userId, userName, userEmail } = req.body;
@@ -1057,7 +1117,7 @@ app.post('/auth/webauthn/register/start', async (req, res) => {
   }
 });
 
-// ── Register Finish ───────────────────────────────────────
+// -- Register Finish ---------------------------------------------
 app.post('/auth/webauthn/register/finish', async (req, res) => {
   try {
     const { userId, credential } = req.body;
@@ -1113,7 +1173,7 @@ app.post('/auth/webauthn/register/finish', async (req, res) => {
   }
 });
 
-// ── Login Start ───────────────────────────────────────────
+// -- Login Start ---------------------------------------------------
 app.post('/auth/webauthn/login/start', (req, res) => {
   const { userId } = req.body;
 
@@ -1156,7 +1216,7 @@ app.post('/auth/webauthn/login/start', (req, res) => {
   );
 });
 
-// ── Login Finish ──────────────────────────────────────────
+// -- Login Finish ----------------------------------------------------
 app.post('/auth/webauthn/login/finish', (req, res) => {
   const { userId, credential } = req.body;
   const entry = challenges.get(String(userId));
@@ -1407,7 +1467,7 @@ app.get("/my-messages", auth, (req, res) => {
 });
 
 
-// ── GET /updates  (public — home page uses this) ─────────────
+// -- GET /updates  (public - home page uses this) ---------------
 app.get("/updates", (req, res) => {
   const sql = `
     SELECT id, title, body, type, image_url, cta_url, cta_label, created_at
@@ -1421,7 +1481,7 @@ app.get("/updates", (req, res) => {
   });
 });
 
-// ── POST /admin/updates  (admin only — create an update) ─────
+// -- POST /admin/updates  (admin only - create an update) -------
 app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) => {
   const { title, body, type, cta_url, cta_label } = req.body;
 
@@ -1466,7 +1526,7 @@ app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) =
   }
 });
 
-// ── DELETE /admin/updates/:id  (admin only) ──────────────────
+// -- DELETE /admin/updates/:id  (admin only) ----------------------
 app.delete("/admin/updates/:id", adminAuth, (req, res) => {
   const { id } = req.params;
 
@@ -1480,11 +1540,11 @@ app.delete("/admin/updates/:id", adminAuth, (req, res) => {
 });
 
 
-// ─────────────────────────────────────────────────────────────────
-// BOOKINGS  (use dbPromise — async/await style)
-// ─────────────────────────────────────────────────────────────────
+// -------------------------------------------------------------------
+// BOOKINGS  (use dbPromise - async/await style)
+// -------------------------------------------------------------------
 
-// POST /bookings — tenant creates a booking request
+// POST /bookings - tenant creates a booking request
 router.post('/bookings', auth, async (req, res) => {
   try {
     const { tenant_id, landlord_id, property_id, message } = req.body;
@@ -1511,7 +1571,7 @@ router.post('/bookings', auth, async (req, res) => {
   }
 });
 
-// GET /bookings/tenant/:id — tenant fetches their bookings
+// GET /bookings/tenant/:id - tenant fetches their bookings
 router.get('/bookings/tenant/:id', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
@@ -1531,7 +1591,7 @@ router.get('/bookings/tenant/:id', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-// GET /landlord/interests/:id — landlord fetches booking requests
+// GET /landlord/interests/:id - landlord fetches booking requests
 router.get('/landlord/interests/:id', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
@@ -1596,11 +1656,11 @@ router.post('/bookings/:id/cancel', auth, async (req, res) => {
 });
 
 
-// ─────────────────────────────────────────────────────────────────
+// -------------------------------------------------------------------
 // TENANCIES
-// ─────────────────────────────────────────────────────────────────
+// -------------------------------------------------------------------
 
-// POST /tenancy/start — landlord starts a session
+// POST /tenancy/start - landlord starts a session
 router.post('/tenancy/start', auth, async (req, res) => {
   try {
     const { booking_id, landlord_id, tenant_id, property_id,
@@ -1634,7 +1694,7 @@ router.post('/tenancy/start', auth, async (req, res) => {
   }
 });
 
-// GET /tenancy/tenant/:id — tenant fetches their active tenancy
+// GET /tenancy/tenant/:id - tenant fetches their active tenancy
 router.get('/tenancy/tenant/:id', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
@@ -1663,7 +1723,9 @@ router.get('/tenancy/tenant/:id', auth, async (req, res) => {
     res.status(500).json({ success: false, message: 'Server error' });
   }
 });
-// GET /tenancy/landlord/:id — landlord fetches all their tenancies
+
+
+// GET /tenancy/landlord/:id - landlord fetches all their tenancies
 router.get('/tenancy/landlord/:id', auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
@@ -1684,7 +1746,7 @@ router.get('/tenancy/landlord/:id', auth, async (req, res) => {
   }
 });
 
-// POST /tenancy/payment-confirm — called after STK push succeeds (tenant side)
+// POST /tenancy/payment-confirm - called after STK push succeeds (tenant side)
 router.post('/tenancy/payment-confirm', auth, async (req, res) => {
   try {
     const { tenancy_id, landlord_id, tenant_id, month_index, mpesa_ref, amount } = req.body;
@@ -1697,6 +1759,39 @@ router.post('/tenancy/payment-confirm', auth, async (req, res) => {
          mpesa_ref=VALUES(mpesa_ref), status='paid', paid_at=NOW()`,
       [tenancy_id, tenant_id, landlord_id, month_index, month_index + 1, amount, mpesa_ref]
     );
+
+    // --- Referral earning logic ---
+    const [paymentRows] = await dbPromise.query(
+      `SELECT id FROM rent_payments WHERE tenancy_id=? AND month_index=?`,
+      [tenancy_id, month_index]
+    );
+    const rent_payment_id = paymentRows[0]?.id;
+
+    const [tenantRows] = await dbPromise.query(
+      `SELECT referred_by FROM users WHERE id = ?`, [tenant_id]
+    );
+    const referredByCode = tenantRows[0]?.referred_by;
+
+    if (referredByCode && rent_payment_id) {
+      const [referrerRows] = await dbPromise.query(
+        `SELECT id FROM users WHERE referral_code = ?`, [referredByCode]
+      );
+
+      if (referrerRows.length) {
+        const referrer_id = referrerRows[0].id;
+        const rewardAmount = (parseFloat(amount) * 0.01).toFixed(2);
+
+        await dbPromise.query(
+          `INSERT INTO referral_earnings
+             (referrer_id, referred_id, tenancy_id, rent_payment_id, month_index, rent_amount, reward_amount, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
+           ON DUPLICATE KEY UPDATE reward_amount=VALUES(reward_amount)`,
+          [referrer_id, tenant_id, tenancy_id, rent_payment_id, month_index, amount, rewardAmount]
+        );
+      }
+    }
+   
+
     res.json({ success: true });
   } catch (err) {
     console.error(err);
@@ -1704,10 +1799,9 @@ router.post('/tenancy/payment-confirm', auth, async (req, res) => {
   }
 });
 
-
-// ─────────────────────────────────────────────────────────────────
+// -------------------------------------------------------------------
 // PAYMENTS (Landlord side)
-// ─────────────────────────────────────────────────────────────────
+// -------------------------------------------------------------------
 
 // GET /landlord/payments/:id
 router.get('/landlord/payments/:id', auth, async (req, res) => {
@@ -1731,7 +1825,7 @@ router.get('/landlord/payments/:id', auth, async (req, res) => {
   }
 });
 
-// POST /payments/:id/confirm — landlord confirms receipt of payment
+// POST /payments/:id/confirm - landlord confirms receipt of payment
 router.post('/payments/:id/confirm', auth, async (req, res) => {
   try {
     await dbPromise.query(

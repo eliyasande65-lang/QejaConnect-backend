@@ -470,6 +470,12 @@
                     <label>Phone Number</label>
                     <input type="tel" name="phone" id="phone" placeholder="e.g. 0712345678" required>
                 </div>
+                <div class="section-label">🎁 Referral (Optional)</div>
+
+                <div class="field">
+                    <label>Referral Code</label>
+                    <input type="text" name="referral_code" id="referral_code" placeholder="e.g. REF1042">
+                </div>
                 <div class="section-label">🔒 Set Password</div>
 
                 <div class="field">
@@ -520,7 +526,16 @@
         <span id="toast-icon"></span>
         <span id="toast-msg"></span>
     </div>
-
+    <script>
+        // Auto-fill referral code from URL (?ref=REF1042)
+        window.addEventListener('DOMContentLoaded', () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const refCode = urlParams.get('ref');
+            if (refCode) {
+                document.getElementById('referral_code').value = refCode.toUpperCase();
+            }
+        });
+    </script>
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
 
@@ -626,6 +641,8 @@
         const password = document.getElementById('password').value;
         const confirm  = document.getElementById('confirm').value;
         const phone = document.getElementById('phone').value.trim();
+        const referral_code = document.getElementById('referral_code').value.trim();
+
 
         if (!phone || !/^(\+254|0)[71]\d{8}$/.test(phone)) {
             showToast('Please enter a valid Kenyan phone number.', 'warning'); return;
@@ -658,7 +675,7 @@
         const response = await fetch(`${API}/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullname, email, phone, password })
+        body: JSON.stringify({ fullname, email, phone, password, referral_code })
         });
 
         const data = await response.json();

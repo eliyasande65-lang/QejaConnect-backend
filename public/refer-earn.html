@@ -1,0 +1,703 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Refer & Earn · QejaConnect</title>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #0d0a1a;
+            --surface: #13102a;
+            --card: #1a1535;
+            --border: rgba(139, 92, 246, 0.18);
+            --border-focus: #7c3aed;
+            --accent: #7c3aed;
+            --accent-light: #a78bfa;
+            --accent-glow: rgba(124, 58, 237, 0.25);
+            --text: #f1f0f7;
+            --muted: #8b84a8;
+            --dim: rgba(255,255,255,0.06);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --error: #ef4444;
+            --gold: #fbbf24;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'DM Sans', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 32px 16px 64px;
+        }
+
+            body::before, body::after {
+                content: '';
+                position: fixed;
+                border-radius: 50%;
+                filter: blur(120px);
+                pointer-events: none;
+                z-index: 0;
+            }
+
+            body::before {
+                width: 500px;
+                height: 500px;
+                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
+                top: -100px;
+                left: -150px;
+            }
+
+            body::after {
+                width: 400px;
+                height: 400px;
+                background: radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%);
+                bottom: 0;
+                right: -120px;
+            }
+
+        .page {
+            width: 100%;
+            max-width: 560px;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* Header */
+        .header {
+            text-align: center;
+            margin-bottom: 28px;
+        }
+
+            .header .eyebrow {
+                font-size: 0.72rem;
+                font-weight: 600;
+                letter-spacing: 0.16em;
+                text-transform: uppercase;
+                color: var(--accent-light);
+                margin-bottom: 10px;
+            }
+
+            .header h1 {
+                font-family: 'DM Serif Display', serif;
+                font-size: clamp(1.8rem, 6vw, 2.6rem);
+                font-weight: 400;
+                letter-spacing: -0.5px;
+                line-height: 1.15;
+            }
+
+            .header p {
+                color: var(--muted);
+                font-size: 0.95rem;
+                margin-top: 10px;
+                font-weight: 300;
+                max-width: 420px;
+                margin-inline: auto;
+            }
+
+        /* Signature: Code card */
+        .code-card {
+            background: linear-gradient(135deg, #1a1535 0%, #241b4a 100%);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 28px;
+            margin-bottom: 18px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
+            position: relative;
+            overflow: hidden;
+        }
+
+            .code-card::before {
+                content: '';
+                position: absolute;
+                top: -50%;
+                right: -20%;
+                width: 220px;
+                height: 220px;
+                background: radial-gradient(circle, rgba(124,58,237,0.35) 0%, transparent 70%);
+                pointer-events: none;
+            }
+
+        .code-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.14em;
+            text-transform: uppercase;
+            color: var(--accent-light);
+            margin-bottom: 14px;
+            position: relative;
+        }
+
+        .code-display {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            background: rgba(0,0,0,0.25);
+            border: 1.5px dashed var(--border);
+            border-radius: 14px;
+            padding: 18px 20px;
+            margin-bottom: 16px;
+            position: relative;
+        }
+
+        .code-value {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(1.6rem, 7vw, 2.2rem);
+            letter-spacing: 0.08em;
+            color: var(--text);
+            font-style: italic;
+        }
+
+            .code-value.loading {
+                color: var(--muted);
+                font-size: 1rem;
+                font-style: normal;
+                letter-spacing: normal;
+            }
+
+        .copy-btn {
+            flex-shrink: 0;
+            padding: 10px 18px;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            white-space: nowrap;
+        }
+
+            .copy-btn:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+
+            .copy-btn:active {
+                transform: translateY(0);
+            }
+
+        .share-row {
+            display: flex;
+            gap: 10px;
+            position: relative;
+            flex-wrap: wrap;
+        }
+
+        .share-link-box {
+            flex: 1;
+            min-width: 0;
+            background: rgba(0,0,0,0.2);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 0.8rem;
+            color: var(--muted);
+            overflow-x: auto;
+            white-space: nowrap;
+            font-family: monospace;
+        }
+
+        .share-btn {
+            padding: 10px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--dim);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: border-color 0.2s, background 0.2s;
+            white-space: nowrap;
+        }
+
+            .share-btn:hover {
+                border-color: var(--accent);
+                background: rgba(124,58,237,0.1);
+            }
+
+        /* How it works strip */
+        .how-it-works {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .step {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 16px 14px;
+            text-align: center;
+        }
+
+            .step .step-icon {
+                font-size: 1.4rem;
+                margin-bottom: 8px;
+            }
+
+            .step .step-text {
+                font-size: 0.78rem;
+                color: var(--muted);
+                line-height: 1.4;
+            }
+
+        /* Earnings summary */
+        .earnings-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 24px;
+        }
+
+        .earning-stat {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 14px;
+            text-align: center;
+        }
+
+            .earning-stat .stat-value {
+                font-family: 'DM Serif Display', serif;
+                font-size: clamp(1.2rem, 5vw, 1.6rem);
+                color: var(--text);
+                margin-bottom: 4px;
+            }
+
+            .earning-stat.gold .stat-value {
+                color: var(--gold);
+            }
+
+            .earning-stat.success .stat-value {
+                color: var(--success);
+            }
+
+            .earning-stat .stat-label {
+                font-size: 0.68rem;
+                font-weight: 600;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+                color: var(--muted);
+            }
+
+        /* Section label */
+        .section-label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-light);
+            margin: 0 0 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+            .section-label::after {
+                content: '';
+                flex: 1;
+                height: 1px;
+                background: var(--border);
+            }
+
+        /* Earnings list */
+        .earnings-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .earning-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            padding: 16px 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.04);
+        }
+
+            .earning-row:last-child {
+                border-bottom: none;
+            }
+
+        .earning-info .earning-name {
+            font-weight: 500;
+            font-size: 0.92rem;
+            margin-bottom: 3px;
+        }
+
+        .earning-info .earning-meta {
+            font-size: 0.74rem;
+            color: var(--muted);
+        }
+
+        .earning-amount {
+            text-align: right;
+            flex-shrink: 0;
+        }
+
+            .earning-amount .amount-value {
+                font-weight: 600;
+                font-size: 0.98rem;
+                margin-bottom: 4px;
+            }
+
+        .status-badge {
+            display: inline-block;
+            font-size: 0.68rem;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+            .status-badge.pending {
+                background: rgba(245,158,11,0.15);
+                color: var(--warning);
+                border: 1px solid rgba(245,158,11,0.3);
+            }
+
+            .status-badge.paid {
+                background: rgba(16,185,129,0.15);
+                color: var(--success);
+                border: 1px solid rgba(16,185,129,0.3);
+            }
+
+        .empty-state {
+            text-align: center;
+            padding: 50px 24px;
+            color: var(--muted);
+        }
+
+            .empty-state .empty-icon {
+                font-size: 2.2rem;
+                margin-bottom: 12px;
+                display: block;
+            }
+
+            .empty-state p {
+                font-size: 0.88rem;
+                line-height: 1.5;
+            }
+
+        .loading-state {
+            text-align: center;
+            padding: 50px 24px;
+            color: var(--muted);
+            font-size: 0.9rem;
+        }
+
+        /* Toast */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1535;
+            border: 1px solid var(--border);
+            color: var(--text);
+            padding: 13px 20px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            z-index: 999;
+            max-width: 360px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+
+            #toast.success {
+                border-left: 4px solid var(--success);
+            }
+
+            #toast.error {
+                border-left: 4px solid var(--error);
+            }
+
+            #toast.info {
+                border-left: 4px solid var(--accent-light);
+            }
+
+        @media (max-width: 480px) {
+            .how-it-works {
+                grid-template-columns: 1fr;
+            }
+
+            .earnings-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+                .earnings-grid .earning-stat:first-child {
+                    grid-column: 1 / -1;
+                }
+
+            .share-row {
+                flex-direction: column;
+            }
+
+            .share-link-box {
+                order: 1;
+            }
+
+            .share-btn {
+                order: 2;
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+
+        <div class="header">
+            <div class="eyebrow">Refer & Earn</div>
+            <h1>Know someone looking<br>for a place?</h1>
+            <p>Share your code. When they move into a home through QejaConnect, you earn 1% of their monthly rent &mdash; every month they pay.</p>
+        </div>
+
+        <!-- Signature: referral code card -->
+        <div class="code-card">
+            <div class="code-label">Your referral code</div>
+            <div class="code-display">
+                <div class="code-value loading" id="codeValue">Loading&hellip;</div>
+                <button class="copy-btn" id="copyCodeBtn">Copy code</button>
+            </div>
+            <div class="share-row">
+                <div class="share-link-box" id="shareLink">Loading link&hellip;</div>
+                <button class="share-btn" id="copyLinkBtn">Copy link</button>
+                <button class="share-btn" id="shareBtn">Share</button>
+            </div>
+        </div>
+
+        <!-- How it works -->
+        <div class="how-it-works">
+            <div class="step">
+                <div class="step-icon">🔗</div>
+                <div class="step-text">Share your code or link with friends</div>
+            </div>
+            <div class="step">
+                <div class="step-icon">🏠</div>
+                <div class="step-text">They sign up & move into a home</div>
+            </div>
+            <div class="step">
+                <div class="step-icon">💰</div>
+                <div class="step-text">You earn 1% of their rent monthly</div>
+            </div>
+        </div>
+
+        <!-- Earnings summary -->
+        <div class="earnings-grid">
+            <div class="earning-stat gold">
+                <div class="stat-value" id="totalEarned">&mdash;</div>
+                <div class="stat-label">Total Earned</div>
+            </div>
+            <div class="earning-stat">
+                <div class="stat-value" id="totalPending">&mdash;</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="earning-stat success">
+                <div class="stat-value" id="totalPaid">&mdash;</div>
+                <div class="stat-label">Paid Out</div>
+            </div>
+        </div>
+
+        <!-- Earnings history -->
+        <div class="section-label">Earnings History</div>
+
+        <div class="earnings-card" id="earningsCard">
+            <div class="loading-state">Loading your earnings&hellip;</div>
+        </div>
+
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
+    </div>
+
+    <script>
+        const API = 'https://qeja-backend-azkf.onrender.com';
+        const SIGNUP_URL = 'https://eliyasande65-lang.github.io/QejaConnect/signup.html';
+
+        // ── Toast ──────────────────────────────────────────────────
+        let toastTimer;
+        function showToast(message, type = 'info', duration = 3000) {
+        const toast = document.getElementById('toast');
+        const icon  = document.getElementById('toast-icon');
+        const msg   = document.getElementById('toast-msg');
+        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        toast.className = '';
+        toast.classList.add(type);
+        icon.textContent = icons[type] || 'ℹ️';
+        msg.textContent  = message;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ── Format currency ───────────────────────────────────────
+        function formatKES(amount) {
+        return 'KES ' + Number(amount).toLocaleString('en-KE', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+        });
+        }
+
+        function formatDate(dateStr) {
+        if (!dateStr) return '';
+        return new Date(dateStr).toLocaleDateString('en-KE', {
+        year: 'numeric', month: 'short', day: 'numeric'
+        });
+        }
+
+        // ── Load referral data ─────────────────────────────────────
+        async function loadReferrals() {
+        const userData = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || 'null');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+
+        if (!userData || !token) {
+        showToast('Please log in to view your referral details.', 'error');
+        document.getElementById('earningsCard').innerHTML =
+        `<div class="empty-state"><span class="empty-icon">🔒</span><p>Please log in to view your referral code and earnings.</p></div>`;
+        return;
+        }
+
+        try {
+        const res = await fetch(`${API}/referrals/${userData.id}`, {
+        headers: { 'Authorization': `Bearer ${token}` }
+        });
+        const data = await res.json();
+
+        if (!data.success) {
+        throw new Error(data.message || 'Could not load referral data');
+        }
+
+        // Code + share link
+        const code = data.referral_code;
+        document.getElementById('codeValue').textContent = code;
+        document.getElementById('codeValue').classList.remove('loading');
+
+        const shareUrl = `${SIGNUP_URL}?ref=${code}`;
+        document.getElementById('shareLink').textContent = shareUrl;
+
+        // Earnings summary
+        document.getElementById('totalEarned').textContent  = formatKES(data.totalEarned);
+        document.getElementById('totalPending').textContent = formatKES(data.totalPending);
+        document.getElementById('totalPaid').textContent    = formatKES(data.totalPaid);
+
+        // Earnings history
+        renderEarnings(data.earnings, shareUrl);
+
+        } catch (err) {
+        console.error(err);
+        document.getElementById('codeValue').textContent = '—';
+        document.getElementById('earningsCard').innerHTML =
+        `<div class="empty-state"><span class="empty-icon">⚠️</span><p>Could not load your referral data. Please try again later.</p></div>`;
+        }
+        }
+
+        function renderEarnings(earnings, shareUrl) {
+        const card = document.getElementById('earningsCard');
+
+        if (!earnings || earnings.length === 0) {
+        card.innerHTML = `
+        <div class="empty-state">
+        <span class="empty-icon">🌱</span>
+        <p>No referrals yet. Share your code &mdash; when someone you refer moves into a home and pays rent, your earnings will show up here.</p>
+        </div>
+        `;
+        return;
+        }
+
+        card.innerHTML = earnings.map(e => `
+        <div class="earning-row">
+        <div class="earning-info">
+        <div class="earning-name">${escapeHtml(e.referred_name || 'Tenant')}</div>
+        <div class="earning-meta">Rent ${formatKES(e.rent_amount)} · ${formatDate(e.created_at)}</div>
+        </div>
+        <div class="earning-amount">
+        <div class="amount-value">${formatKES(e.reward_amount)}</div>
+        <span class="status-badge ${e.status}">${e.status === 'paid' ? 'Paid' : 'Pending'}</span>
+        </div>
+        </div>
+        `).join('');
+        }
+
+        function escapeHtml(str) {
+        return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+        }
+
+        // ── Copy buttons ───────────────────────────────────────────
+        document.getElementById('copyCodeBtn').addEventListener('click', () => {
+        const code = document.getElementById('codeValue').textContent;
+        if (!code || code === '—' || code.includes('Loading')) return;
+        navigator.clipboard.writeText(code).then(() => {
+        showToast('Referral code copied!', 'success');
+        });
+        });
+
+        document.getElementById('copyLinkBtn').addEventListener('click', () => {
+        const link = document.getElementById('shareLink').textContent;
+        if (!link || link.includes('Loading')) return;
+        navigator.clipboard.writeText(link).then(() => {
+        showToast('Referral link copied!', 'success');
+        });
+        });
+
+        document.getElementById('shareBtn').addEventListener('click', () => {
+        const link = document.getElementById('shareLink').textContent;
+        if (!link || link.includes('Loading')) return;
+
+        if (navigator.share) {
+        navigator.share({
+        title: 'QejaConnect - Find your perfect home',
+        text: 'Use my referral code to sign up on QejaConnect and find your perfect home in Kenya!',
+        url: link
+        }).catch(() => {});
+        } else {
+        navigator.clipboard.writeText(link).then(() => {
+        showToast('Referral link copied! Share it with friends.', 'success');
+        });
+        }
+        });
+
+        // ── Init ─────────────────────────────────────────────────
+        loadReferrals();
+    </script>
+</body>
+</html>
