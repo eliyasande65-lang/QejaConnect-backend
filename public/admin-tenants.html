@@ -86,6 +86,46 @@
                 margin-top: 6px;
             }
 
+        /* Admin nav strip */
+        .admin-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 22px;
+            flex-wrap: wrap;
+        }
+
+            .admin-nav a {
+                text-decoration: none;
+            }
+
+        .admin-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.84rem;
+            font-weight: 500;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+            white-space: nowrap;
+        }
+
+            .admin-nav-btn:hover {
+                border-color: var(--accent);
+                color: var(--text);
+                background: rgba(124,58,237,0.08);
+            }
+
+            .admin-nav-btn.active {
+                background: var(--accent-glow);
+                border-color: var(--accent);
+                color: var(--accent-light);
+            }
+
         /* Toolbar */
         .toolbar {
             display: flex;
@@ -413,6 +453,16 @@
         <div class="header">
             <h1>Tenant Directory</h1>
             <p>View, search, and message all registered tenants</p>
+        </div>
+
+        <!-- Admin nav strip -->
+        <div class="admin-nav">
+            <a href="admin.html"><span class="admin-nav-btn">🏘 Landlords</span></a>
+            <a href="admin.html"><span class="admin-nav-btn">💬 Messages</span></a>
+            <a href="admin-tenants.html"><span class="admin-nav-btn active">👤 Tenants</span></a>
+            <a href="admin-updates.html"><span class="admin-nav-btn">📢 Updates</span></a>
+            <a href="admin-refferrals.html"><span class="admin-nav-btn">💸 Pay Referrals</span></a>
+            <a href="home.html"><span class="admin-nav-btn">↗ Live Site</span></a>
         </div>
 
         <!-- Admin key gate -->

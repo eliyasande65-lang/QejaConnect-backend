@@ -65,7 +65,7 @@
             }
 
         .page {
-            max-width: 1100px;
+            max-width: 1200px;
             margin: 0 auto;
             position: relative;
             z-index: 1;
@@ -73,7 +73,7 @@
 
         /* Header */
         .header {
-            margin-bottom: 28px;
+            margin-bottom: 22px;
         }
 
             .header .eyebrow {
@@ -97,6 +97,46 @@
                 font-size: 0.92rem;
                 margin-top: 6px;
                 font-weight: 300;
+            }
+
+        /* Admin nav strip */
+        .admin-nav {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            flex-wrap: wrap;
+        }
+
+            .admin-nav a {
+                text-decoration: none;
+            }
+
+        .admin-nav-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 9px 16px;
+            border-radius: 10px;
+            border: 1px solid var(--border);
+            background: var(--card);
+            color: var(--muted);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 0.84rem;
+            font-weight: 500;
+            transition: border-color 0.2s, color 0.2s, background 0.2s;
+            white-space: nowrap;
+        }
+
+            .admin-nav-btn:hover {
+                border-color: var(--accent);
+                color: var(--text);
+                background: rgba(124,58,237,0.08);
+            }
+
+            .admin-nav-btn.active {
+                background: var(--accent-glow);
+                border-color: var(--accent);
+                color: var(--accent-light);
             }
 
         /* Admin key gate */
@@ -323,7 +363,7 @@
             width: 100%;
             border-collapse: collapse;
             font-size: 0.85rem;
-            min-width: 720px;
+            min-width: 820px;
         }
 
         thead th {
@@ -360,6 +400,13 @@
             font-size: 0.74rem;
             color: var(--muted);
             margin-top: 2px;
+        }
+
+        .phone-cell {
+            font-family: monospace;
+            font-size: 0.84rem;
+            color: var(--text);
+            white-space: nowrap;
         }
 
         .code-pill {
@@ -508,6 +555,16 @@
             <p>Track who referred whom, what they're owed, and mark payouts as completed.</p>
         </div>
 
+        <!-- Admin nav strip -->
+        <div class="admin-nav">
+            <a href="admin.html"><span class="admin-nav-btn">🏘 Landlords</span></a>
+            <a href="admin.html"><span class="admin-nav-btn">💬 Messages</span></a>
+            <a href="admin-tenants.html"><span class="admin-nav-btn">👤 Tenants</span></a>
+            <a href="admin-updates.html"><span class="admin-nav-btn">📢 Updates</span></a>
+            <a href="admin-refferrals.html"><span class="admin-nav-btn active">💸 Pay Referrals</span></a>
+            <a href="home.html"><span class="admin-nav-btn">↗ Live Site</span></a>
+        </div>
+
         <!-- Admin key gate -->
         <div class="key-card" id="keyCard">
             <div class="field">
@@ -549,8 +606,8 @@
             <div id="tab-all">
                 <div class="controls-row">
                     <div class="field grow">
-                        <label>Search (name, email, referral code)</label>
-                        <input type="text" id="searchInput" placeholder="e.g. John Kamau or REF1042">
+                        <label>Search (name, email, phone, referral code)</label>
+                        <input type="text" id="searchInput" placeholder="e.g. John Kamau, 0712345678 or REF1042">
                     </div>
                     <div class="field">
                         <label>Status</label>
@@ -571,6 +628,7 @@
                             <thead>
                                 <tr>
                                     <th>Referrer</th>
+                                    <th>Phone</th>
                                     <th>Referred Tenant</th>
                                     <th>Rent</th>
                                     <th>Reward (1%)</th>
@@ -580,7 +638,7 @@
                                 </tr>
                             </thead>
                             <tbody id="referralsBody">
-                                <tr><td colspan="7"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>
+                                <tr><td colspan="8"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -599,6 +657,7 @@
                                 <tr>
                                     <th>Rank</th>
                                     <th>Referrer</th>
+                                    <th>Phone</th>
                                     <th>Referral Code</th>
                                     <th>Referrals</th>
                                     <th>Total Earned</th>
@@ -607,7 +666,7 @@
                                 </tr>
                             </thead>
                             <tbody id="leaderboardBody">
-                                <tr><td colspan="7"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>
+                                <tr><td colspan="8"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>
                             </tbody>
                         </table>
                     </div>
@@ -687,7 +746,7 @@
         async function loadReferrals(page = 1) {
         currentPage = page;
         const tbody = document.getElementById('referralsBody');
-        tbody.innerHTML = `<tr><td colspan="7"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>`;
 
         const search = document.getElementById('searchInput').value.trim();
         const status = document.getElementById('statusFilter').value;
@@ -710,7 +769,7 @@
 
         } catch (err) {
         console.error(err);
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load referrals.')}</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load referrals.')}</p></div></td></tr>`;
         document.getElementById('pagination').innerHTML = '';
         }
         }
@@ -719,7 +778,7 @@
         const tbody = document.getElementById('referralsBody');
 
         if (!referrals || referrals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral earnings found for these filters.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral earnings found for these filters.</p></div></td></tr>`;
         document.getElementById('pagination').innerHTML = '';
         return;
         }
@@ -730,6 +789,7 @@
         <div class="cell-name">${escapeHtml(r.referrer_name)}</div>
         <div class="cell-sub">${escapeHtml(r.referrer_email)}${r.referral_code ? ` &middot; <span class="code-pill">${escapeHtml(r.referral_code)}</span>` : ''}</div>
         </td>
+        <td class="phone-cell">${escapeHtml(r.referrer_phone || '&mdash;')}</td>
         <td>
         <div class="cell-name">${escapeHtml(r.referred_name)}</div>
         <div class="cell-sub">${escapeHtml(r.referred_email)}</div>
@@ -791,14 +851,14 @@
         // ── Load leaderboard ──────────────────────────────────────────
         async function loadLeaderboard() {
         const tbody = document.getElementById('leaderboardBody');
-        tbody.innerHTML = `<tr><td colspan="7"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>`;
 
         try {
         const data = await adminFetch('/admin/referrals/leaderboard?limit=50');
         renderLeaderboard(data.leaderboard);
         } catch (err) {
         console.error(err);
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load leaderboard.')}</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load leaderboard.')}</p></div></td></tr>`;
         }
         }
 
@@ -806,7 +866,7 @@
         const tbody = document.getElementById('leaderboardBody');
 
         if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="7"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral activity yet.</p></div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral activity yet.</p></div></td></tr>`;
         return;
         }
 
@@ -820,6 +880,7 @@
         <div class="cell-name">${escapeHtml(r.fullname)}</div>
         <div class="cell-sub">${escapeHtml(r.email)}</div>
         </td>
+        <td class="phone-cell">${escapeHtml(r.phone || '&mdash;')}</td>
         <td>${r.referral_code ? `<span class="code-pill">${escapeHtml(r.referral_code)}</span>` : '&mdash;'}</td>
         <td>${Number(r.referral_count).toLocaleString()}</td>
         <td class="amount-strong">${formatKES(r.totalEarned)}</td>

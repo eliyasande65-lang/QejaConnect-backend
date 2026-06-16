@@ -216,7 +216,8 @@
             padding: 16px 32px 0;
             border-bottom: 1px solid var(--border);
             position: relative;
-            z-index: 1
+            z-index: 1;
+            flex-wrap: wrap;
         }
 
         .page-tab {
@@ -909,13 +910,10 @@
             <button class="page-tab" id="msgTabBtn" onclick="switchPage('messages',this)">
                 💬 Messages <span class="tab-badge" id="msgBadge" style="display:none">0</span>
             </button>
-        </div>
-
-        <div class="page-tabs">
-            <button class="page-tab active" onclick="switchPage('verification',this)">🏠 Landlord Verification</button>
-            <a href="admin-updates.html"><button class="page-tab"  >
-                Publish Updates <span class="tab-badge" id="msgBadge" style="display:none">0</span>
-            </button></a>
+            <a href="admin-tenants.html" style="text-decoration:none;"><button class="page-tab" type="button">👤 Tenants</button></a>
+            <a href="admin-updates.html" style="text-decoration:none;"><button class="page-tab" type="button">📢 Updates</button></a>
+            <a href="admin-refferrals.html" style="text-decoration:none;"><button class="page-tab" type="button">💸 Pay Referrals</button></a>
+            <a href="home.html" style="text-decoration:none;"><button class="page-tab" type="button">↗ Live Site</button></a>
         </div>
 
         <div class="page-section active" id="section-verification">
@@ -1072,23 +1070,23 @@
         <button class="btn-approve" ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'approve',this)">${l.verified===1?'✓ Approved':'✅ Approve'}</button>
         <button class="btn-reject"  ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'reject',this)">${l.verified===-1?'✕ Rejected':'❌ Reject'}</button>
         <a class="btn-email"
-           href="mailto:${l.email}?subject=QejaConnect%20Support&body=Hello%20${encodeURIComponent(l.fullname || '')},%0D%0A%0D%0A"
-           style="
-                flex:1;
-                display:flex;
-                align-items:center;
-                justify-content:center;
-                text-decoration:none;
-                padding:10px;
-                border-radius:8px;
-                font-family: var(--head);
-                font-size:13px;
-                font-weight:700;
-                background: rgba(124,58,237,.15);
-                color:#a78bfa;
-                border:1px solid rgba(124,58,237,.3);
-           ">
-           ✉ Email
+        href="mailto:${l.email}?subject=QejaConnect%20Support&body=Hello%20${encodeURIComponent(l.fullname || '')},%0D%0A%0D%0A"
+        style="
+        flex:1;
+        display:flex;
+        align-items:center;
+        justify-content:center;
+        text-decoration:none;
+        padding:10px;
+        border-radius:8px;
+        font-family: var(--head);
+        font-size:13px;
+        font-weight:700;
+        background: rgba(124,58,237,.15);
+        color:#a78bfa;
+        border:1px solid rgba(124,58,237,.3);
+        ">
+        ✉ Email
         </a>
         </div>
         </div>`;
