@@ -18,7 +18,7 @@
         }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Profile</title>
+    <title>My Profile | Qeja Connect</title>
 
     <style>
         * {
@@ -28,20 +28,145 @@
         body {
             margin: 0;
             font-family: Arial, sans-serif;
-            background: white;
+            background: #f4f4f4;
             min-height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-            padding: 60px 20px 40px;
         }
 
+        /* ── HEADER ── */
+        header {
+            width: 100%;
+            background: #1a1535;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            position: sticky;
+            top: 0;
+            z-index: 10005;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            margin-left: 40px;
+            gap: 15px;
+        }
+
+        #logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            object-fit: cover;
+        }
+
+        .brand {
+            color: white;
+        }
+
+            .brand h2 {
+                margin: 0;
+            }
+
+            .brand p {
+                margin: 0;
+                font-size: 14px;
+                opacity: 0.9;
+            }
+
+        .menu-btn {
+            position: fixed;
+            top: 20px;
+            left: 1px;
+            width: 50px;
+            height: 50px;
+            border: none;
+            border-radius: 12px;
+            background: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            z-index: 10005;
+        }
+
+        /* ── SIDE MENU ── */
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -260px;
+            width: 260px;
+            height: 100%;
+            background: #1b1b1b;
+            z-index: 10002;
+            transition: 0.3s;
+            padding-top: 80px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.4);
+            overflow-y: auto;
+        }
+
+            .side-menu.active {
+                left: 0;
+            }
+
+            .side-menu a {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                color: white;
+                text-decoration: none;
+                padding: 16px 22px;
+                border-bottom: 1px solid #2a2a2a;
+                font-size: 15px;
+                font-weight: 500;
+                transition: background 0.2s;
+            }
+
+                .side-menu a:hover {
+                    background: rgba(99,102,241,0.3);
+                }
+
+                .side-menu a.active-link {
+                    background: rgba(99,102,241,0.22);
+                    color: #a5b4fc;
+                    border-left: 3px solid #a5b4fc;
+                    padding-left: 19px;
+                }
+
+        .menu-badge {
+            background: indigo;
+            color: white;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            min-width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* ── OVERLAY ── */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.5);
+            top: 90px;
+            display: none;
+            z-index: 10000;
+        }
+
+            .overlay.active {
+                display: block;
+            }
+
+        /* ── PAGE CONTENT ── */
         .page {
             width: 100%;
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 20px;
+            padding: 40px 20px;
         }
 
         .card {
@@ -213,27 +338,6 @@
                 pointer-events: none;
             }
 
-        .back-link {
-            color: #1a1535;
-            font-size: 14px;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-            align-self: flex-start;
-            margin-left: calc(50% - 250px);
-        }
-
-            .back-link:hover {
-                color: white;
-            }
-
-        @media (max-width: 560px) {
-            .back-link {
-                margin-left: 0;
-            }
-        }
-
         #toast {
             position: fixed;
             bottom: 30px;
@@ -305,17 +409,63 @@
 
         .foot {
             text-align: center;
-            color: #1a1535;
+            color: #888;
             font-size: 13px;
             line-height: 1.7;
+        }
+
+        @media (max-width: 768px) {
+            header {
+                justify-content: center;
+                gap: 10px;
+            }
         }
     </style>
 </head>
 
 <body>
-    <div class="page">
 
-        <a class="back-link" id="backLink" href="#">◀ Back</a>
+    <!-- ── HEADER ── -->
+    <header>
+        <div class="logo-area">
+            <button class="menu-btn" onclick="toggleMenu()">☰</button>
+            <img src="logo.jpg" id="logo" alt="logo">
+            <div class="brand">
+                <h2>Qeja Connect</h2>
+                <p>Quality accommodation providence</p>
+            </div>
+        </div>
+    </header>
+
+    <!-- ── OVERLAY ── -->
+    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+    <!-- ── SIDE MENU ── -->
+    <div class="side-menu" id="sideMenu">
+        <a href="home.html">🏠 Home</a>
+        <a href="landlords.html">🏘 Landlords</a>
+        <a href="contact.html">📞 Contact</a>
+        <a href="hostdashboard.html" id="menuDashboard">
+            📊 Dashboard
+            <span id="menuDashboardBadge" class="menu-badge" style="display:none;"></span>
+        </a>
+        <a href="myprofile.html" class="active-link">👤 Profile</a>
+        <a href="mymessages.html" id="menuMessages">
+            💬 Messages from QejaConnect
+            <span id="navNotifBadge" class="menu-badge" style="display:none;">0</span>
+        </a>
+        <a href="bookings.html">📌 My Bookings</a>
+        <a href="refer-earn.html">🎉 Refer &amp; earn</a>
+        <a href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
+            🚪 Log out
+        </a>
+        <button onclick="toggleTheme()" style="margin:20px;padding:10px;border:none;background:none;color:white;cursor:pointer;">
+            🌙 Theme
+        </button>
+    </div>
+
+    <!-- ── PAGE CONTENT ── -->
+    <div class="page">
 
         <div class="card">
             <div class="avatar-section">
@@ -365,17 +515,10 @@
             <hr class="divider">
             <div class="section-title">Edit info</div>
 
-            <div id="phoneSection" style="display:none;">
+            <div id="phoneSection">
                 <div class="field-row">
                     <label>Phone number</label>
-                    <input type="tel" id="phoneInput" placeholder="254712345678">
-                </div>
-            </div>
-
-            <div id="tenantEditNote" style="display:none;">
-                <div class="field-row">
-                    <label>Phone number</label>
-                    <div class="value muted">Not available for tenant accounts</div>
+                    <input type="tel" id="phoneInput" placeholder="e.g. 254712345678 or 0712345678">
                 </div>
             </div>
 
@@ -396,7 +539,7 @@
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
 
-        
+        /* ── Toast ── */
         let toastTimer;
         function showToast(message, type = 'info', duration = 3500) {
         const toast = document.getElementById('toast');
@@ -413,16 +556,15 @@
         toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
         }
 
-        
+        /* ── Helpers ── */
         function setText(id, value) {
         const el = document.getElementById(id);
         if (el) el.textContent = (value && value !== 'null') ? value : '—';
         }
-
         function show(id) { const el = document.getElementById(id); if (el) el.style.display = 'block'; }
         function hide(id) { const el = document.getElementById(id); if (el) el.style.display = 'none'; }
 
-        
+        /* ── Auth check ── */
         const token   = localStorage.getItem('token');
         const role    = localStorage.getItem('role');
         const userRaw = localStorage.getItem('loggedUser');
@@ -440,15 +582,11 @@
         setTimeout(() => window.location.href = 'login.html', 3000);
         }
 
-        
+        /* ── Populate profile ── */
         if (user) {
-        // Log all keys so you can see exactly what came back from the server
         console.log('loggedUser keys:', Object.keys(user));
         console.log('loggedUser data:', user);
         console.log('role:', role);
-
-        document.getElementById('backLink').href =
-        role === 'landlord' ? 'hostdashboard.html' : 'home.html';
 
         const defaultAvatar = `https://ui-avatars.com/api/?background=4f46e5&color=fff&size=100&name=${encodeURIComponent(user.fullname || 'U')}`;
         document.getElementById('avatarImg').src = user.profile_pic || defaultAvatar;
@@ -462,36 +600,30 @@
 
         if (role === 'landlord') {
         show('landlordReadOnly');
-        show('phoneSection');
-        hide('tenantEditNote');
-
-        // Handle both possible key names from the DB row
         setText('fieldProperty', user.property_name || user.property);
         setText('fieldCounty',   user.county);
         setText('fieldTown',     user.town);
-
-        const phoneInput = document.getElementById('phoneInput');
-        if (phoneInput) phoneInput.value = user.phone || '';
-
         } else {
         hide('landlordReadOnly');
-        hide('phoneSection');
-        show('tenantEditNote');
-        }
         }
 
-        
+        // Populate phone for both roles
+        const phoneInputEl = document.getElementById('phoneInput');
+        if (phoneInputEl) phoneInputEl.value = user.phone || '';
+        }
+
+        /* ── Phone validation ── */
         const phoneInput = document.getElementById('phoneInput');
         if (phoneInput) {
         phoneInput.addEventListener('input', function () {
         const val = this.value.replace(/\s/g, '');
-        const ok  = /^(254|0)[17]\d{8}$/.test(val);
+        const ok  = /^(\+?254|0)[17]\d{8}$/.test(val);
         this.classList.toggle('valid',   ok && val.length > 0);
         this.classList.toggle('invalid', !ok && val.length > 0);
         });
         }
 
-        
+        /* ── Avatar upload ── */
         document.getElementById('pic-input').addEventListener('change', async function () {
         const file = this.files[0];
         if (!file) return;
@@ -501,7 +633,7 @@
         return;
         }
 
-        const overlay  = document.getElementById('avatarUploading');
+        const overlay = document.getElementById('avatarUploading');
         overlay.classList.add('active');
         showToast('Uploading photo...', 'info', 10000);
 
@@ -524,7 +656,6 @@
         }
 
         const data = await res.json();
-
         if (data.success) {
         document.getElementById('avatarImg').src = data.image;
         const updated = { ...user, profile_pic: data.image };
@@ -534,7 +665,6 @@
         } else {
         showToast(data.message || 'Upload failed.', 'error');
         }
-
         } catch (err) {
         console.error('Upload error:', err);
         showToast(`Upload failed: ${err.message}`, 'error', 5000);
@@ -544,14 +674,8 @@
         }
         });
 
-        
+        /* ── Save changes ── */
         document.getElementById('saveBtn').addEventListener('click', async function () {
-
-        if (role === 'tenant') {
-        showToast('No editable fields for tenant accounts.', 'info');
-        return;
-        }
-
         const phone = (phoneInput ? phoneInput.value : '').replace(/\s/g, '');
 
         if (!phone) {
@@ -559,8 +683,8 @@
         return;
         }
 
-        if (!/^(254|0)[17]\d{8}$/.test(phone)) {
-        showToast('Enter a valid Kenyan number (e.g. 254712345678).', 'warning');
+        if (!/^(\+?254|0)[17]\d{8}$/.test(phone)) {
+        showToast('Enter a valid Kenyan number (e.g. 0712345678 or 254712345678).', 'warning');
         return;
         }
 
@@ -568,7 +692,9 @@
         this.classList.add('btn-loading');
 
         try {
-        const res = await fetch(`${API}/update-phone`, {
+        // Landlords use /update-phone; tenants use /update-tenant-phone
+        const endpoint = role === 'landlord' ? '/update-phone' : '/update-tenant-phone';
+        const res = await fetch(`${API}${endpoint}`, {
         method: 'PATCH',
         headers: {
         'Content-Type': 'application/json',
@@ -585,7 +711,6 @@
         }
 
         const data = await res.json();
-
         if (data.success) {
         const updated = { ...user, phone };
         localStorage.setItem('loggedUser', JSON.stringify(updated));
@@ -594,7 +719,6 @@
         } else {
         showToast(data.message || 'Update failed.', 'error');
         }
-
         } catch (err) {
         console.error('Save error:', err);
         showToast(`Save failed: ${err.message}`, 'error', 5000);
@@ -603,6 +727,69 @@
         this.classList.remove('btn-loading');
         }
         });
+
+        /* ── Menu / theme ── */
+        function toggleMenu() {
+        document.getElementById('sideMenu').classList.toggle('active');
+        document.getElementById('overlay').classList.toggle('active');
+        }
+
+        function closeMenu() {
+        document.getElementById('sideMenu').classList.remove('active');
+        document.getElementById('overlay').classList.remove('active');
+        }
+
+        function toggleTheme() {
+        document.body.classList.toggle('dark');
+        localStorage.setItem('theme', document.body.classList.contains('dark') ? 'dark' : 'light');
+        }
+
+        window.onload = function () {
+        if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
+        };
+
+        /* ── Menu badges ── */
+        (async function initMenuBadges() {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        // Highlight current page
+        const path = location.pathname.split('/').pop();
+        document.querySelectorAll('.side-menu a').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href && path && href.includes(path)) a.classList.add('active-link');
+        });
+
+        try {
+        // Messages badge
+        const msgRes  = await fetch('https://qeja-backend-azkf.onrender.com/my-messages', {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const msgData = await msgRes.json();
+        if (msgData.success) {
+        let seen = [];
+        try { seen = JSON.parse(localStorage.getItem('seenReplies') || '[]'); } catch {}
+        const unread = msgData.messages.filter(m => m.reply && !seen.includes(m.id)).length;
+        const msgBadge = document.getElementById('navNotifBadge');
+        if (msgBadge && unread > 0) { msgBadge.textContent = unread; msgBadge.style.display = 'inline-block'; }
+        }
+
+        // Dashboard badge
+        const userId = JSON.parse(localStorage.getItem('loggedUser') || '{}')?.id;
+        if (!userId) return;
+        const reqRes  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
+        const reqData = await reqRes.json();
+        if (reqData.success && reqData.data?.length) {
+        let seenReqs = [];
+        try { seenReqs = JSON.parse(localStorage.getItem('seenRequests') || '[]'); } catch {}
+        const unseen = reqData.data.filter(r => !seenReqs.includes(r.id)).length;
+        const dashBadge = document.getElementById('menuDashboardBadge');
+        if (dashBadge && unseen > 0) { dashBadge.textContent = unseen; dashBadge.style.display = 'inline-block'; }
+        }
+        } catch (err) {
+        console.error('Menu badge error:', err);
+        }
+        })();
     </script>
 </body>
 </html>

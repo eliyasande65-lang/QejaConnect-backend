@@ -1327,6 +1327,28 @@ app.patch("/update-phone", auth, (req, res) => {
   );
 });
 
+// UPDATE PHONE (tenant)
+app.patch("/update-tenant-phone", auth, (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    return res.status(400).json({ success: false, message: "Phone number required" });
+  }
+
+  if (req.user.role !== "tenant") {
+    return res.status(403).json({ success: false, message: "Tenants only" });
+  }
+
+  db.query(
+    "UPDATE users SET phone = ? WHERE id = ?",
+    [phone, req.user.id],
+    (err) => {
+      if (err) return res.status(500).json({ success: false, message: err.message });
+      res.json({ success: true, message: "Phone updated" });
+    }
+  );
+});
+
 // =========================
 // UPLOAD TENANT PROFILE PIC
 // =========================
