@@ -8,6 +8,15 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="QejaConnect">
     <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+
+    <!-- FIX 1: Clear any stale session so after signup the user
+         always lands on login.html and is not auto-redirected away -->
+    <script>
+        localStorage.removeItem('token');
+        localStorage.removeItem('role');
+        localStorage.removeItem('loggedUser');
+    </script>
+
     <script>
         if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -90,7 +99,6 @@
             z-index: 1;
         }
 
-        /* Header */
         .header {
             text-align: center;
             margin-bottom: 36px;
@@ -124,7 +132,6 @@
             font-weight: 300;
         }
 
-        /* Card */
         .card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -156,7 +163,6 @@
                 background: var(--border);
             }
 
-        /* Fields */
         .field {
             position: relative;
             margin-top: 12px;
@@ -204,7 +210,6 @@
                 border-color: var(--border-invalid);
             }
 
-        /* Password wrapper */
         .pw-wrap {
             position: relative;
         }
@@ -232,7 +237,6 @@
                 color: var(--accent-light);
             }
 
-        /* Strength bar */
         .strength-wrap {
             margin-top: 8px;
             display: none;
@@ -262,7 +266,6 @@
             margin-top: 5px;
         }
 
-        /* Requirements list */
         .req-list {
             list-style: none;
             margin-top: 10px;
@@ -302,7 +305,6 @@
                     content: '✓';
                 }
 
-        /* Submit button */
         .submit-btn {
             width: 100%;
             margin-top: 28px;
@@ -349,7 +351,6 @@
                 pointer-events: none;
             }
 
-        /* Login link */
         .login-link {
             text-align: center;
             margin-top: 20px;
@@ -367,7 +368,6 @@
                     color: #c4b5fd;
                 }
 
-        /* Toast */
         #toast {
             position: fixed;
             bottom: 28px;
@@ -421,7 +421,6 @@
             line-height: 1.4;
         }
 
-        /* Footer */
         .foot {
             text-align: center;
             margin-top: 32px;
@@ -466,16 +465,19 @@
                     <label>Email Address</label>
                     <input type="email" name="email" id="email" placeholder="you@gmail.com" required>
                 </div>
+
                 <div class="field">
                     <label>Phone Number</label>
                     <input type="tel" name="phone" id="phone" placeholder="e.g. 0712345678" required>
                 </div>
+
                 <div class="section-label">🎁 Referral (Optional)</div>
 
                 <div class="field">
                     <label>Referral Code</label>
                     <input type="text" name="referral_code" id="referral_code" placeholder="e.g. REF1042">
                 </div>
+
                 <div class="section-label">🔒 Set Password</div>
 
                 <div class="field">
@@ -526,16 +528,18 @@
         <span id="toast-icon"></span>
         <span id="toast-msg"></span>
     </div>
+
+    <!-- Auto-fill referral code from URL (?ref=REF1042) -->
     <script>
-        // Auto-fill referral code from URL (?ref=REF1042)
         window.addEventListener('DOMContentLoaded', () => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const refCode = urlParams.get('ref');
-            if (refCode) {
-                document.getElementById('referral_code').value = refCode.toUpperCase();
-            }
+        const urlParams = new URLSearchParams(window.location.search);
+        const refCode   = urlParams.get('ref');
+        if (refCode) {
+        document.getElementById('referral_code').value = refCode.toUpperCase();
+        }
         });
     </script>
+
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
 
@@ -612,13 +616,8 @@
 
         Object.entries(rules).forEach(([key, fn]) => {
         const li = document.getElementById('req-' + key);
-        if (fn(val)) {
-        li.classList.add('met');
-        li.classList.remove('unmet');
-        } else {
-        li.classList.add('unmet');
-        li.classList.remove('met');
-        }
+        if (fn(val)) { li.classList.add('met'); li.classList.remove('unmet'); }
+        else         { li.classList.add('unmet'); li.classList.remove('met'); }
         });
 
         this.classList.toggle('valid',   score === 5);
@@ -636,21 +635,21 @@
         document.getElementById('signupForm').addEventListener('submit', async function (e) {
         e.preventDefault();
 
-        const fullname = document.getElementById('fullname').value.trim();
-        const email    = document.getElementById('email').value.trim();
-        const password = document.getElementById('password').value;
-        const confirm  = document.getElementById('confirm').value;
-        const phone = document.getElementById('phone').value.trim();
+        const fullname      = document.getElementById('fullname').value.trim();
+        const email         = document.getElementById('email').value.trim();
+        const password      = document.getElementById('password').value;
+        const confirm       = document.getElementById('confirm').value;
+        const phone         = document.getElementById('phone').value.trim();
         const referral_code = document.getElementById('referral_code').value.trim();
 
-
-        if (!phone || !/^(\+254|0)[71]\d{8}$/.test(phone)) {
-            showToast('Please enter a valid Kenyan phone number.', 'warning'); return;
-        }
         if (!fullname) { showToast('Please enter your full name.', 'warning'); return; }
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showToast('Please enter a valid email address.', 'warning'); return;
+        }
+
+        if (!phone || !/^(\+254|0)[71]\d{8}$/.test(phone)) {
+        showToast('Please enter a valid Kenyan phone number.', 'warning'); return;
         }
 
         const score = checkStrength(password);
@@ -673,16 +672,17 @@
 
         try {
         const response = await fetch(`${API}/signup`, {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fullname, email, phone, password, referral_code })
+        body:    JSON.stringify({ fullname, email, phone, password, referral_code })
         });
 
         const data = await response.json();
 
         if (response.ok) {
         showToast('Account created! Redirecting to login… 🎉', 'success', 3000);
-        setTimeout(() => { window.location.href = 'login.html'; }, 2500);
+        // FIX 2: Use replace() so back button doesn't return here
+        setTimeout(() => { window.location.replace('login.html'); }, 2500);
         } else {
         showToast(data.message || 'Sign up failed. Please try again.', 'error');
         btn.textContent = 'Create Account';

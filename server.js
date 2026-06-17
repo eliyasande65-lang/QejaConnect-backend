@@ -67,6 +67,7 @@ app.use(cors({
 app.use(express.json());
 
 // 3. Rate limiters
+
 const loginLimiter = rateLimit({
   windowMs:        15 * 60 * 1000, // 15 minutes
   max:             5,
@@ -771,37 +772,60 @@ app.post("/register-landlord",
 // =========================
 // ADMIN: LIST ALL LANDLORDS
 // =========================
-app.get("/admin/landlords", adminAuth, (req, res) => {
-  const page     = Math.max(1, parseInt(req.query.page)  || 1);
-  const limit    = Math.min(100, parseInt(req.query.limit) || 20);
-  const offset   = (page - 1) * limit;
-  const verified = req.query.verified;
+app.get("/admin/landlords", adminAuth, async (req, res) => {
+  try {
+    // 1. Get all verified landlords
+    const [landlords] = await dbPromise.query(`
+      SELECT id, fullname, email, phone FROM landlords
+      WHERE verified = 1 ORDER BY created_at DESC
+    `);
 
-  let where  = "";
-  let params = [];
+    // 2. For each landlord, fetch their tenancies + payments
+    const enriched = await Promise.all(landlords.map(async (ll) => {
+      const [tenancies] = await dbPromise.query(`
+        SELECT ten.id, ten.start_date, ten.duration_months, ten.rent_amount,
+               p.title AS property_title,
+               u.fullname AS tenant_name, u.phone AS tenant_phone
+        FROM tenancies ten
+        JOIN properties p ON ten.property_id = p.id
+        JOIN users u ON ten.tenant_id = u.id
+        WHERE ten.landlord_id = ? AND ten.status = 'active'
+      `, [ll.id]);
 
-  if (verified === "0" || verified === "1" || verified === "-1") {
-    where  = "WHERE verified = ?";
-    params = [parseInt(verified)];
+      let paid_count = 0, overdue_count = 0, total_collected = 0;
+      const now = new Date();
+
+      for (const t of tenancies) {
+        const [payments] = await dbPromise.query(`
+          SELECT month_index, month_number, amount, mpesa_ref
+          FROM rent_payments WHERE tenancy_id = ? AND status = 'paid'
+        `, [t.id]);
+
+        t.payments = payments;
+        paid_count      += payments.length;
+        total_collected += payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+        // Count overdue: months that have passed but no payment
+        const start = new Date(t.start_date);
+        for (let i = 0; i < (t.duration_months || 12); i++) {
+          const due = new Date(start);
+          due.setMonth(due.getMonth() + i);
+          due.setDate(1);
+          if (due <= now) {
+            const wasPaid = payments.some(p => p.month_index === i || p.month_number === i + 1);
+            if (!wasPaid) overdue_count++;
+          }
+        }
+      }
+
+      return { ...ll, tenancies, paid_count, overdue_count, total_collected };
+    }));
+
+    res.json({ success: true, landlords: enriched });
+  } catch (err) {
+    console.error("[ADMIN LANDLORDS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
   }
-
-  const countSql = `SELECT COUNT(*) AS total FROM landlords ${where}`;
-  const dataSql  = `
-    SELECT id, fullname, email, phone, national_id, kra_pin,
-           county, town, property_name, property_type,
-           units, description, profile_pic, id_photo, verified, created_at
-    FROM landlords ${where}
-    ORDER BY created_at DESC
-    LIMIT ? OFFSET ?
-  `;
-
-  db.query(countSql, params, (err, countRows) => {
-    if (err) return res.status(500).json({ success: false, message: "Server error" });
-    db.query(dataSql, [...params, limit, offset], (err2, rows) => {
-      if (err2) return res.status(500).json({ success: false, message: "Server error" });
-      res.json({ success: true, total: countRows[0].total, page, limit, landlords: rows });
-    });
-  });
 });
 
 // =========================

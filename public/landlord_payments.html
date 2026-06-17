@@ -28,6 +28,7 @@
             --green: #16a34a;
             --amber: #d97706;
             --red: #dc2626;
+            --purple: #7c3aed;
         }
 
         body {
@@ -75,6 +76,12 @@
             margin: 0;
         }
 
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
         .back-btn {
             color: white;
             text-decoration: none;
@@ -86,6 +93,26 @@
 
             .back-btn:hover {
                 background: rgba(255,255,255,0.2);
+            }
+
+        .withdraw-btn-header {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+
+            .withdraw-btn-header:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
             }
 
         .page {
@@ -106,7 +133,7 @@
             margin-bottom: 24px;
         }
 
-        /* ── SUMMARY CARDS ── */
+        /* SUMMARY */
         .summary-row {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
@@ -135,6 +162,10 @@
                 border-top-color: var(--red);
             }
 
+            .sum-card.purple {
+                border-top-color: var(--purple);
+            }
+
             .sum-card .num {
                 font-size: 1.7rem;
                 font-weight: 800;
@@ -153,13 +184,17 @@
                 color: var(--red);
             }
 
+            .sum-card.purple .num {
+                color: var(--purple);
+            }
+
             .sum-card .lbl {
                 font-size: 11px;
                 color: var(--muted);
                 margin-top: 4px;
             }
 
-        /* ── TENANT SELECTOR ── */
+        /* TENANT SELECTOR */
         .tenant-selector {
             background: var(--card);
             border-radius: 14px;
@@ -190,7 +225,7 @@
                 cursor: pointer;
             }
 
-        /* ── PAYMENT TABLE ── */
+        /* PAYMENT TABLE */
         .payments-section h2 {
             font-size: 1.1rem;
             color: var(--indigo);
@@ -305,7 +340,7 @@
             font-weight: 700;
         }
 
-        /* ── RECENT PAYMENTS FEED ── */
+        /* FEED */
         .feed-card {
             background: var(--card);
             border-radius: 14px;
@@ -369,7 +404,77 @@
             white-space: nowrap;
         }
 
-        /* ── EMPTY / LOADER ── */
+        /* WITHDRAWAL HISTORY */
+        .withdrawal-card {
+            background: var(--card);
+            border-radius: 14px;
+            padding: 22px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 16px;
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .wd-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            background: #ede9fe;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+
+        .wd-body {
+            flex: 1;
+            min-width: 200px;
+        }
+
+            .wd-body h4 {
+                font-size: 0.95rem;
+                color: var(--text);
+                margin-bottom: 4px;
+            }
+
+            .wd-body .meta {
+                font-size: 12px;
+                color: var(--muted);
+            }
+
+        .wd-amount {
+            font-weight: 800;
+            color: var(--purple);
+            font-size: 1rem;
+            white-space: nowrap;
+        }
+
+        .wd-status-pill {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .wdp-pending {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .wdp-paid {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .wdp-rejected {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* EMPTY / LOADER */
         .loader {
             text-align: center;
             padding: 40px;
@@ -388,16 +493,220 @@
                 margin-bottom: 10px;
             }
 
-        /* ── DARK ── */
+        /* ── MODAL ── */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.55);
+            backdrop-filter: blur(4px);
+            z-index: 500;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+            .modal-overlay.open {
+                display: flex;
+            }
+
+        .modal {
+            background: #fff;
+            border-radius: 20px;
+            width: 100%;
+            max-width: 480px;
+            padding: 32px 28px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.35);
+            position: relative;
+            animation: slideUp 0.3s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: #f1f5f9;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            font-size: 16px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .modal-close:hover {
+                background: #e2e8f0;
+            }
+
+        .modal h2 {
+            font-size: 1.25rem;
+            color: var(--navy);
+            margin-bottom: 6px;
+        }
+
+        .modal p.modal-sub {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 24px;
+        }
+
+        .modal-balance {
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            border-radius: 14px;
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+            .modal-balance .bal-label {
+                font-size: 12px;
+                opacity: 0.8;
+            }
+
+            .modal-balance .bal-amount {
+                font-size: 1.5rem;
+                font-weight: 800;
+            }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+            .form-group label {
+                display: block;
+                font-size: 12px;
+                font-weight: 600;
+                color: var(--muted);
+                margin-bottom: 6px;
+                text-transform: uppercase;
+                letter-spacing: 0.05em;
+            }
+
+            .form-group input, .form-group select {
+                width: 100%;
+                padding: 11px 14px;
+                border: 1.5px solid var(--border);
+                border-radius: 10px;
+                font-size: 14px;
+                outline: none;
+                transition: border-color 0.2s;
+                font-family: Arial, sans-serif;
+            }
+
+                .form-group input:focus, .form-group select:focus {
+                    border-color: var(--purple);
+                    box-shadow: 0 0 0 3px rgba(124,58,237,0.12);
+                }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .modal-submit {
+            width: 100%;
+            margin-top: 8px;
+            padding: 14px;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            border: none;
+            border-radius: 12px;
+            color: white;
+            font-size: 0.95rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+        }
+
+            .modal-submit:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+
+            .modal-submit.loading {
+                opacity: 0.6;
+                pointer-events: none;
+            }
+
+        .modal-note {
+            font-size: 11px;
+            color: var(--muted);
+            text-align: center;
+            margin-top: 10px;
+            line-height: 1.6;
+        }
+
+        /* TOAST */
+        #toast {
+            position: fixed;
+            bottom: 28px;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: #1a1535;
+            border: 1px solid rgba(139,92,246,0.3);
+            color: white;
+            padding: 13px 20px;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            z-index: 999;
+            max-width: 360px;
+            width: 90%;
+            opacity: 0;
+            pointer-events: none;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+        }
+
+            #toast.show {
+                transform: translateX(-50%) translateY(0);
+                opacity: 1;
+            }
+
+            #toast.success {
+                border-left: 4px solid #10b981;
+            }
+
+            #toast.error {
+                border-left: 4px solid #ef4444;
+            }
+
+            #toast.warning {
+                border-left: 4px solid #f59e0b;
+            }
+
+            #toast.info {
+                border-left: 4px solid #a78bfa;
+            }
+
+        /* DARK */
         body.dark {
             background: #121212;
             color: #eaeaea;
         }
 
-            body.dark .sum-card,
-            body.dark .payments-table,
-            body.dark .tenant-selector,
-            body.dark .feed-card {
+            body.dark .sum-card, body.dark .payments-table, body.dark .tenant-selector,
+            body.dark .feed-card, body.dark .withdrawal-card {
                 background: #1e1e1e;
             }
 
@@ -428,6 +737,26 @@
                 color: #a5b4fc;
             }
 
+            body.dark .modal {
+                background: #1a1535;
+                color: #eaeaea;
+            }
+
+                body.dark .modal h2 {
+                    color: white;
+                }
+
+            body.dark .form-group input, body.dark .form-group select {
+                background: #0d0a1a;
+                color: white;
+                border-color: rgba(139,92,246,0.3);
+            }
+
+            body.dark .modal-close {
+                background: #2a2042;
+                color: white;
+            }
+
         @media (max-width: 700px) {
             .pt-header, .pt-row {
                 grid-template-columns: 40px 1fr 100px;
@@ -438,6 +767,18 @@
                 .pt-header .h-confirm, .pt-row .r-confirm {
                     display: none;
                 }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .header-actions {
+                gap: 6px;
+            }
+
+            .withdraw-btn-header span.btn-label {
+                display: none;
+            }
         }
     </style>
 </head>
@@ -451,7 +792,12 @@
                 <p>Payments Dashboard</p>
             </div>
         </div>
-        <a href="landlord_tenants.html" class="back-btn">← My Tenants</a>
+        <div class="header-actions">
+            <button class="withdraw-btn-header" onclick="openWithdrawModal()">
+                💸 <span class="btn-label">Request Withdrawal</span>
+            </button>
+            <a href="landlord_tenants.html" class="back-btn">← My Tenants</a>
+        </div>
     </header>
 
     <div class="page">
@@ -463,6 +809,7 @@
             <div class="sum-card"><div class="num" id="sumPaidCount">—</div><div class="lbl">Payments Received</div></div>
             <div class="sum-card amber"><div class="num" id="sumPending">—</div><div class="lbl">Pending Payments</div></div>
             <div class="sum-card red"><div class="num" id="sumOverdue">—</div><div class="lbl">Overdue Payments</div></div>
+            <div class="sum-card purple"><div class="num" id="sumWithdrawn">—</div><div class="lbl">Withdrawn (Ksh)</div></div>
         </div>
 
         <div class="tenant-selector">
@@ -491,25 +838,211 @@
                 <div id="scheduleBody"><div class="loader" style="grid-column:1/-1;">Loading…</div></div>
             </div>
         </div>
+
+        <div class="payments-section">
+            <h2>💸 Withdrawal History</h2>
+            <div id="withdrawalHistory"><div class="loader">Loading…</div></div>
+        </div>
+    </div>
+
+    <!-- WITHDRAWAL MODAL -->
+    <div class="modal-overlay" id="withdrawModal">
+        <div class="modal">
+            <button class="modal-close" onclick="closeWithdrawModal()">✕</button>
+            <h2>💸 Request Withdrawal</h2>
+            <p class="modal-sub">Submit your M-Pesa payout details. Admin will process within 24 hours.</p>
+
+            <div class="modal-balance">
+                <div>
+                    <div class="bal-label">Available Balance</div>
+                    <div class="bal-amount" id="modalBalance">Calculating…</div>
+                </div>
+                <div style="font-size:2rem;">🏦</div>
+            </div>
+
+            <div class="form-group">
+                <label>Withdrawal Amount (Ksh)</label>
+                <input type="number" id="wdAmount" placeholder="e.g. 15000" min="100">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>M-Pesa Number</label>
+                    <input type="tel" id="wdPhone" placeholder="e.g. 0712345678">
+                </div>
+                <div class="form-group">
+                    <label>Account Name</label>
+                    <input type="text" id="wdName" placeholder="As on M-Pesa">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Payout Method</label>
+                <select id="wdMethod">
+                    <option value="mpesa">M-Pesa</option>
+                    <option value="bank">Bank Transfer</option>
+                    <option value="paybill">M-Pesa Paybill</option>
+                </select>
+            </div>
+
+            <div class="form-group" id="bankGroup" style="display:none;">
+                <label>Bank Account / Paybill Details</label>
+                <input type="text" id="wdBankDetails" placeholder="Bank name, account number or Paybill + Account">
+            </div>
+
+            <div class="form-group">
+                <label>Note (Optional)</label>
+                <input type="text" id="wdNote" placeholder="Any message to admin…">
+            </div>
+
+            <button class="modal-submit" id="wdSubmitBtn" onclick="submitWithdrawal()">
+                Submit Withdrawal Request
+            </button>
+            <p class="modal-note">⚠️ Ensure your M-Pesa number is correct. Incorrect details may delay processing.</p>
+        </div>
+    </div>
+
+    <div id="toast">
+        <span id="toast-icon"></span>
+        <span id="toast-msg"></span>
     </div>
 
     <script>
+        const API        = 'https://qeja-backend-azkf.onrender.com';
         const token      = localStorage.getItem('token');
         const loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
         let allPayments  = [];
         let allTenancies = [];
+        let totalCollected = 0;
+        let toastTimer;
 
+        // ── TOAST ──────────────────────────────────────────────
+        function showToast(message, type = 'info', duration = 3500) {
+        const toast = document.getElementById('toast');
+        const icons = { success: '✅', error: '❌', info: 'ℹ️', warning: '⚠️' };
+        toast.className = '';
+        toast.classList.add(type);
+        document.getElementById('toast-icon').textContent = icons[type] || 'ℹ️';
+        document.getElementById('toast-msg').textContent  = message;
+        void toast.offsetWidth;
+        toast.classList.add('show');
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ── MODAL ──────────────────────────────────────────────
+        function openWithdrawModal() {
+        const paid = allPayments.filter(p => p.status === 'confirmed' || p.status === 'paid');
+        const gross = paid.reduce((s, p) => s + Number(p.amount || 0), 0);
+        document.getElementById('modalBalance').textContent = 'Ksh ' + gross.toLocaleString();
+        document.getElementById('withdrawModal').classList.add('open');
+        }
+        function closeWithdrawModal() {
+        document.getElementById('withdrawModal').classList.remove('open');
+        }
+        document.getElementById('withdrawModal').addEventListener('click', function(e) {
+        if (e.target === this) closeWithdrawModal();
+        });
+        document.getElementById('wdMethod').addEventListener('change', function() {
+        document.getElementById('bankGroup').style.display = (this.value !== 'mpesa') ? 'block' : 'none';
+        });
+
+        // ── SUBMIT WITHDRAWAL ──────────────────────────────────
+        async function submitWithdrawal() {
+        const amount = parseFloat(document.getElementById('wdAmount').value);
+        const phone  = document.getElementById('wdPhone').value.trim();
+        const name   = document.getElementById('wdName').value.trim();
+        const method = document.getElementById('wdMethod').value;
+        const bankDetails = document.getElementById('wdBankDetails').value.trim();
+        const note   = document.getElementById('wdNote').value.trim();
+
+        if (!amount || amount < 100) { showToast('Enter a valid amount (min Ksh 100).', 'warning'); return; }
+        if (!phone || !/^(\+254|0)[71]\d{8}$/.test(phone)) { showToast('Enter a valid Kenyan M-Pesa number.', 'warning'); return; }
+        if (!name) { showToast('Enter the M-Pesa account name.', 'warning'); return; }
+        if (method !== 'mpesa' && !bankDetails) { showToast('Please enter your bank/paybill details.', 'warning'); return; }
+
+        const btn = document.getElementById('wdSubmitBtn');
+        btn.textContent = 'Submitting…';
+        btn.classList.add('loading');
+
+        try {
+        const res = await fetch(`${API}/withdrawals/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+        landlord_id: loggedUser.id,
+        amount, phone, account_name: name,
+        method, bank_details: bankDetails, note
+        })
+        });
+        const data = await res.json();
+        if (res.ok && data.success) {
+        showToast('Withdrawal request submitted! Admin will process soon.', 'success', 4000);
+        closeWithdrawModal();
+        loadWithdrawalHistory();
+        // Reset form
+        ['wdAmount','wdPhone','wdName','wdNote','wdBankDetails'].forEach(id => document.getElementById(id).value = '');
+        document.getElementById('wdMethod').value = 'mpesa';
+        document.getElementById('bankGroup').style.display = 'none';
+        } else {
+        showToast(data.message || 'Failed to submit. Try again.', 'error');
+        }
+        } catch (e) {
+        showToast('Network error. Please try again.', 'error');
+        }
+        btn.textContent = 'Submit Withdrawal Request';
+        btn.classList.remove('loading');
+        }
+
+        // ── LOAD WITHDRAWAL HISTORY ────────────────────────────
+        async function loadWithdrawalHistory() {
+        try {
+        const res  = await fetch(`${API}/withdrawals/landlord/${loggedUser.id}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        const container = document.getElementById('withdrawalHistory');
+        if (!data.success || !data.withdrawals?.length) {
+        container.innerHTML = `<div class="empty"><div class="icon">💸</div><h3>No withdrawal requests yet.</h3><p>Use the "Request Withdrawal" button above.</p></div>`;
+        document.getElementById('sumWithdrawn').textContent = '0';
+        return;
+        }
+        const withdrawn = data.withdrawals.filter(w => w.status === 'paid').reduce((s, w) => s + Number(w.amount), 0);
+        document.getElementById('sumWithdrawn').textContent = withdrawn.toLocaleString();
+
+        let html = '';
+        data.withdrawals.sort((a,b) => new Date(b.created_at) - new Date(a.created_at)).forEach(w => {
+        const statusClass = w.status === 'paid' ? 'wdp-paid' : w.status === 'rejected' ? 'wdp-rejected' : 'wdp-pending';
+        const statusLabel = w.status === 'paid' ? '✅ Paid' : w.status === 'rejected' ? '❌ Rejected' : '⏳ Pending';
+        html += `
+        <div class="withdrawal-card">
+        <div class="wd-icon">💸</div>
+        <div class="wd-body">
+        <h4>${w.account_name || 'Withdrawal'} — ${w.method?.toUpperCase() || 'M-PESA'}</h4>
+        <div class="meta">📱 ${w.phone} &nbsp;|&nbsp; 📅 ${formatDate(w.created_at)}
+        ${w.note ? ` &nbsp;|&nbsp; 📝 ${w.note}` : ''}</div>
+        ${w.bank_details ? `<div class="meta" style="margin-top:3px;">🏦 ${w.bank_details}</div>` : ''}
+        ${w.admin_note ? `<div class="meta" style="margin-top:3px;color:#7c3aed;">Admin: ${w.admin_note}</div>` : ''}
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
+        <div class="wd-amount">Ksh ${Number(w.amount).toLocaleString()}</div>
+        <span class="wd-status-pill ${statusClass}">${statusLabel}</span>
+        </div>
+        </div>`;
+        });
+        container.innerHTML = html;
+        } catch(e) {
+        document.getElementById('withdrawalHistory').innerHTML = `<div class="empty"><div class="icon">⚠️</div><h3>Failed to load withdrawal history.</h3></div>`;
+        }
+        }
+
+        // ── LOAD PAYMENTS ──────────────────────────────────────
         async function loadPayments() {
         try {
         const [pmtRes, tenRes] = await Promise.all([
-        fetch(`https://qeja-backend-azkf.onrender.com/landlord/payments/${loggedUser.id}`, {
-        headers: { 'Authorization': 'Bearer ' + token }
-        }),
-        fetch(`https://qeja-backend-azkf.onrender.com/tenancy/landlord/${loggedUser.id}`, {
-        headers: { 'Authorization': 'Bearer ' + token }
-        })
+        fetch(`${API}/landlord/payments/${loggedUser.id}`, { headers: { 'Authorization': 'Bearer ' + token } }),
+        fetch(`${API}/tenancy/landlord/${loggedUser.id}`,  { headers: { 'Authorization': 'Bearer ' + token } })
         ]);
-
         const pmtData = await pmtRes.json();
         const tenData = await tenRes.json();
 
@@ -517,7 +1050,6 @@
         allTenancies = tenData.tenancies || [];
         populateTenantFilter(allTenancies);
         }
-
         if (pmtData.success) {
         allPayments = pmtData.payments || [];
         updateSummary(allPayments, allTenancies);
@@ -543,9 +1075,9 @@
         }
 
         function updateSummary(payments, tenancies) {
-        const paid     = payments.filter(p => p.status === 'confirmed' || p.status === 'paid');
-        const pending  = payments.filter(p => p.status === 'pending' || p.status === 'unconfirmed');
-        let overdue    = 0;
+        const paid    = payments.filter(p => p.status === 'confirmed' || p.status === 'paid');
+        const pending = payments.filter(p => p.status === 'pending' || p.status === 'unconfirmed');
+        let overdue = 0;
         tenancies.forEach(t => {
         const start = new Date(t.start_date);
         const now   = new Date();
@@ -557,8 +1089,8 @@
         }
         }
         });
-        const total = paid.reduce((s, p) => s + Number(p.amount || 0), 0);
-        document.getElementById('sumCollected').textContent = Number(total).toLocaleString();
+        totalCollected = paid.reduce((s, p) => s + Number(p.amount || 0), 0);
+        document.getElementById('sumCollected').textContent = Number(totalCollected).toLocaleString();
         document.getElementById('sumPaidCount').textContent = paid.length;
         document.getElementById('sumPending').textContent   = pending.length;
         document.getElementById('sumOverdue').textContent   = overdue;
@@ -573,18 +1105,15 @@
         const sorted = [...payments].sort((a, b) => new Date(b.paid_at || b.created_at) - new Date(a.paid_at || a.created_at));
         let html = '';
         sorted.slice(0, 20).forEach(p => {
-        const status    = p.status === 'confirmed' || p.status === 'paid' ? 'paid' : 'pending';
-        const fiClass   = `feed-icon fi-${status}`;
-        const emoji     = status === 'paid' ? '✅' : '⏳';
+        const status  = p.status === 'confirmed' || p.status === 'paid' ? 'paid' : 'pending';
+        const emoji   = status === 'paid' ? '✅' : '⏳';
         const confirmed = p.landlord_confirmed;
         html += `
         <div class="feed-card">
-        <div class="${fiClass}">${emoji}</div>
+        <div class="feed-icon fi-${status}">${emoji}</div>
         <div class="feed-body">
         <h4>${p.tenant_name || 'Tenant'} — Month ${p.month_number || (p.month_index + 1) || '?'}</h4>
-        <div class="meta">
-        📍 ${p.property_title || '—'} &nbsp;|&nbsp; 📅 ${formatDate(p.paid_at || p.created_at)}
-        </div>
+        <div class="meta">📍 ${p.property_title || '—'} &nbsp;|&nbsp; 📅 ${formatDate(p.paid_at || p.created_at)}</div>
         ${p.mpesa_ref ? `<div class="ref">M-Pesa: <strong>${p.mpesa_ref}</strong></div>` : ''}
         </div>
         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;">
@@ -604,20 +1133,19 @@
         body.innerHTML = `<div class="empty" style="grid-column:1/-1;"><div class="icon">📅</div><h3>No active tenancies yet.</h3></div>`;
         return;
         }
-        let html = '';
-        let row  = 0;
+        let html = '', row = 0;
         tenancies.forEach(t => {
         const start = new Date(t.start_date);
         const dur   = t.duration_months || 30;
         const now   = new Date();
         for (let i = 0; i < dur; i++) {
         row++;
-        const due = new Date(start); due.setMonth(due.getMonth() + i); due.setDate(1);
+        const due  = new Date(start); due.setMonth(due.getMonth() + i); due.setDate(1);
         const paid = payments.find(p => p.tenancy_id === t.id && (p.month_index === i || p.month_number === i + 1));
         let status = 'pending';
-        if (paid)         status = 'paid';
+        if (paid)          status = 'paid';
         else if (due < now) status = 'overdue';
-        const ref = paid?.mpesa_ref || paid?.reference || '—';
+        const ref       = paid?.mpesa_ref || paid?.reference || '—';
         const confirmed = paid?.landlord_confirmed;
         html += `
         <div class="pt-row ${status}">
@@ -644,20 +1172,20 @@
 
         async function confirmPayment(paymentId) {
         try {
-        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/payments/${paymentId}/confirm`, {
+        const res  = await fetch(`${API}/payments/${paymentId}/confirm`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({ landlord_id: loggedUser.id })
         });
         const data = await res.json();
-        if (data.success) { alert('✅ Payment confirmed!'); loadPayments(); }
-        else alert(data.message || 'Failed to confirm.');
-        } catch { alert('Network error.'); }
+        if (data.success) { showToast('Payment confirmed!', 'success'); loadPayments(); }
+        else showToast(data.message || 'Failed to confirm.', 'error');
+        } catch { showToast('Network error.', 'error'); }
         }
 
         function filterByTenant() {
         const val = document.getElementById('tenantFilter').value;
-        const filtered = val === 'all' ? allPayments : allPayments.filter(p => String(p.tenant_id) === val);
+        const filtered    = val === 'all' ? allPayments  : allPayments.filter(p => String(p.tenant_id) === val);
         const tenFiltered = val === 'all' ? allTenancies : allTenancies.filter(t => String(t.tenant_id) === val);
         renderRecentFeed(filtered);
         renderSchedule(tenFiltered, allPayments);
@@ -667,7 +1195,6 @@
         const d = new Date(startDate); d.setMonth(d.getMonth() + offset);
         return d.toLocaleDateString('en-KE', { month: 'short', year: 'numeric' });
         }
-
         function formatDate(d) {
         if (!d) return '—';
         return new Date(d).toLocaleDateString('en-KE', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
@@ -675,7 +1202,6 @@
 
         window.onload = function () {
         if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
-        // If coming from a specific tenant
         const tid = localStorage.getItem('viewTenantId');
         if (tid) {
         setTimeout(() => {
@@ -685,6 +1211,7 @@
         }, 1500);
         }
         loadPayments();
+        loadWithdrawalHistory();
         };
     </script>
 </body>
