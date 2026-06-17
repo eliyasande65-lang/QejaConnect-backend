@@ -1492,6 +1492,204 @@ router.post("/bookings/:id/cancel", auth, async (req, res) => {
   }
 });
 
+// Get withdrawal requests
+app.get("/admin/withdrawals", async (req, res) => {
+  try {
+    const status = req.query.status || "pending";
+
+    const statuses = status.split(",");
+
+    const placeholders = statuses.map(() => "?").join(",");
+
+    const [rows] = await db.promise().query(
+      `
+      SELECT
+        wr.*,
+        l.name AS landlord_name,
+        l.phone AS landlord_phone
+      FROM withdrawal_requests wr
+      LEFT JOIN landlords l ON wr.landlord_id = l.id
+      WHERE wr.status IN (${placeholders})
+      ORDER BY wr.created_at DESC
+      `,
+      statuses
+    );
+
+    res.json({
+      success: true,
+      withdrawals: rows
+    });
+
+  } catch (err) {
+    console.error("Withdrawals fetch error:", err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+app.post("/admin/withdrawals/:id/mark-paid", async (req, res) => {
+  try {
+    await db.promise().query(
+      `
+      UPDATE withdrawal_requests
+      SET status='paid',
+          paid_at=NOW()
+      WHERE id=?
+      `,
+      [req.params.id]
+    );
+
+    res.json({
+      success: true,
+      message: "Withdrawal marked as paid"
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+app.post("/admin/withdrawals/:id/reject", async (req, res) => {
+  try {
+    const { admin_note } = req.body;
+
+    await db.promise().query(
+      `
+      UPDATE withdrawal_requests
+      SET status='rejected',
+          admin_note=?
+      WHERE id=?
+      `,
+      [admin_note || null, req.params.id]
+    );
+
+    res.json({
+      success: true,
+      message: "Withdrawal rejected"
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+app.post("/admin/withdrawals/:id/note", async (req, res) => {
+  try {
+    const { admin_note } = req.body;
+
+    await db.promise().query(
+      `
+      UPDATE withdrawal_requests
+      SET admin_note=?
+      WHERE id=?
+      `,
+      [admin_note, req.params.id]
+    );
+
+    res.json({
+      success: true
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+// Create withdrawal request
+app.post("/withdrawals/request", async (req, res) => {
+  try {
+    const {
+      landlord_id,
+      amount,
+      method,
+      phone,
+      account_name,
+      bank_details,
+      note
+    } = req.body;
+
+    const [result] = await db.promise().query(
+      `INSERT INTO withdrawal_requests
+      (
+        landlord_id,
+        amount,
+        method,
+        phone,
+        account_name,
+        bank_details,
+        note
+      )
+      VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [
+        landlord_id,
+        amount,
+        method,
+        phone,
+        account_name,
+        bank_details,
+        note
+      ]
+    );
+
+    res.json({
+      success: true,
+      id: result.insertId
+    });
+
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
+
+// Get landlord withdrawal history
+app.get("/withdrawals/landlord/:landlordId", async (req, res) => {
+  try {
+
+    const [rows] = await db.promise().query(
+      `
+      SELECT *
+      FROM withdrawal_requests
+      WHERE landlord_id = ?
+      ORDER BY created_at DESC
+      `,
+      [req.params.landlordId]
+    );
+
+    res.json({
+      success: true,
+      withdrawals: rows
+    });
+
+  } catch (err) {
+    console.error(err);
+
+    res.status(500).json({
+      success: false,
+      message: err.message
+    });
+  }
+});
 // =========================
 // TENANCIES
 // =========================
