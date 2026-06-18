@@ -1503,7 +1503,7 @@ app.get("/admin/withdrawals", async (req, res) => {
 
     const [rows] = await db.promise().query(
       `
-      // AFTER (fixed)
+      
       SELECT
           wr.*,
           l.fullname AS landlord_name,
