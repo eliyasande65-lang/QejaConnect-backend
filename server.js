@@ -1503,10 +1503,12 @@ app.get("/admin/withdrawals", async (req, res) => {
 
     const [rows] = await db.promise().query(
       `
+      // AFTER (fixed)
       SELECT
-        wr.*,
-        l.name AS landlord_name,
-        l.phone AS landlord_phone
+          wr.*,
+          l.fullname AS landlord_name,
+          l.email AS landlord_email,
+          l.phone AS landlord_phone
       FROM withdrawal_requests wr
       LEFT JOIN landlords l ON wr.landlord_id = l.id
       WHERE wr.status IN (${placeholders})
