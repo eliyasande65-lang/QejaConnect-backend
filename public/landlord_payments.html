@@ -957,6 +957,13 @@
         const note   = document.getElementById('wdNote').value.trim();
 
         if (!amount || amount < 100) { showToast('Enter a valid amount (min Ksh 100).', 'warning'); return; }
+
+        const paid = allPayments.filter(p => p.status === 'confirmed' || p.status === 'paid');
+        const availableBalance = paid.reduce((s, p) => s + Number(p.amount || 0), 0);
+        if (amount > availableBalance) { 
+            showToast(`Amount exceeds available balance of Ksh ${availableBalance.toLocaleString()}.`, 'warning'); 
+            return; 
+        }
         if (!phone || !/^(\+254|0)[71]\d{8}$/.test(phone)) { showToast('Enter a valid Kenyan M-Pesa number.', 'warning'); return; }
         if (!name) { showToast('Enter the M-Pesa account name.', 'warning'); return; }
         if (method !== 'mpesa' && !bankDetails) { showToast('Please enter your bank/paybill details.', 'warning'); return; }

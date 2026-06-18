@@ -177,7 +177,58 @@
                 padding: 24px 18px;
             }
         }
+        .otp-row {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
 
+            .otp-row input {
+                flex: 1;
+                padding: 11px 14px;
+                border: 1.5px solid #e2e8f0;
+                border-radius: 10px;
+                font-size: 14px;
+                outline: none;
+                letter-spacing: 6px;
+                font-weight: 700;
+                text-align: center;
+            }
+
+                .otp-row input:focus {
+                    border-color: #7c3aed;
+                }
+
+        .btn-send-otp {
+            padding: 11px 16px;
+            background: #7c3aed;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: opacity 0.2s;
+        }
+
+            .btn-send-otp:disabled {
+                opacity: 0.5;
+                cursor: not-allowed;
+            }
+
+        .verified-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: #d1fae5;
+            color: #065f46;
+            padding: 10px 14px;
+            border-radius: 10px;
+            font-size: 13px;
+            font-weight: 700;
+            width: 100%;
+        }
         /* Fields */
         .field {
             position: relative;
@@ -565,7 +616,26 @@
                 <div class="row row-2">
                     <div class="field">
                         <label>Email Address</label>
-                        <input type="email" id="email" placeholder="you@gmail.com" autocomplete="email">
+                        <div class="otp-row">
+                            <input type="email" id="email" placeholder="you@gmail.com" autocomplete="email" oninput="onEmailChange()">
+                            <button type="button" class="btn-send-otp" id="sendOtpBtn" onclick="sendOtp()" disabled>Send OTP</button>
+                        </div>
+                        <div id="otpGroup" style="display:none; margin-top:10px;">
+                            <div id="otpInputArea">
+                                <div class="otp-row">
+                                    <input type="text" id="otpInput" maxlength="6" placeholder="000000">
+                                    <button type="button" class="btn-send-otp" onclick="verifyOtp()">Verify</button>
+                                </div>
+                                <div style="margin-top:6px;font-size:12px;color:#666;">
+                                    Didn't get it?
+                                    <span id="resendTimer" style="color:#7c3aed;font-weight:700;"></span>
+                                    <button type="button" id="resendBtn" onclick="sendOtp()" style="display:none;background:none;border:none;color:#7c3aed;font-weight:700;cursor:pointer;font-size:12px;">Resend OTP</button>
+                                </div>
+                            </div>
+                            <div id="verifiedBadge" style="display:none;">
+                                <span class="verified-badge">✅ Email verified</span>
+                            </div>
+                        </div>
                     </div>
                     <div class="field">
                         <label>Phone Number</label>
@@ -696,7 +766,6 @@
         <span id="toast-icon"></span>
         <span id="toast-msg"></span>
     </div>
-
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
 
@@ -839,10 +908,17 @@
         const idFile      = document.getElementById('id_photo').files[0];
 
         // Validation
-        if (!fullname)  { showToast('Please enter your full name.', 'warning'); return; }
+        if (!fullname) { showToast('Please enter your full name.', 'warning'); return; }
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showToast('Please enter a valid email address.', 'warning'); return;
+        }
+
+        // ── OTP check ──────────────────────────────────────────────────────
+        if (!emailVerified) {
+        showToast('Please verify your email with the OTP before submitting.', 'warning');
+        document.getElementById('otpGroup').style.display = 'block';
+        return;
         }
 
         if (!phone || !/^(254|0)[17]\d{8}$/.test(phone)) {
