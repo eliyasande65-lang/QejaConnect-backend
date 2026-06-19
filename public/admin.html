@@ -55,7 +55,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            background: var(--bg)
+            background: var(--bg);
+            padding: 20px
         }
 
         .login-box {
@@ -63,7 +64,8 @@
             border: 1px solid var(--border-hi);
             border-radius: 16px;
             padding: 48px 40px;
-            width: 360px;
+            width: 100%;
+            max-width: 360px;
             text-align: center;
             box-shadow: 0 0 80px rgba(124,58,237,0.15)
         }
@@ -159,16 +161,26 @@
             align-items: center;
             justify-content: space-between;
             padding: 0 32px;
-            height: 60px;
+            height: auto;
+            min-height: 60px;
             background: rgba(7,10,18,.85);
             backdrop-filter: blur(14px);
-            border-bottom: 1px solid var(--border)
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap;
+            gap: 10px;
+            row-gap: 8px
         }
+
+            header, header * {
+                padding-top: 10px;
+                padding-bottom: 10px
+            }
 
         .logo {
             font-family: var(--head);
             font-size: 18px;
-            font-weight: 800
+            font-weight: 800;
+            padding: 0 !important
         }
 
             .logo span {
@@ -178,16 +190,19 @@
         .header-right {
             display: flex;
             align-items: center;
-            gap: 16px
+            gap: 12px;
+            flex-wrap: wrap;
+            padding: 0 !important
         }
 
         .stat-pill {
             font-family: var(--mono);
             font-size: 12px;
-            padding: 5px 12px;
+            padding: 5px 12px !important;
             border-radius: 999px;
             border: 1px solid var(--border);
-            color: var(--muted)
+            color: var(--muted);
+            white-space: nowrap
         }
 
             .stat-pill b {
@@ -197,13 +212,14 @@
         .btn-logout {
             font-family: var(--mono);
             font-size: 12px;
-            padding: 6px 14px;
+            padding: 6px 14px !important;
             border-radius: 8px;
             background: rgba(239,68,68,.1);
             border: 1px solid rgba(239,68,68,.3);
             color: #fca5a5;
             cursor: pointer;
-            transition: background .2s
+            transition: background .2s;
+            white-space: nowrap
         }
 
             .btn-logout:hover {
@@ -218,6 +234,7 @@
             position: relative;
             z-index: 1;
             flex-wrap: wrap;
+            row-gap: 8px
         }
 
         .page-tab {
@@ -230,7 +247,8 @@
             font-family: var(--mono);
             font-size: 13px;
             cursor: pointer;
-            transition: all .2s
+            transition: all .2s;
+            white-space: nowrap
         }
 
             .page-tab.active {
@@ -290,7 +308,8 @@
             font-family: var(--mono);
             font-size: 12px;
             cursor: pointer;
-            transition: all .2s
+            transition: all .2s;
+            white-space: nowrap
         }
 
             .filter-tab.active, .filter-tab:hover {
@@ -300,7 +319,9 @@
             }
 
         .search-wrap {
-            position: relative
+            position: relative;
+            width: 100%;
+            max-width: 220px
         }
 
             .search-wrap input {
@@ -312,7 +333,7 @@
                 font-family: var(--body);
                 color: var(--text);
                 outline: none;
-                width: 220px;
+                width: 100%;
                 transition: border-color .2s
             }
 
@@ -502,11 +523,13 @@
             display: flex;
             gap: 10px;
             padding: 14px 20px;
-            border-top: 1px solid var(--border)
+            border-top: 1px solid var(--border);
+            flex-wrap: wrap
         }
 
         .btn-approve, .btn-reject {
             flex: 1;
+            min-width: 100px;
             padding: 10px;
             border: none;
             border-radius: 8px;
@@ -542,12 +565,18 @@
                 cursor: not-allowed
             }
 
+        .btn-email {
+            flex: 1;
+            min-width: 100px
+        }
+
         .pagination {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 10px;
-            margin-top: 36px
+            margin-top: 36px;
+            flex-wrap: wrap
         }
 
         .page-btn {
@@ -643,7 +672,8 @@
             align-items: center;
             gap: 14px;
             padding: 14px 18px;
-            border-bottom: 1px solid var(--border)
+            border-bottom: 1px solid var(--border);
+            flex-wrap: wrap
         }
 
         .msg-avatar {
@@ -663,7 +693,7 @@
 
         .msg-sender {
             flex: 1;
-            min-width: 0
+            min-width: 140px
         }
 
             .msg-sender strong {
@@ -765,11 +795,13 @@
         .reply-form {
             display: flex;
             gap: 8px;
-            padding: 0 18px 14px
+            padding: 0 18px 14px;
+            flex-wrap: wrap
         }
 
             .reply-form textarea {
                 flex: 1;
+                min-width: 180px;
                 background: var(--surface);
                 border: 1px solid var(--border);
                 border-radius: 8px;
@@ -879,6 +911,40 @@
             #toast.err {
                 border-left-color: var(--danger)
             }
+
+        @media (max-width: 640px) {
+            header {
+                padding: 10px 16px;
+                justify-content: center
+            }
+
+            .header-right {
+                justify-content: center;
+                width: 100%
+            }
+
+            .page-tabs {
+                padding: 12px 16px 0;
+                justify-content: center
+            }
+
+            main {
+                padding: 20px 16px
+            }
+
+            .filters h2, .msg-filters h2 {
+                width: 100%;
+                margin-right: 0
+            }
+
+            .search-wrap {
+                max-width: 100%
+            }
+
+            .grid {
+                grid-template-columns: 1fr
+            }
+        }
     </style>
 </head>
 <body>
@@ -1046,7 +1112,7 @@
 
         function buildCard(l,i){
         const delay=(i%20)*30;
-        const isFixed=l.verified===1||l.verified===-1;
+        const isFixed=l.verified===1||l.verified===-1||l.verified==='1'||l.verified==='-1';
         const idSrc=l.id_photo?escH(l.id_photo):null;
         const profSrc=l.profile_pic?escH(l.profile_pic):'https://ui-avatars.com/api/?name='+encodeURIComponent(l.fullname||'L')+'&background=7c3aed&color=fff';
         return `
@@ -1067,8 +1133,8 @@
         ${l.description?row('Notes',l.description):''}
         </div>
         <div class="actions">
-        <button class="btn-approve" ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'approve',this)">${l.verified===1?'✓ Approved':'✅ Approve'}</button>
-        <button class="btn-reject"  ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'reject',this)">${l.verified===-1?'✕ Rejected':'❌ Reject'}</button>
+        <button class="btn-approve" ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'approve',this)">${l.verified===1||l.verified==='1'?'✓ Approved':'✅ Approve'}</button>
+        <button class="btn-reject"  ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'reject',this)">${l.verified===-1||l.verified==='-1'?'✕ Rejected':'❌ Reject'}</button>
         <a class="btn-email"
         href="mailto:${l.email}?subject=QejaConnect%20Support&body=Hello%20${encodeURIComponent(l.fullname || '')},%0D%0A%0D%0A"
         style="
@@ -1098,7 +1164,15 @@
         }
 
         async function verifyLandlord(id,action,btn){
-        btn.disabled=true; btn.textContent='Saving…';
+        // Disable BOTH action buttons on this card immediately so a successful
+        // response can never leave stale-looking active buttons on screen,
+        // even if the follow-up reload returns cached/stale data.
+        const card=document.getElementById('card-'+id);
+        const approveBtn=card ? card.querySelector('.btn-approve') : null;
+        const rejectBtn=card ? card.querySelector('.btn-reject') : null;
+        if(approveBtn) approveBtn.disabled=true;
+        if(rejectBtn) rejectBtn.disabled=true;
+        btn.textContent='Saving…';
         try{
         const res=await fetch(`${API}/admin/landlords/${id}/verify`,{
         method:'PATCH',headers:{'Content-Type':'application/json','x-admin-secret':adminSecret},
@@ -1106,11 +1180,23 @@
         });
         const data=await res.json();
         if(!data.success) throw new Error(data.message);
+
+        // Reflect the new state on the card right away, independent of reload.
+        if(approveBtn) approveBtn.textContent = action==='approve' ? '✓ Approved' : '✅ Approve';
+        if(rejectBtn) rejectBtn.textContent = action==='reject' ? '✕ Rejected' : '❌ Reject';
+
+        // Also patch the in-memory record so a re-render (e.g. from search/filter)
+        // shows the correct disabled state without waiting on the network.
+        const rec=allData.find(l=>l.id===id);
+        if(rec) rec.verified = action==='approve' ? 1 : -1;
+
         showToast(action==='approve'?'✅ Landlord approved':'❌ Landlord rejected',action==='approve'?'ok':'err');
         setTimeout(loadLandlords,600);
         }catch(err){
         showToast('Error: '+err.message,'err');
-        btn.disabled=false; btn.textContent=action==='approve'?'✅ Approve':'❌ Reject';
+        if(approveBtn) approveBtn.disabled=false;
+        if(rejectBtn) rejectBtn.disabled=false;
+        btn.textContent=action==='approve'?'✅ Approve':'❌ Reject';
         }
         }
 

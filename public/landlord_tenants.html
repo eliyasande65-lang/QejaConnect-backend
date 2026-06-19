@@ -143,6 +143,7 @@
         }
 
         .tab {
+            position: relative;
             padding: 9px 20px;
             border-radius: 20px;
             border: 2px solid var(--border);
@@ -159,6 +160,26 @@
                 color: white;
                 border-color: var(--indigo);
             }
+
+        .tab-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            margin-left: 6px;
+            border-radius: 999px;
+            background: var(--red);
+            color: white;
+            font-size: 10px;
+            font-weight: 800;
+            vertical-align: middle;
+        }
+
+        .tab.active .tab-badge {
+            background: rgba(255,255,255,0.25);
+        }
 
         /* ── TENANT CARD ── */
         .tenant-card {
@@ -185,6 +206,10 @@
 
             .tenant-card.active {
                 border-left-color: #3b82f6;
+            }
+
+            .tenant-card.extension {
+                border-left-color: var(--amber);
             }
 
         .tenant-top {
@@ -287,6 +312,11 @@
             color: #1e40af;
         }
 
+        .sp-declined {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
         .card-actions {
             display: flex;
             gap: 10px;
@@ -339,6 +369,27 @@
             .btn-view:hover {
                 background: #e2e8f0;
             }
+
+        .ext-months-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .ext-message {
+            font-size: 13px;
+            color: var(--muted);
+            margin-bottom: 12px;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 10px 14px;
+        }
 
         /* ── CONFIRM TENANCY MODAL ── */
         .modal-backdrop {
@@ -408,7 +459,7 @@
                 margin-bottom: 5px;
             }
 
-            .modal-bd input, .modal-bd select {
+            .modal-bd input {
                 width: 100%;
                 padding: 11px;
                 border: 1px solid var(--border);
@@ -418,9 +469,31 @@
                 outline: none;
             }
 
-                .modal-bd input:focus, .modal-bd select:focus {
+                .modal-bd input:focus {
                     border-color: var(--indigo);
                 }
+
+        /* Duration input with suffix */
+        .input-suffix-wrap {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+            .input-suffix-wrap input {
+                margin-bottom: 0;
+                padding-right: 80px;
+            }
+
+        .input-suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            pointer-events: none;
+        }
 
         .modal-notice {
             background: #eff6ff;
@@ -495,7 +568,8 @@
                 background: #1e1e1e;
             }
 
-            body.dark .property-strip {
+            body.dark .property-strip,
+            body.dark .ext-message {
                 background: #2a2a2a;
             }
 
@@ -515,8 +589,7 @@
                 color: #eaeaea;
             }
 
-            body.dark .modal-bd input,
-            body.dark .modal-bd select {
+            body.dark .modal-bd input {
                 background: #2a2a2a;
                 color: white;
                 border-color: #444;
@@ -536,6 +609,10 @@
             body.dark .btn-cancel2 {
                 background: #2a2a2a;
                 color: #eaeaea;
+            }
+
+            body.dark .input-suffix {
+                color: #999;
             }
 
         @media (max-width: 600px) {
@@ -560,25 +637,31 @@
 
     <div class="page">
         <h1 class="page-title">🏘️ My Tenants</h1>
-        <p class="page-sub">Manage booking requests, approve tenants, and start tenancy sessions.</p>
+        <p class="page-sub">Manage booking requests, approve tenants, start tenancy sessions, and respond to extension requests.</p>
 
         <div class="stats-row" id="statsRow">
             <div class="stat-card"><div class="num" id="statTotal">—</div><div class="lbl">Total Requests</div></div>
             <div class="stat-card"><div class="num" id="statPending" style="color:var(--amber)">—</div><div class="lbl">Pending</div></div>
             <div class="stat-card"><div class="num" id="statApproved" style="color:var(--green)">—</div><div class="lbl">Approved</div></div>
             <div class="stat-card"><div class="num" id="statActive" style="color:#3b82f6">—</div><div class="lbl">Active Tenancies</div></div>
+            <div class="stat-card"><div class="num" id="statExtensions" style="color:var(--amber)">—</div><div class="lbl">Pending Extensions</div></div>
         </div>
 
         <div class="tabs">
-            <div class="tab active" onclick="filterTenants('all', this)">All</div>
-            <div class="tab" onclick="filterTenants('pending', this)">⏳ Pending</div>
-            <div class="tab" onclick="filterTenants('approved', this)">✅ Approved</div>
-            <div class="tab" onclick="filterTenants('active', this)">🔑 Active</div>
-            <div class="tab" onclick="filterTenants('rejected', this)">❌ Rejected</div>
+            <div class="tab active" data-tab="all" onclick="selectTab('all', this)">All</div>
+            <div class="tab" data-tab="pending" onclick="selectTab('pending', this)">⏳ Pending</div>
+            <div class="tab" data-tab="approved" onclick="selectTab('approved', this)">✅ Approved</div>
+            <div class="tab" data-tab="active" onclick="selectTab('active', this)">🔑 Active</div>
+            <div class="tab" data-tab="rejected" onclick="selectTab('rejected', this)">❌ Rejected</div>
+            <div class="tab" data-tab="extensions" onclick="selectTab('extensions', this)">📆 Extensions <span class="tab-badge" id="extBadge" style="display:none;">0</span></div>
         </div>
 
         <div id="tenantsContainer">
             <div class="loader">Loading tenant requests…</div>
+        </div>
+
+        <div id="extensionsContainer" style="display:none;">
+            <div class="loader">Loading extension requests…</div>
         </div>
     </div>
 
@@ -595,15 +678,13 @@
                 <input type="number" id="rentAmount" placeholder="e.g. 12000" min="1">
                 <label>Tenancy Start Date</label>
                 <input type="date" id="startDate">
-                <label>Duration</label>
-                <select id="duration">
-                    <option value="30">30 Months (Standard)</option>
-                    <option value="12">12 Months</option>
-                    <option value="6">6 Months</option>
-                    <option value="24">24 Months</option>
-                </select>
+                <label>Duration (months)</label>
+                <div class="input-suffix-wrap">
+                    <input type="number" id="duration" placeholder="e.g. 12" min="1" max="600">
+                    <span class="input-suffix">months</span>
+                </div>
                 <div class="modal-notice">
-                    ℹ️ Once confirmed, the tenant will be notified and their 30-month payment schedule will be activated. The tenant can pay monthly via M-Pesa STK Push and you'll receive payment confirmations here.
+                    ℹ️ Once confirmed, the tenant will be notified and their payment schedule will be activated. The tenant can pay monthly via M-Pesa STK Push and you'll receive payment confirmations here.
                 </div>
             </div>
             <div class="modal-ft">
@@ -617,7 +698,9 @@
         const token      = localStorage.getItem('token');
         const loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
         let allTenants   = [];
+        let allExtensions = [];
         let selectedBooking = null;
+        let activeTab = 'all';
 
         async function loadTenants() {
         try {
@@ -628,12 +711,116 @@
         if (data.success) {
         allTenants = data.data || [];
         updateStats(allTenants);
-        renderTenants(allTenants);
-        // Mark seen
+        if (activeTab !== 'extensions') renderTenants(allTenants);
         const ids = allTenants.map(t => t.id);
         localStorage.setItem('seenRequests', JSON.stringify(ids));
         } else showEmpty('No requests found.');
         } catch { showEmpty('Failed to load. Please try again.'); }
+        }
+
+        // ── EXTENSION REQUESTS ──
+        async function loadExtensionRequests() {
+        try {
+        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/extension-requests/${loggedUser.id}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const data = await res.json();
+        allExtensions = data.success ? (data.data || []) : [];
+        updateExtensionBadge();
+        if (activeTab === 'extensions') renderExtensionRequests(allExtensions);
+        } catch {
+        allExtensions = [];
+        updateExtensionBadge();
+        }
+        }
+
+        function updateExtensionBadge() {
+        const pendingCount = allExtensions.filter(r => r.status === 'pending').length;
+        document.getElementById('statExtensions').textContent = pendingCount;
+        const badge = document.getElementById('extBadge');
+        if (pendingCount > 0) {
+        badge.style.display = 'inline-flex';
+        badge.textContent = pendingCount;
+        } else {
+        badge.style.display = 'none';
+        }
+        }
+
+        function renderExtensionRequests(list) {
+        const c = document.getElementById('extensionsContainer');
+        if (!list.length) {
+        c.innerHTML = `<div class="empty"><div class="icon">📆</div><h3>No extension requests yet.</h3></div>`;
+        return;
+        }
+
+        // Pending first, then most recent
+        const sorted = [...list].sort((a, b) => {
+        if (a.status === 'pending' && b.status !== 'pending') return -1;
+        if (a.status !== 'pending' && b.status === 'pending') return 1;
+        return new Date(b.created_at) - new Date(a.created_at);
+        });
+
+        let html = '';
+        sorted.forEach(r => {
+        const status      = r.status || 'pending';
+        const initials    = (r.tenant_name || 'T').slice(0, 2).toUpperCase();
+        const spClass     = status === 'approved' ? 'sp-approved' : status === 'declined' ? 'sp-declined' : 'sp-pending';
+        const emoji       = status === 'approved' ? '✅' : status === 'declined' ? '❌' : '⏳';
+        const currentDur  = r.duration_months ?? '—';
+        const newDur      = (typeof r.duration_months === 'number') ? r.duration_months + r.extra_months : null;
+
+        let actions = '';
+        if (status === 'pending') {
+        actions = `
+        <button class="btn btn-approve" onclick="respondExtension(${r.id}, 'approve')">✅ Approve</button>
+        <button class="btn btn-reject"  onclick="respondExtension(${r.id}, 'decline')">❌ Decline</button>`;
+        }
+
+        html += `
+        <div class="tenant-card extension" data-status="${status}">
+        <div class="tenant-top">
+        <div class="tenant-avatar">${initials}</div>
+        <div class="tenant-info">
+        <h3>${r.tenant_name || 'Tenant'}</h3>
+        <div class="tenant-meta">
+        <span>📞 ${r.tenant_phone || '—'}</span>
+        <span>📅 Requested ${formatDate(r.created_at)}</span>
+        </div>
+        </div>
+        <span class="status-pill ${spClass}">${emoji} ${status.toUpperCase()}</span>
+        </div>
+        <div class="property-strip">
+        <div class="item"><div class="l">Property</div><div class="v">${r.property_title || '—'}</div></div>
+        <div class="item"><div class="l">Location</div><div class="v">${r.location || '—'}</div></div>
+        <div class="item"><div class="l">Monthly Rent</div><div class="v">Ksh ${r.rent_amount ? Number(r.rent_amount).toLocaleString() : '—'}</div></div>
+        <div class="item"><div class="l">Current Duration</div><div class="v">${currentDur} mo</div></div>
+        <div class="item"><div class="l">Requested Extra</div><div class="v"><span class="ext-months-pill">+${r.extra_months} month${r.extra_months !== 1 ? 's' : ''}</span></div></div>
+        ${newDur !== null ? `<div class="item"><div class="l">New Total Duration</div><div class="v" style="color:var(--green);">${newDur} mo</div></div>` : ''}
+        </div>
+        ${r.message ? `<div class="ext-message">💬 "${r.message}"</div>` : ''}
+        <div class="card-actions">${actions}</div>
+        </div>`;
+        });
+        c.innerHTML = html;
+        }
+
+        async function respondExtension(id, action) {
+        const verb = action === 'approve' ? 'approve' : 'decline';
+        if (!confirm(`Are you sure you want to ${verb} this extension request?`)) return;
+
+        try {
+        const res  = await fetch(`https://qeja-backend-azkf.onrender.com/tenancy/extension-request/${id}/respond`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({ action })
+        });
+        const data = await res.json();
+        if (data.success) {
+        alert(action === 'approve' ? '✅ Extension approved. The tenant has been notified and their payment schedule updated.' : 'Extension request declined. The tenant has been notified.');
+        loadExtensionRequests();
+        loadTenants();
+        } else alert(data.message || 'Failed to respond to request.');
+        } catch { alert('Network error.'); }
         }
 
         function updateStats(list) {
@@ -697,11 +884,24 @@
         c.innerHTML = html;
         }
 
-        function filterTenants(status, el) {
+        function selectTab(tab, el) {
         document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
         el.classList.add('active');
-        const filtered = status === 'all' ? allTenants : allTenants.filter(t => (t.status||'pending') === status);
+        activeTab = tab;
+
+        const tenantsBox    = document.getElementById('tenantsContainer');
+        const extensionsBox = document.getElementById('extensionsContainer');
+
+        if (tab === 'extensions') {
+        tenantsBox.style.display    = 'none';
+        extensionsBox.style.display = 'block';
+        renderExtensionRequests(allExtensions);
+        } else {
+        extensionsBox.style.display = 'none';
+        tenantsBox.style.display    = 'block';
+        const filtered = tab === 'all' ? allTenants : allTenants.filter(t => (t.status||'pending') === tab);
         renderTenants(filtered);
+        }
         }
 
         async function approveBooking(bookingId, tenantId) {
@@ -740,10 +940,10 @@
         <strong>${t.tenant_name || 'Tenant'}</strong><br>
         📍 ${t.property_title || 'Property'} — ${t.location || ''}<br>
         📞 ${t.tenant_phone || '—'}`;
-        // Set default start date to today
         const today = new Date().toISOString().split('T')[0];
         document.getElementById('startDate').value = today;
         document.getElementById('rentAmount').value = t.price || '';
+        document.getElementById('duration').value = '';
         document.getElementById('sessionModal').classList.add('open');
         }
 
@@ -752,8 +952,9 @@
         const start = document.getElementById('startDate').value;
         const dur   = parseInt(document.getElementById('duration').value);
 
-        if (!rent || rent < 1) { alert('Please enter a valid rent amount.'); return; }
-        if (!start)              { alert('Please select a start date.'); return; }
+        if (!rent || rent < 1)       { alert('Please enter a valid rent amount.'); return; }
+        if (!start)                   { alert('Please select a start date.'); return; }
+        if (!dur || dur < 1)          { alert('Please enter a valid duration in months.'); return; }
 
         const btn = document.querySelector('.btn-confirm');
         btn.disabled = true; btn.textContent = 'Starting…';
@@ -763,12 +964,12 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({
-        booking_id:  selectedBooking.id,
-        landlord_id: loggedUser.id,
-        tenant_id:   selectedBooking.tenant_id,
-        property_id: selectedBooking.property_id,
-        rent_amount: rent,
-        start_date:  start,
+        booking_id:      selectedBooking.id,
+        landlord_id:     loggedUser.id,
+        tenant_id:       selectedBooking.tenant_id,
+        property_id:     selectedBooking.property_id,
+        rent_amount:     rent,
+        start_date:      start,
         duration_months: dur
         })
         });
@@ -805,6 +1006,9 @@
         window.onload = function () {
         if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
         loadTenants();
+        loadExtensionRequests();
+        // refresh extension badge periodically so the landlord notices new requests
+        setInterval(loadExtensionRequests, 30000);
         };
     </script>
 </body>

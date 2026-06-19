@@ -1124,6 +1124,112 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
   );
 });
 
+
+// GET /landlord/extension-requests/:landlordId
+app.get('/landlord/extension-requests/:landlordId', authenticate, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT er.*, t.property_title, t.location, t.rent_amount, t.duration_months,
+              t.start_date, u.name AS tenant_name, u.phone AS tenant_phone
+       FROM tenancy_extension_requests er
+       JOIN tenancies t ON t.id = er.tenancy_id
+       JOIN users u ON u.id = er.tenant_id
+       WHERE er.landlord_id = ?
+       ORDER BY er.created_at DESC`,
+      [req.params.landlordId]
+    );
+    res.json({ success: true, data: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// POST /tenancy/extension-request
+app.post('/tenancy/extension-request', authenticate, async (req, res) => {
+  const { tenancy_id, landlord_id, tenant_id, extra_months, message } = req.body;
+
+  if (!tenancy_id || !landlord_id || !tenant_id || !extra_months || extra_months < 1) {
+    return res.status(400).json({ success: false, message: 'Missing or invalid fields.' });
+  }
+
+  try {
+    const [result] = await db.query(
+      `INSERT INTO tenancy_extension_requests
+       (tenancy_id, landlord_id, tenant_id, extra_months, message)
+       VALUES (?, ?, ?, ?, ?)`,
+      [tenancy_id, landlord_id, tenant_id, extra_months, message || null]
+    );
+
+    // optional: insert a notification row for the landlord
+    await db.query(
+      `INSERT INTO notifications (user_id, type, ref_id, message)
+       VALUES (?, 'extension_request', ?, ?)`,
+      [landlord_id, result.insertId, `Tenant requested ${extra_months} more month(s).`]
+    );
+
+    res.json({ success: true, request_id: result.insertId });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  }
+});
+
+// POST /tenancy/extension-request/:id/respond
+app.post('/tenancy/extension-request/:id/respond', authenticate, async (req, res) => {
+  const { id } = req.params;
+  const { action } = req.body; // 'approve' | 'decline'
+
+  if (!['approve', 'decline'].includes(action)) {
+    return res.status(400).json({ success: false, message: 'Invalid action.' });
+  }
+
+  const conn = await db.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [[reqRow]] = await conn.query(
+      `SELECT * FROM tenancy_extension_requests WHERE id = ? AND status = 'pending'`,
+      [id]
+    );
+    if (!reqRow) {
+      await conn.rollback();
+      return res.status(404).json({ success: false, message: 'Request not found or already handled.' });
+    }
+
+    if (action === 'approve') {
+      await conn.query(
+        `UPDATE tenancies SET duration_months = duration_months + ? WHERE id = ?`,
+        [reqRow.extra_months, reqRow.tenancy_id]
+      );
+    }
+
+    await conn.query(
+      `UPDATE tenancy_extension_requests
+       SET status = ?, responded_at = NOW() WHERE id = ?`,
+      [action === 'approve' ? 'approved' : 'declined', id]
+    );
+
+    // notify tenant
+    await conn.query(
+      `INSERT INTO notifications (user_id, type, ref_id, message)
+       VALUES (?, 'extension_response', ?, ?)`,
+      [reqRow.tenant_id, id,
+       action === 'approve'
+         ? `Your extension request for ${reqRow.extra_months} month(s) was approved.`
+         : `Your extension request was declined.`]
+    );
+
+    await conn.commit();
+    res.json({ success: true });
+  } catch (err) {
+    await conn.rollback();
+    console.error(err);
+    res.status(500).json({ success: false, message: 'Server error.' });
+  } finally {
+    conn.release();
+  }
+});
 // =========================
 // WEBAUTHN - FINGERPRINT LOGIN
 // =========================

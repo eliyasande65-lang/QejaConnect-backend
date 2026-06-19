@@ -9,7 +9,6 @@
         if (!localStorage.getItem('token')) window.location.replace('login.html');
         })();
     </script>
-    <!-- jsPDF for receipt generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <style>
         * {
@@ -109,7 +108,7 @@
             margin-bottom: 28px;
         }
 
-        /* ── TENANCY SUMMARY CARD ── */
+        /* ── TENANCY SUMMARY ── */
         .tenancy-summary {
             background: linear-gradient(135deg, var(--navy), #312e81);
             border-radius: 18px;
@@ -118,7 +117,7 @@
             display: flex;
             flex-wrap: wrap;
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             box-shadow: 0 6px 24px rgba(26,21,53,0.3);
         }
 
@@ -144,6 +143,60 @@
                     font-size: 1.5rem;
                     color: #a5b4fc;
                 }
+
+        /* ── TAX NOTICE BANNER ── */
+        .tax-banner {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 14px;
+            padding: 14px 18px;
+            font-size: 12.5px;
+            color: #1e40af;
+            line-height: 1.6;
+            margin-bottom: 20px;
+        }
+
+        /* ── EXTENSION BANNER ── */
+        .extend-banner {
+            background: linear-gradient(135deg, #1e1b4b, #312e81);
+            border-radius: 14px;
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 28px;
+            box-shadow: 0 4px 16px rgba(79,70,229,0.25);
+        }
+
+            .extend-banner .ext-text h3 {
+                color: #c7d2fe;
+                font-size: 0.95rem;
+                margin-bottom: 3px;
+            }
+
+            .extend-banner .ext-text p {
+                color: rgba(199,210,254,0.7);
+                font-size: 12px;
+            }
+
+        .btn-extend {
+            padding: 11px 22px;
+            background: #4f46e5;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 700;
+            font-size: 13px;
+            cursor: pointer;
+            white-space: nowrap;
+            transition: background 0.2s;
+        }
+
+            .btn-extend:hover {
+                background: #6366f1;
+            }
 
         /* ── SECTION HEADER ── */
         .section-hd {
@@ -203,6 +256,12 @@
             font-size: 0.95rem;
             color: var(--violet);
             font-weight: 600;
+            margin-bottom: 2px;
+        }
+
+        .month-price-tax {
+            font-size: 11px;
+            color: var(--muted);
             margin-bottom: 10px;
         }
 
@@ -290,7 +349,7 @@
             cursor: default;
         }
 
-        /* ── STK MODAL ── */
+        /* ── MODALS ── */
         .modal-backdrop {
             position: fixed;
             inset: 0;
@@ -313,6 +372,8 @@
             max-width: 420px;
             overflow: hidden;
             animation: popIn 0.25s ease;
+            max-height: 90vh;
+            overflow-y: auto;
         }
 
         @keyframes popIn {
@@ -344,6 +405,11 @@
                 opacity: 0.85;
             }
 
+            /* Extension modal header */
+            .modal-header.ext-hd {
+                background: linear-gradient(135deg, var(--navy), #312e81);
+            }
+
         .modal-body {
             padding: 22px;
         }
@@ -356,7 +422,7 @@
                 margin-bottom: 5px;
             }
 
-            .modal-body input {
+            .modal-body input, .modal-body textarea, .modal-body select {
                 width: 100%;
                 padding: 12px;
                 border: 1px solid var(--border);
@@ -364,11 +430,35 @@
                 font-size: 15px;
                 margin-bottom: 14px;
                 outline: none;
+                font-family: inherit;
             }
 
-                .modal-body input:focus {
+                .modal-body input:focus,
+                .modal-body textarea:focus {
                     border-color: var(--indigo);
                 }
+
+        /* Duration input with suffix */
+        .input-suffix-wrap {
+            position: relative;
+            margin-bottom: 14px;
+        }
+
+            .input-suffix-wrap input {
+                margin-bottom: 0;
+                padding-right: 80px;
+            }
+
+        .input-suffix {
+            position: absolute;
+            right: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--muted);
+            pointer-events: none;
+        }
 
         .modal-amount-display {
             background: #f0fdf4;
@@ -376,7 +466,7 @@
             border-radius: 10px;
             padding: 14px;
             text-align: center;
-            margin-bottom: 18px;
+            margin-bottom: 12px;
         }
 
             .modal-amount-display .amt {
@@ -389,6 +479,41 @@
                 font-size: 12px;
                 color: var(--muted);
             }
+
+        .amount-breakdown {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 14px;
+            margin-bottom: 18px;
+            font-size: 13px;
+        }
+
+            .amount-breakdown .row {
+                display: flex;
+                justify-content: space-between;
+                padding: 4px 0;
+                color: var(--muted);
+            }
+
+                .amount-breakdown .row.total {
+                    border-top: 1px dashed var(--border);
+                    margin-top: 4px;
+                    padding-top: 8px;
+                    font-weight: 700;
+                    color: var(--text);
+                }
+
+        .tax-note {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 10px;
+            padding: 12px;
+            font-size: 11.5px;
+            color: #1e40af;
+            line-height: 1.6;
+            margin-bottom: 4px;
+        }
 
         .modal-footer {
             display: flex;
@@ -411,6 +536,14 @@
             .btn-confirm:hover {
                 background: #15803d;
             }
+
+            .btn-confirm.indigo {
+                background: var(--indigo);
+            }
+
+                .btn-confirm.indigo:hover {
+                    background: #4338ca;
+                }
 
         .btn-cancel2 {
             padding: 13px 20px;
@@ -560,7 +693,8 @@
                 color: #eaeaea;
             }
 
-            body.dark .modal-body input {
+            body.dark .modal-body input,
+            body.dark .modal-body textarea {
                 background: #2a2a2a;
                 color: white;
                 border-color: #444;
@@ -569,6 +703,18 @@
             body.dark .modal-amount-display {
                 background: #022c22;
                 border-color: #065f46;
+            }
+
+            body.dark .amount-breakdown {
+                background: #2a2a2a;
+                border-color: #444;
+            }
+
+            body.dark .tax-note,
+            body.dark .tax-banner {
+                background: #0c1a3d;
+                border-color: #1e40af;
+                color: #93c5fd;
             }
 
             body.dark .btn-cancel2 {
@@ -580,23 +726,31 @@
                 color: #ccc;
             }
 
-            body.dark .month-status.ms-pending {
+            body.dark .ms-pending {
                 background: #451a03;
                 color: #fbbf24;
             }
 
-            body.dark .month-status.ms-overdue {
+            body.dark .ms-overdue {
                 background: #2d0a0a;
                 color: #f87171;
             }
 
-            body.dark .month-status.ms-paid {
+            body.dark .ms-paid {
                 background: #022c22;
                 color: #34d399;
             }
 
             body.dark .stk-wait .phone-display {
                 background: #2a2a2a;
+            }
+
+            body.dark .input-suffix {
+                color: #999;
+            }
+
+            body.dark .extend-banner {
+                background: linear-gradient(135deg, #0f0e1a, #1e1b4b);
             }
 
         @media (max-width: 500px) {
@@ -632,18 +786,50 @@
         </div>
     </div>
 
-    <!-- ── STK MODAL ── -->
+    <!-- STK MODAL -->
     <div class="modal-backdrop" id="stkModal">
+        <div class="modal"><div id="modalInner"></div></div>
+    </div>
+
+    <!-- EXTENSION REQUEST MODAL -->
+    <div class="modal-backdrop" id="extModal">
         <div class="modal">
-            <div id="modalInner"></div>
+            <div class="modal-header ext-hd">
+                <h3>📆 Request Tenancy Extension</h3>
+                <p>Send an extension request to your landlord.</p>
+            </div>
+            <div class="modal-body">
+                <label>Additional Months Requested</label>
+                <div class="input-suffix-wrap">
+                    <input type="number" id="extMonths" placeholder="e.g. 6" min="1" max="120">
+                    <span class="input-suffix">months</span>
+                </div>
+                <label>Message to Landlord (optional)</label>
+                <textarea id="extMessage" rows="3" placeholder="e.g. I'd like to extend for 6 more months as I'm settling in well…"></textarea>
+                <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px;font-size:12px;color:#1e40af;line-height:1.6;">
+                    ℹ️ Your landlord will be notified of your request. They can approve or decline it from their dashboard.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-cancel2" onclick="closeExtModal()">Cancel</button>
+                <button class="btn-confirm indigo" onclick="submitExtensionRequest()">📤 Send Request</button>
+            </div>
         </div>
     </div>
 
     <script>
         const token      = localStorage.getItem('token');
         const loggedUser = JSON.parse(localStorage.getItem('loggedUser') || '{}');
-        let currentTenancy = null;
+        const TAX_RATE   = 0.04; // 4% service tax applied on top of monthly rent
+        let currentTenancy  = null;
         let currentMonthData = null;
+
+        function taxFor(rent) {
+        return Math.round(rent * TAX_RATE * 100) / 100;
+        }
+        function totalWithTax(rent) {
+        return Math.round((rent + taxFor(rent)) * 100) / 100;
+        }
 
         async function loadTenancy() {
         try {
@@ -661,12 +847,21 @@
         }
 
         function renderTenancy(t) {
-        const startDate = new Date(t.start_date);
-        const months    = buildMonths(startDate, 30, t.payments || [], t.rent_amount);
+        const startDate    = new Date(t.start_date);
+        const duration     = parseInt(t.duration_months) || 12; // use actual duration, not hardcoded
+        const months       = buildMonths(startDate, duration, t.payments || [], t.rent_amount);
 
         const paidCount    = months.filter(m => m.status === 'paid').length;
         const pendingCount = months.filter(m => m.status === 'pending').length;
         const overdueCount = months.filter(m => m.status === 'overdue').length;
+
+        // Calculate end date
+        const endDate = new Date(startDate);
+        endDate.setMonth(endDate.getMonth() + duration);
+
+        const rent  = Number(t.rent_amount);
+        const tax   = taxFor(rent);
+        const total = totalWithTax(rent);
 
         document.getElementById('tenancyContent').innerHTML = `
         <div class="tenancy-summary">
@@ -680,15 +875,19 @@
         </div>
         <div class="summary-item">
         <div class="label">Monthly Rent</div>
-        <div class="value big">Ksh ${Number(t.rent_amount).toLocaleString()}</div>
+        <div class="value big">Ksh ${rent.toLocaleString()}</div>
         </div>
         <div class="summary-item">
         <div class="label">Tenancy Period</div>
-        <div class="value">30 Months</div>
+        <div class="value">${duration} Month${duration !== 1 ? 's' : ''}</div>
         </div>
         <div class="summary-item">
         <div class="label">Started</div>
         <div class="value">${formatDate(t.start_date)}</div>
+        </div>
+        <div class="summary-item">
+        <div class="label">Ends</div>
+        <div class="value">${formatDate(endDate.toISOString())}</div>
         </div>
         <div class="summary-item">
         <div class="label">Landlord</div>
@@ -696,8 +895,22 @@
         </div>
         </div>
 
+        <div class="tax-banner">
+        ℹ️ <strong>Note:</strong> A 4% service tax is added to your monthly rent for every payment.
+        Monthly Rent: <strong>Ksh ${rent.toLocaleString()}</strong> + Tax (4%): <strong>Ksh ${tax.toLocaleString()}</strong>
+        = Total Payable: <strong>Ksh ${total.toLocaleString()}</strong> per month.
+        </div>
+
+        <div class="extend-banner">
+        <div class="ext-text">
+        <h3>📆 Need more time?</h3>
+        <p>Request an extension from your landlord directly here.</p>
+        </div>
+        <button class="btn-extend" onclick="openExtModal()">Request Extension</button>
+        </div>
+
         <div class="section-hd">
-        <h2>📅 Payment Schedule (30 Months)</h2>
+        <h2>📅 Payment Schedule (${duration} Month${duration !== 1 ? 's' : ''})</h2>
         <div style="display:flex;gap:12px;font-size:12px;flex-wrap:wrap;">
         <span style="color:var(--green);font-weight:600;">✅ ${paidCount} Paid</span>
         <span style="color:var(--amber);font-weight:600;">⏳ ${pendingCount} Pending</span>
@@ -710,32 +923,30 @@
 
         const grid = document.getElementById('monthsGrid');
         months.forEach((m, i) => {
-        const cardClass  = `month-card ${m.status}`;
-        const statClass  = `month-status ms-${m.status}`;
-        const statEmoji  = m.status === 'paid' ? '✅' : m.status === 'overdue' ? '🔴' : '⏳';
-        const refHtml    = m.ref ? `<div class="month-ref">Ref: ${m.ref}</div>` : '';
-
+        const refHtml = m.ref ? `<div class="month-ref">Ref: ${m.ref}</div>` : '';
         let actionHtml = '';
         if (m.status === 'paid') {
         actionHtml = `
         <div class="btn-paid-indicator">✅ Paid</div>
         <button class="btn btn-pdf" onclick="generateReceipt(${i})">📄 Get Receipt</button>`;
         } else {
-        actionHtml = `<button class="btn btn-pay" onclick="openPayModal(${i})">Pay Now — Ksh ${Number(t.rent_amount).toLocaleString()}</button>`;
+        actionHtml = `<button class="btn btn-pay" onclick="openPayModal(${i})">Pay Now — Ksh ${total.toLocaleString()}</button>`;
         }
 
         grid.innerHTML += `
         <div class="month-card ${m.status}" id="mc-${i}">
         <div class="month-name">Month ${m.number} — ${m.label}</div>
-        <div class="month-price">Ksh ${Number(t.rent_amount).toLocaleString()}</div>
-        <div class="${statClass}">${statEmoji} ${m.status.toUpperCase()}</div>
+        <div class="month-price">Ksh ${total.toLocaleString()}</div>
+        <div class="month-price-tax">Rent Ksh ${rent.toLocaleString()} + 4% tax (Ksh ${tax.toLocaleString()})</div>
+        <div class="month-status ms-${m.status}">
+        ${m.status === 'paid' ? '✅' : m.status === 'overdue' ? '🔴' : '⏳'} ${m.status.toUpperCase()}
+        </div>
         <div class="month-due">Due: ${m.dueDate}</div>
         ${refHtml}
         ${actionHtml}
         </div>`;
         });
 
-        // store months for later access
         window._months = months;
         }
 
@@ -749,7 +960,6 @@
         const dueDate = new Date(d);
         dueDate.setDate(1);
 
-        // Check if paid
         const paid = payments.find(p => p.month_index === i || p.month_number === i + 1);
         let status  = 'pending';
         let ref     = null;
@@ -772,16 +982,65 @@
         </div>`;
         }
 
+        // ── EXTENSION REQUEST ──
+        function openExtModal() {
+        document.getElementById('extMonths').value  = '';
+        document.getElementById('extMessage').value = '';
+        document.getElementById('extModal').classList.add('open');
+        }
+
+        function closeExtModal() {
+        document.getElementById('extModal').classList.remove('open');
+        }
+
+        async function submitExtensionRequest() {
+        const months  = parseInt(document.getElementById('extMonths').value);
+        const message = document.getElementById('extMessage').value.trim();
+
+        if (!months || months < 1) { alert('Please enter a valid number of months.'); return; }
+
+        const btn = document.querySelector('#extModal .btn-confirm');
+        btn.disabled    = true;
+        btn.textContent = 'Sending…';
+
+        try {
+        const res  = await fetch('https://qeja-backend-azkf.onrender.com/tenancy/extension-request', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
+        body: JSON.stringify({
+        tenancy_id:       currentTenancy.id,
+        landlord_id:      currentTenancy.landlord_id,
+        tenant_id:        loggedUser.id,
+        extra_months:     months,
+        message:          message || null
+        })
+        });
+        const data = await res.json();
+        if (data.success) {
+        closeExtModal();
+        alert(`✅ Extension request sent!\n\nYour landlord has been notified of your request for ${months} additional month${months !== 1 ? 's' : ''}. You'll be notified when they respond.`);
+        } else {
+        alert(data.message || 'Failed to send request. Please try again.');
+        }
+        } catch {
+        alert('Network error. Please try again.');
+        }
+
+        btn.disabled    = false;
+        btn.textContent = '📤 Send Request';
+        }
+
         // ── PAY MODAL ──
         function openPayModal(monthIdx) {
-        const m   = window._months[monthIdx];
-        const amt = currentTenancy.rent_amount;
-        currentMonthData = { monthIdx, amt };
-        showPayForm(monthIdx, amt);
+        const rent  = Number(currentTenancy.rent_amount);
+        const tax   = taxFor(rent);
+        const total = totalWithTax(rent);
+        currentMonthData = { monthIdx, rent, tax, total };
+        showPayForm(monthIdx, rent, tax, total);
         document.getElementById('stkModal').classList.add('open');
         }
 
-        function showPayForm(monthIdx, amt) {
+        function showPayForm(monthIdx, rent, tax, total) {
         document.getElementById('modalInner').innerHTML = `
         <div class="modal-header">
         <h3>💚 Pay Rent via M-Pesa</h3>
@@ -789,10 +1048,18 @@
         </div>
         <div class="modal-body">
         <div class="modal-amount-display">
-        <div class="lbl">Amount Due</div>
-        <div class="amt">Ksh ${Number(amt).toLocaleString()}</div>
+        <div class="lbl">Total Amount Due</div>
+        <div class="amt">Ksh ${total.toLocaleString()}</div>
         </div>
-        <label>M-Pesa Phone Number</label>
+        <div class="amount-breakdown">
+        <div class="row"><span>Monthly Rent</span><span>Ksh ${rent.toLocaleString()}</span></div>
+        <div class="row"><span>Service Tax (4%)</span><span>Ksh ${tax.toLocaleString()}</span></div>
+        <div class="row total"><span>Total Payable</span><span>Ksh ${total.toLocaleString()}</span></div>
+        </div>
+        <div class="tax-note">
+        ℹ️ A 4% service tax is added to every rent payment in addition to your monthly rent. This is reflected in the amount charged via M-Pesa and on your receipt.
+        </div>
+        <label style="margin-top:14px;display:block;">M-Pesa Phone Number</label>
         <input type="tel" id="payPhone" placeholder="e.g. 0712345678 or 254712345678"
         value="${loggedUser.phone || ''}" maxlength="13">
         <p style="font-size:12px;color:var(--muted);">
@@ -801,11 +1068,11 @@
         </div>
         <div class="modal-footer">
         <button class="btn-cancel2" onclick="closeModal()">Cancel</button>
-        <button class="btn-confirm" onclick="initiateSTK(${monthIdx}, ${amt})">Send STK Push →</button>
+        <button class="btn-confirm" onclick="initiateSTK(${monthIdx}, ${rent}, ${tax}, ${total})">Send STK Push →</button>
         </div>`;
         }
 
-        async function initiateSTK(monthIdx, amt) {
+        async function initiateSTK(monthIdx, rent, tax, total) {
         const phoneInput = document.getElementById('payPhone');
         let phone = phoneInput.value.trim().replace(/\s/g, '');
         if (!phone) { alert('Please enter your phone number'); return; }
@@ -814,13 +1081,13 @@
         alert('Enter a valid Kenyan phone number e.g. 0712345678'); return;
         }
 
-        // Show waiting screen
         document.getElementById('modalInner').innerHTML = `
         <div class="stk-wait">
         <div class="spinner"></div>
         <h3>STK Push Sent!</h3>
         <p>Check your phone and enter your M-Pesa PIN to complete payment.</p>
         <div class="phone-display">📱 ${phone}</div>
+        <p style="margin-top:8px;font-size:12px;">You'll be charged <strong>Ksh ${total.toLocaleString()}</strong> (Rent Ksh ${rent.toLocaleString()} + 4% tax Ksh ${tax.toLocaleString()}).</p>
         <p style="margin-top:12px;font-size:12px;">Waiting for payment confirmation…<br>This may take up to 30 seconds.</p>
         <button class="btn btn-cancel2" style="margin-top:20px;width:auto;padding:10px 24px;" onclick="closeModal()">Cancel</button>
         </div>`;
@@ -831,30 +1098,30 @@
         headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + token },
         body: JSON.stringify({
         phone,
-        amount:     amt+200,
-        tenancy_id: currentTenancy.id,
+        amount:      total,
+        rent_amount: rent,
+        tax_amount:  tax,
+        tenancy_id:  currentTenancy.id,
         month_index: monthIdx,
         account_ref: `QEJA-${loggedUser.id}-M${monthIdx + 1}`,
-        description: `Rent Month ${monthIdx + 1} - ${currentTenancy.property_title}`
+        description: `Rent Month ${monthIdx + 1} (incl. 4% tax) - ${currentTenancy.property_title}`
         })
         });
         const data = await res.json();
 
         if (data.success || data.ResponseCode === '0' || data.CheckoutRequestID) {
-        // Poll for completion
-        pollPaymentStatus(data.CheckoutRequestID || data.checkout_request_id, monthIdx, phone, amt);
+        pollPaymentStatus(data.CheckoutRequestID || data.checkout_request_id, monthIdx, phone, rent, tax, total);
         } else {
         showPayError(data.message || data.errorMessage || 'STK push failed. Try again.');
         }
-        } catch (err) {
+        } catch {
         showPayError('Network error. Please try again.');
         }
         }
 
-        async function pollPaymentStatus(checkoutId, monthIdx, phone, amt) {
+        async function pollPaymentStatus(checkoutId, monthIdx, phone, rent, tax, total) {
         let attempts = 0;
         const maxAttempts = 10;
-
         const interval = setInterval(async () => {
         attempts++;
         if (attempts > maxAttempts) {
@@ -862,7 +1129,6 @@
         showPayError('Payment timed out. If you completed payment, it will reflect shortly.');
         return;
         }
-
         try {
         const res  = await fetch(`https://qeja-backend-azkf.onrender.com/mpesa/status/${checkoutId}`, {
         headers: { 'Authorization': 'Bearer ' + token }
@@ -871,7 +1137,7 @@
         if (data.status === 'completed' || data.paid === true || data.ResultCode === '0') {
         clearInterval(interval);
         const ref = data.mpesa_ref || data.MpesaReceiptNumber || `QJ${Date.now()}`;
-        showPaySuccess(monthIdx, ref, amt, phone);
+        showPaySuccess(monthIdx, ref, rent, tax, total, phone);
         } else if (data.status === 'failed' || data.ResultCode === '1032') {
         clearInterval(interval);
         showPayError('Payment was cancelled or failed. Please try again.');
@@ -880,18 +1146,16 @@
         }, 3000);
         }
 
-        function showPaySuccess(monthIdx, ref, amt, phone) {
-        const m = window._months[monthIdx];
-        // Update local state
+        function showPaySuccess(monthIdx, ref, rent, tax, total, phone) {
+        const m  = window._months[monthIdx];
         m.status = 'paid'; m.ref = ref; m.paidDate = new Date().toISOString();
 
-        // Refresh card UI
         const mc = document.getElementById(`mc-${monthIdx}`);
         if (mc) {
         mc.className = 'month-card paid';
-        mc.querySelector('.month-status').className = 'month-status ms-paid';
+        mc.querySelector('.month-status').className   = 'month-status ms-paid';
         mc.querySelector('.month-status').textContent = '✅ PAID';
-        mc.querySelector('.month-ref') && (mc.querySelector('.month-ref').textContent = `Ref: ${ref}`);
+        if (mc.querySelector('.month-ref')) mc.querySelector('.month-ref').textContent = `Ref: ${ref}`;
         }
 
         document.getElementById('modalInner').innerHTML = `
@@ -899,6 +1163,11 @@
         <div class="check">🎉</div>
         <h3>Payment Successful!</h3>
         <p style="color:var(--muted);font-size:13px;">Your rent for Month ${m.number} (${m.label}) has been received.</p>
+        <div class="amount-breakdown" style="text-align:left;">
+        <div class="row"><span>Monthly Rent</span><span>Ksh ${rent.toLocaleString()}</span></div>
+        <div class="row"><span>Service Tax (4%)</span><span>Ksh ${tax.toLocaleString()}</span></div>
+        <div class="row total"><span>Total Paid</span><span>Ksh ${total.toLocaleString()}</span></div>
+        </div>
         <div class="ref">
         <div class="ref-label">M-Pesa Reference Number</div>
         <div>${ref}</div>
@@ -910,11 +1179,10 @@
         <button class="btn-full" style="background:#f1f5f9;color:var(--text);" onclick="closeModal()">Close</button>
         </div>`;
 
-        // Notify backend to update landlord
-        notifyLandlordPayment(ref, monthIdx, amt);
+        notifyLandlordPayment(ref, monthIdx, rent, tax, total);
         }
 
-        async function notifyLandlordPayment(ref, monthIdx, amt) {
+        async function notifyLandlordPayment(ref, monthIdx, rent, tax, total) {
         try {
         await fetch('https://qeja-backend-azkf.onrender.com/tenancy/payment-confirm', {
         method: 'POST',
@@ -925,7 +1193,9 @@
         tenant_id:   loggedUser.id,
         month_index: monthIdx,
         mpesa_ref:   ref,
-        amount:      amt
+        rent_amount: rent,
+        tax_amount:  tax,
+        amount:      total
         })
         });
         } catch {}
@@ -944,9 +1214,7 @@
         </div>`;
         }
 
-        function closeModal() {
-        document.getElementById('stkModal').classList.remove('open');
-        }
+        function closeModal() { document.getElementById('stkModal').classList.remove('open'); }
 
         // ── PDF RECEIPT ──
         function generateReceipt(monthIdx, overrideRef) {
@@ -954,71 +1222,63 @@
         const t   = currentTenancy;
         const ref = overrideRef || m.ref || `QJ${Date.now()}`;
         const now = new Date().toLocaleDateString('en-KE', { day: 'numeric', month: 'long', year: 'numeric' });
+        const rent  = Number(t.rent_amount);
+        const tax   = taxFor(rent);
+        const total = totalWithTax(rent);
         const { jsPDF } = window.jspdf;
         const doc = new jsPDF();
 
-        // Header bar
         doc.setFillColor(26, 21, 53);
         doc.rect(0, 0, 210, 38, 'F');
         doc.setTextColor(255, 255, 255);
-        doc.setFontSize(22);
-        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(22); doc.setFont('helvetica', 'bold');
         doc.text('QEJA CONNECT', 14, 18);
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10); doc.setFont('helvetica', 'normal');
         doc.text('Kenya\'s Trusted Housing Platform', 14, 26);
         doc.text('qejaconnect@outlook.com | +254714104737', 14, 33);
 
-        // Receipt title
         doc.setTextColor(26, 21, 53);
-        doc.setFontSize(16);
-        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(16); doc.setFont('helvetica', 'bold');
         doc.text('RENT PAYMENT RECEIPT', 14, 52);
-
-        // Green accent line
         doc.setFillColor(22, 163, 74);
         doc.rect(14, 55, 80, 2, 'F');
 
-        // Receipt details
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.setTextColor(80, 80, 80);
+        doc.setFontSize(10); doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);
 
         const rows = [
-        ['Receipt Date',       now],
-        ['Receipt No.',        `QJR-${ref.slice(-8).toUpperCase()}`],
-        ['M-Pesa Reference',   ref],
-        ['Tenant Name',        loggedUser.name || loggedUser.username || 'Tenant'],
-        ['Tenant Phone',       loggedUser.phone || '—'],
-        ['Property',           t.property_title || '—'],
-        ['Location',           t.location || '—'],
-        ['Landlord',           t.landlord_name || '—'],
-        ['Month Paid',         `Month ${m.number} — ${m.label}`],
-        ['Due Date',           m.dueDate],
-        ['Amount Paid',        `KES ${Number(t.rent_amount).toLocaleString()}`],
-        ['Payment Method',     'M-Pesa STK Push'],
-        ['Payment Status',     'PAID ✓'],
+        ['Receipt Date',     now],
+        ['Receipt No.',      `QJR-${ref.slice(-8).toUpperCase()}`],
+        ['M-Pesa Reference', ref],
+        ['Tenant Name',      loggedUser.name || loggedUser.fullname || 'Tenant'],
+        ['Tenant Phone',     loggedUser.phone || '—'],
+        ['Property',         t.property_title || '—'],
+        ['Location',         t.location || '—'],
+        ['Landlord',         t.landlord_name || '—'],
+        ['Month Paid',       `Month ${m.number} — ${m.label}`],
+        ['Due Date',         m.dueDate],
+        ['Monthly Rent',     `KES ${rent.toLocaleString()}`],
+        ['Service Tax (4%)', `KES ${tax.toLocaleString()}`],
+        ['Amount Paid',      `KES ${total.toLocaleString()}`],
+        ['Payment Method',   'M-Pesa STK Push'],
+        ['Payment Status',   'PAID ✓'],
         ];
 
         let y = 66;
         rows.forEach(([label, val], i) => {
         if (i % 2 === 0) { doc.setFillColor(248, 250, 252); doc.rect(14, y - 4, 182, 11, 'F'); }
-        doc.setFont('helvetica', 'bold');   doc.setTextColor(50, 50, 50); doc.text(label + ':', 16, y + 3);
-        doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80); doc.text(String(val), 80, y + 3);
+        doc.setFont('helvetica', 'bold');   doc.setTextColor(50, 50, 50);  doc.text(label + ':', 16, y + 3);
+        doc.setFont('helvetica', 'normal'); doc.setTextColor(80, 80, 80);  doc.text(String(val), 80, y + 3);
         y += 11;
         });
 
-        // Amount box
         y += 6;
-        doc.setFillColor(240, 253, 244);
-        doc.setDrawColor(187, 247, 208);
+        doc.setFillColor(240, 253, 244); doc.setDrawColor(187, 247, 208);
         doc.roundedRect(14, y, 182, 26, 4, 4, 'FD');
         doc.setFontSize(12); doc.setFont('helvetica', 'bold'); doc.setTextColor(22, 163, 74);
-        doc.text('TOTAL AMOUNT PAID', 105, y + 10, { align: 'center' });
+        doc.text('TOTAL AMOUNT PAID (incl. 4% tax)', 105, y + 10, { align: 'center' });
         doc.setFontSize(18);
-        doc.text(`KES ${Number(t.rent_amount).toLocaleString()}`, 105, y + 21, { align: 'center' });
+        doc.text(`KES ${total.toLocaleString()}`, 105, y + 21, { align: 'center' });
 
-        // Footer
         doc.setFontSize(8); doc.setFont('helvetica', 'normal'); doc.setTextColor(150, 150, 150);
         doc.text('This is an official receipt generated by Qeja Connect. For disputes contact qejaconnect@outlook.com', 105, 282, { align: 'center' });
         doc.text(`© ${new Date().getFullYear()} Qeja Connect Kenya Ltd. All Rights Reserved.`, 105, 288, { align: 'center' });
