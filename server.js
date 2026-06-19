@@ -13,7 +13,7 @@ const webpush    = require("web-push");
 const helmet     = require("helmet");
 const rateLimit  = require("express-rate-limit");
 const { z }      = require("zod");
-const nodemailer = require("nodemailer");
+
 const {
   generateRegistrationOptions,
   verifyRegistrationResponse,
@@ -369,13 +369,8 @@ router.get("/admin/tenants", adminAuth, async (req, res) => {
 // =========================
 // ADMIN: EMAIL A TENANT
 // =========================
-const mailTransporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.MAIL_USER,
-    pass: process.env.MAIL_PASS
-  }
-});
+const { Resend } = require("resend");
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 router.post("/admin/tenants/:id/email", adminAuth, async (req, res) => {
   try {
@@ -391,11 +386,11 @@ router.post("/admin/tenants/:id/email", adminAuth, async (req, res) => {
       return res.status(404).json({ success: false, message: "Tenant not found" });
     }
 
-    await mailTransporter.sendMail({
-      from:    `"QejaConnect" <${process.env.MAIL_USER}>`,
-      to:      rows[0].email,
+    await resend.emails.send({
+      from: "QejaConnect <onboarding@resend.dev>",
+      to: rows[0].email,
       subject,
-      text:    message
+      text: message
     });
 
     res.json({ success: true, message: `Email sent to ${rows[0].fullname}` });
@@ -726,8 +721,9 @@ app.post("/auth/send-otp", signupLimiter, async (req, res) => {
   otpStore.set(email, { otp, expires: Date.now() + 10 * 60 * 1000 }); // 10 min expiry
 
   try {
-    await mailTransporter.sendMail({
-      from: `"QejaConnect" <${process.env.MAIL_USER}>`,
+    // AFTER
+    await resend.emails.send({
+      from: "QejaConnect <onboarding@resend.dev>",
       to: email,
       subject: "Your QejaConnect Verification Code",
       html: `

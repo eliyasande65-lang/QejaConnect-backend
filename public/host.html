@@ -58,7 +58,6 @@
             padding: 48px 16px 64px;
         }
 
-            /* Ambient background blobs */
             body::before, body::after {
                 content: '';
                 position: fixed;
@@ -91,7 +90,6 @@
             z-index: 1;
         }
 
-        /* Header */
         .header {
             text-align: center;
             margin-bottom: 36px;
@@ -125,7 +123,6 @@
             font-weight: 300;
         }
 
-        /* Card */
         .card {
             background: var(--card);
             border: 1px solid var(--border);
@@ -134,7 +131,6 @@
             box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
         }
 
-        /* Section headings inside form */
         .section-label {
             font-size: 0.7rem;
             font-weight: 600;
@@ -154,7 +150,6 @@
                 background: var(--border);
             }
 
-        /* Input rows */
         .row {
             display: grid;
             gap: 12px;
@@ -177,6 +172,8 @@
                 padding: 24px 18px;
             }
         }
+
+        /* OTP styles */
         .otp-row {
             display: flex;
             gap: 8px;
@@ -185,22 +182,27 @@
 
             .otp-row input {
                 flex: 1;
-                padding: 11px 14px;
-                border: 1.5px solid #e2e8f0;
+                padding: 12px 14px;
+                background: var(--dim);
+                border: 1.5px solid var(--border);
                 border-radius: 10px;
-                font-size: 14px;
-                outline: none;
-                letter-spacing: 6px;
+                color: var(--text);
+                font-family: 'DM Sans', sans-serif;
+                font-size: 1rem;
                 font-weight: 700;
                 text-align: center;
+                letter-spacing: 6px;
+                outline: none;
+                transition: border-color 0.2s, box-shadow 0.2s;
             }
 
                 .otp-row input:focus {
-                    border-color: #7c3aed;
+                    border-color: var(--border-focus);
+                    box-shadow: 0 0 0 3px var(--accent-glow);
                 }
 
         .btn-send-otp {
-            padding: 11px 16px;
+            padding: 12px 16px;
             background: #7c3aed;
             color: white;
             border: none;
@@ -210,25 +212,32 @@
             cursor: pointer;
             white-space: nowrap;
             transition: opacity 0.2s;
+            font-family: 'DM Sans', sans-serif;
         }
 
             .btn-send-otp:disabled {
-                opacity: 0.5;
+                opacity: 0.4;
                 cursor: not-allowed;
+            }
+
+            .btn-send-otp:not(:disabled):hover {
+                opacity: 0.85;
             }
 
         .verified-badge {
             display: inline-flex;
             align-items: center;
             gap: 6px;
-            background: #d1fae5;
-            color: #065f46;
+            background: rgba(16,185,129,0.15);
+            color: #34d399;
+            border: 1px solid rgba(16,185,129,0.3);
             padding: 10px 14px;
             border-radius: 10px;
             font-size: 13px;
             font-weight: 700;
             width: 100%;
         }
+
         /* Fields */
         .field {
             position: relative;
@@ -295,7 +304,6 @@
             line-height: 1.5;
         }
 
-        /* Password wrapper */
         .pw-wrap {
             position: relative;
         }
@@ -323,7 +331,6 @@
                 color: var(--accent-light);
             }
 
-        /* Strength bar */
         .strength-wrap {
             margin-top: 8px;
             display: none;
@@ -353,7 +360,6 @@
             margin-top: 5px;
         }
 
-        /* Requirements list */
         .req-list {
             list-style: none;
             margin-top: 10px;
@@ -393,7 +399,6 @@
                     content: '✓';
                 }
 
-        /* Upload areas */
         .upload-btn {
             display: flex;
             align-items: center;
@@ -440,7 +445,6 @@
             display: none;
         }
 
-        /* ID section */
         .id-box {
             background: rgba(124,58,237,0.05);
             border: 1px solid rgba(139,92,246,0.2);
@@ -456,7 +460,6 @@
             margin-bottom: 10px;
         }
 
-        /* Submit button */
         .submit-btn {
             width: 100%;
             margin-top: 28px;
@@ -503,7 +506,6 @@
                 pointer-events: none;
             }
 
-        /* Spinner inside button */
         .spinner {
             display: inline-block;
             width: 16px;
@@ -522,7 +524,6 @@
             }
         }
 
-        /* Toast */
         #toast {
             position: fixed;
             bottom: 28px;
@@ -576,7 +577,6 @@
             line-height: 1.4;
         }
 
-        /* Footer */
         .foot {
             text-align: center;
             margin-top: 32px;
@@ -602,7 +602,6 @@
         </div>
 
         <div class="card">
-           
             <form id="signupForm">
 
                 <!-- Personal Info -->
@@ -626,10 +625,10 @@
                                     <input type="text" id="otpInput" maxlength="6" placeholder="000000">
                                     <button type="button" class="btn-send-otp" onclick="verifyOtp()">Verify</button>
                                 </div>
-                                <div style="margin-top:6px;font-size:12px;color:#666;">
+                                <div style="margin-top:6px;font-size:12px;color:var(--muted);">
                                     Didn't get it?
-                                    <span id="resendTimer" style="color:#7c3aed;font-weight:700;"></span>
-                                    <button type="button" id="resendBtn" onclick="sendOtp()" style="display:none;background:none;border:none;color:#7c3aed;font-weight:700;cursor:pointer;font-size:12px;">Resend OTP</button>
+                                    <span id="resendTimer" style="color:#a78bfa;font-weight:700;"></span>
+                                    <button type="button" id="resendBtn" onclick="sendOtp()" style="display:none;background:none;border:none;color:#a78bfa;font-weight:700;cursor:pointer;font-size:12px;">Resend OTP</button>
                                 </div>
                             </div>
                             <div id="verifiedBadge" style="display:none;">
@@ -766,11 +765,14 @@
         <span id="toast-icon"></span>
         <span id="toast-msg"></span>
     </div>
+
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
+        let emailVerified = false;
+        let resendCountdown;
+        let toastTimer;
 
         // ── Toast ───────────────────────────────────────────────────────────────
-        let toastTimer;
         function showToast(message, type = 'info', duration = 3500) {
         const toast = document.getElementById('toast');
         const icon  = document.getElementById('toast-icon');
@@ -784,6 +786,95 @@
         toast.classList.add('show');
         clearTimeout(toastTimer);
         toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        }
+
+        // ── OTP ─────────────────────────────────────────────────────────────────
+        function onEmailChange() {
+        const email = document.getElementById('email').value.trim();
+        const valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+        document.getElementById('sendOtpBtn').disabled = !valid;
+
+        // Reset verification state if email is changed after verifying
+        if (emailVerified) {
+        emailVerified = false;
+        document.getElementById('otpGroup').style.display = 'none';
+        document.getElementById('verifiedBadge').style.display = 'none';
+        document.getElementById('otpInputArea').style.display = 'block';
+        document.getElementById('email').readOnly = false;
+        }
+        }
+
+        async function sendOtp() {
+        const email = document.getElementById('email').value.trim();
+        const btn   = document.getElementById('sendOtpBtn');
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+
+        try {
+        const res  = await fetch(`${API}/auth/send-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+        });
+        const data = await res.json();
+        if (data.success) {
+        document.getElementById('otpGroup').style.display = 'block';
+        document.getElementById('otpInput').value = '';
+        showToast('OTP sent! Check your email.', 'success');
+        startResendTimer(60);
+        } else {
+        showToast(data.message || 'Failed to send OTP.', 'error');
+        btn.disabled = false;
+        }
+        } catch {
+        showToast('Network error. Try again.', 'error');
+        btn.disabled = false;
+        }
+        btn.textContent = 'Send OTP';
+        }
+
+        async function verifyOtp() {
+        const email = document.getElementById('email').value.trim();
+        const otp   = document.getElementById('otpInput').value.trim();
+        if (otp.length !== 6) { showToast('Enter the 6-digit code.', 'warning'); return; }
+
+        try {
+        const res  = await fetch(`${API}/auth/verify-otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, otp })
+        });
+        const data = await res.json();
+        if (data.success) {
+        emailVerified = true;
+        clearInterval(resendCountdown);
+        document.getElementById('otpInputArea').style.display = 'none';
+        document.getElementById('verifiedBadge').style.display = 'block';
+        document.getElementById('email').readOnly = true;
+        showToast('Email verified! You can now complete registration.', 'success');
+        } else {
+        showToast(data.message || 'Invalid OTP. Try again.', 'error');
+        }
+        } catch {
+        showToast('Network error. Try again.', 'error');
+        }
+        }
+
+        function startResendTimer(seconds) {
+        const timerEl   = document.getElementById('resendTimer');
+        const resendBtn = document.getElementById('resendBtn');
+        resendBtn.style.display = 'none';
+        let remaining = seconds;
+        clearInterval(resendCountdown);
+        resendCountdown = setInterval(() => {
+        timerEl.textContent = `Resend in ${remaining}s`;
+        remaining--;
+        if (remaining < 0) {
+        clearInterval(resendCountdown);
+        timerEl.textContent = '';
+        resendBtn.style.display = 'inline';
+        }
+        }, 1000);
         }
 
         // ── File upload labels ──────────────────────────────────────────────────
@@ -834,7 +925,6 @@
         num:   v => /[0-9]/.test(v),
         sym:   v => /[^A-Za-z0-9]/.test(v),
         };
-
         const strengthLabels = ['', 'Weak', 'Fair', 'Good', 'Strong', 'Very strong'];
         const strengthColors = ['', '#ef4444', '#f59e0b', '#a78bfa', '#10b981', '#059669'];
 
@@ -855,7 +945,6 @@
         this.classList.remove('valid', 'invalid');
         return;
         }
-
         wrap.classList.add('visible');
         list.classList.add('visible');
 
@@ -879,10 +968,7 @@
         // ── Confirm password match ──────────────────────────────────────────────
         document.getElementById('confirm').addEventListener('input', function () {
         const pw = document.getElementById('password').value;
-        if (this.value.length === 0) {
-        this.classList.remove('valid', 'invalid');
-        return;
-        }
+        if (this.value.length === 0) { this.classList.remove('valid', 'invalid'); return; }
         this.classList.toggle('valid',   this.value === pw);
         this.classList.toggle('invalid', this.value !== pw);
         });
@@ -907,14 +993,12 @@
         const file        = document.getElementById('profile_pic').files[0];
         const idFile      = document.getElementById('id_photo').files[0];
 
-        // Validation
         if (!fullname) { showToast('Please enter your full name.', 'warning'); return; }
 
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
         showToast('Please enter a valid email address.', 'warning'); return;
         }
 
-        // ── OTP check ──────────────────────────────────────────────────────
         if (!emailVerified) {
         showToast('Please verify your email with the OTP before submitting.', 'warning');
         document.getElementById('otpGroup').style.display = 'block';
@@ -957,7 +1041,6 @@
         return;
         }
 
-        // Build FormData
         const formData = new FormData();
         formData.append('fullname',    fullname);
         formData.append('email',       email);
@@ -983,7 +1066,7 @@
         const data = await res.json();
 
         if (data.success) {
-        showToast('Application submitted! We\'ll notify you once approved.', 'success', 4000);
+        showToast("Application submitted! We'll notify you once approved.", 'success', 4000);
         setTimeout(() => { window.location.href = 'login.html'; }, 3000);
         } else {
         showToast(data.message || 'Sign up failed. Please try again.', 'error');
