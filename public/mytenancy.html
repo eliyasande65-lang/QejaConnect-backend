@@ -823,6 +823,23 @@
         const TAX_RATE   = 0.04; // 4% service tax applied on top of monthly rent
         let currentTenancy  = null;
         let currentMonthData = null;
+        let logoDataUrl = null; // cached base64 logo, used as the PDF watermark
+
+        // Preload the logo image and convert it to a base64 data URL so jsPDF can embed it.
+        async function preloadLogoForWatermark() {
+        try {
+        const res  = await fetch('logo.jpg');
+        const blob = await res.blob();
+        logoDataUrl = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+        });
+        } catch {
+        logoDataUrl = null; // generateReceipt() falls back to a text watermark
+        }
+        }
 
         function taxFor(rent) {
         return Math.round(rent * TAX_RATE * 100) / 100;
@@ -1237,6 +1254,20 @@
         doc.text('Kenya\'s Trusted Housing Platform', 14, 26);
         doc.text('qejaconnect@outlook.com | +254714104737', 14, 33);
 
+        // ── WATERMARK ── faded logo (or text fallback) centered behind the body content
+        doc.saveGraphicsState();
+        doc.setGState(new doc.GState({ opacity: 0.18 }));
+        if (logoDataUrl) {
+        const wmSize = 120; // mm
+        doc.addImage(logoDataUrl, 'JPEG', (210 - wmSize) / 2, (297 - wmSize) / 2, wmSize, wmSize);
+        } else {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(60);
+        doc.setTextColor(79, 70, 229);
+        doc.text('QEJA CONNECT', 105, 170, { align: 'center', angle: 45 });
+        }
+        doc.restoreGraphicsState();
+
         doc.setTextColor(26, 21, 53);
         doc.setFontSize(16); doc.setFont('helvetica', 'bold');
         doc.text('RENT PAYMENT RECEIPT', 14, 52);
@@ -1249,7 +1280,7 @@
         ['Receipt Date',     now],
         ['Receipt No.',      `QJR-${ref.slice(-8).toUpperCase()}`],
         ['M-Pesa Reference', ref],
-        ['Tenant Name',      loggedUser.name || loggedUser.fullname || 'Tenant'],
+        ['Tenant Name',      loggedUser.name || loggedUser.username || 'Tenant'],
         ['Tenant Phone',     loggedUser.phone || '—'],
         ['Property',         t.property_title || '—'],
         ['Location',         t.location || '—'],
@@ -1294,6 +1325,7 @@
         window.onload = function () {
         if (localStorage.getItem('theme') === 'dark') document.body.classList.add('dark');
         loadTenancy();
+        preloadLogoForWatermark();
         };
     </script>
 </body>
