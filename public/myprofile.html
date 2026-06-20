@@ -496,7 +496,10 @@
                 <div class="value" id="fieldEmail">—</div>
                 <span class="locked-note">🔒 Cannot be changed</span>
             </div>
-
+            <div class="field-row">
+                <label>User ID</label>
+                <div class="value" id="fieldUserId">—</div>
+            </div>
             <div id="landlordReadOnly" style="display:none;">
                 <div class="field-row">
                     <label>Property name</label>
@@ -597,7 +600,7 @@
 
         setText('fieldName',  user.fullname);
         setText('fieldEmail', user.email);
-
+        setText('fieldUserId', user.display_id || user.id);
         if (role === 'landlord') {
         show('landlordReadOnly');
         setText('fieldProperty', user.property_name || user.property);

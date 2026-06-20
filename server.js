@@ -216,10 +216,11 @@ app.post("/signup", signupLimiter, validate(signupSchema), async (req, res) => {
     }
 
     const hashed = await bcrypt.hash(password, SALT_ROUNDS);
+    const displayId = await getNextDisplayId("users", "QT"); // ← NEW
 
     const [result] = await dbPromise.query(
-      `INSERT INTO users (fullname, email, phone, password, referred_by) VALUES (?, ?, ?, ?, ?)`,
-      [fullname, email, phone, hashed, referredBy]
+      `INSERT INTO users (fullname, email, phone, password, referred_by, display_id) VALUES (?, ?, ?, ?, ?, ?)`,
+      [fullname, email, phone, hashed, referredBy, displayId] // ← NEW
     );
 
     const myCode = `REF${1000 + result.insertId}`;
@@ -228,9 +229,8 @@ app.post("/signup", signupLimiter, validate(signupSchema), async (req, res) => {
       [myCode, result.insertId]
     );
 
-    res.json({ success: true, message: "User created" });
+    res.json({ success: true, message: "User created", tenant_id: displayId }); // ← NEW
   } catch (err) {
-    // Don't leak DB details — just flag duplicate email
     if (err.code === "ER_DUP_ENTRY") {
       return res.status(409).json({ success: false, message: "Email already registered" });
     }
@@ -342,8 +342,8 @@ router.get("/admin/tenants", adminAuth, async (req, res) => {
     let params = [];
 
     if (search) {
-      where  = `WHERE fullname LIKE ? OR email LIKE ? OR phone LIKE ?`;
-      params = [`%${search}%`, `%${search}%`, `%${search}%`];
+      where  = `WHERE fullname LIKE ? OR email LIKE ? OR phone LIKE ? OR display_id LIKE ?`;
+      params = [`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`];
     }
 
     const [countRows] = await dbPromise.query(
@@ -352,7 +352,7 @@ router.get("/admin/tenants", adminAuth, async (req, res) => {
     const total = countRows[0].total;
 
     const [rows] = await dbPromise.query(
-      `SELECT id, fullname, email, phone, profile_pic, created_at
+      `SELECT id, display_id, fullname, email, phone, profile_pic, created_at
        FROM users ${where}
        ORDER BY created_at DESC
        LIMIT ? OFFSET ?`,
@@ -365,7 +365,6 @@ router.get("/admin/tenants", adminAuth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
-
 // =========================
 // ADMIN: EMAIL A TENANT
 // =========================
@@ -767,6 +766,26 @@ app.post("/auth/verify-otp", (req, res) => {
   otpStore.set(email, { otp, verified: true, expires: Date.now() + 30 * 60 * 1000 });
   res.json({ success: true, message: "Email verified" });
 });
+
+// =========================
+// DISPLAY ID GENERATOR
+// =========================
+async function getNextDisplayId(table, prefix) {
+  const [rows] = await dbPromise.query(
+    `SELECT display_id FROM ${table}
+     WHERE display_id IS NOT NULL
+     ORDER BY id DESC LIMIT 1`
+  );
+
+  let nextNum = 1;
+  if (rows.length && rows[0].display_id) {
+    const match = rows[0].display_id.match(/\d+$/);
+    if (match) nextNum = parseInt(match[0], 10) + 1;
+  }
+  return `${prefix}${String(nextNum).padStart(3, "0")}`;
+}
+
+
 // =========================
 // REGISTER LANDLORD
 // =========================
@@ -782,12 +801,13 @@ app.post("/register-landlord",
         fullname, email, phone, id, kra, county,
         town, property, type, units, description, password
       } = req.body;
-      
-        const otpEntry = otpStore.get(email);
-        if (!otpEntry || !otpEntry.verified) {
-          return res.status(403).json({ success: false, message: "Email not verified. Please verify your email first." });
-        }
-otpStore.delete(email); // consume it — one use only
+
+      const otpEntry = otpStore.get(email);
+      if (!otpEntry || !otpEntry.verified) {
+        return res.status(403).json({ success: false, message: "Email not verified. Please verify your email first." });
+      }
+      otpStore.delete(email);
+
       const profileFile = req.files?.["profile_pic"]?.[0];
       const idFile      = req.files?.["id_photo"]?.[0];
 
@@ -798,6 +818,7 @@ otpStore.delete(email); // consume it — one use only
       }
 
       const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
+      const displayId = await getNextDisplayId("landlords", "QL"); // ← NEW
 
       function uploadToCloudinary(buffer, folder) {
         return new Promise((resolve, reject) => {
@@ -818,15 +839,15 @@ otpStore.delete(email); // consume it — one use only
         INSERT INTO landlords
           (fullname, email, phone, national_id, kra_pin, county, town,
            property_name, property_type, units, description,
-           profile_pic, id_photo, password, verified)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0)
+           profile_pic, id_photo, password, verified, display_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
       `;
 
       db.query(
         sql,
         [fullname, email, phone, id, kra, county, town,
          property, type, units, description,
-         profile_pic_url, id_photo_url, hashedPassword],
+         profile_pic_url, id_photo_url, hashedPassword, displayId], // ← NEW
         (err2) => {
           if (err2) {
             if (err2.code === "ER_DUP_ENTRY") {
@@ -834,7 +855,7 @@ otpStore.delete(email); // consume it — one use only
             }
             return res.status(500).json({ success: false, message: "Server error" });
           }
-          res.json({ success: true, message: "Landlord registered" });
+          res.json({ success: true, message: "Landlord registered", landlord_id: displayId }); // ← NEW
         }
       );
     } catch (err) {
@@ -849,11 +870,11 @@ otpStore.delete(email); // consume it — one use only
 // =========================
 app.get("/admin/landlords", adminAuth, async (req, res) => {
   try {
-    // 1. Get all verified landlords
     const [landlords] = await dbPromise.query(`
-      SELECT id, fullname, email, phone FROM landlords
+      SELECT id, display_id, fullname, email, phone FROM landlords
       WHERE verified = 1 ORDER BY created_at DESC
     `);
+    
 
     // 2. For each landlord, fetch their tenancies + payments
     const enriched = await Promise.all(landlords.map(async (ll) => {

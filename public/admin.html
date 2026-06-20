@@ -425,6 +425,11 @@
                 color: var(--muted)
             }
 
+            .card-title .id-chip {
+                color: #a78bfa;
+                font-weight: 700;
+            }
+
         .status-badge {
             font-family: var(--mono);
             font-size: 10px;
@@ -518,6 +523,12 @@
             color: var(--text);
             word-break: break-all
         }
+
+            .detail-val.id-chip {
+                color: #a78bfa;
+                font-weight: 700;
+                font-family: var(--mono);
+            }
 
         .actions {
             display: flex;
@@ -988,7 +999,7 @@
                     <h2>Landlord Verification</h2>
                     <div class="search-wrap">
                         <span class="ico">🔍</span>
-                        <input type="text" id="searchInput" placeholder="Search name / email…" oninput="onSearch()">
+                        <input type="text" id="searchInput" placeholder="Search ID / name / email…" oninput="onSearch()">
                     </div>
                     <button class="filter-tab active" onclick="setFilter('all',this)">All</button>
                     <button class="filter-tab" onclick="setFilter('0',this)">Pending</button>
@@ -1092,7 +1103,7 @@
         function renderCards(){
         const filtered=allData.filter(l=>{
         if(!searchQ) return true;
-        return ['fullname','email','phone','national_id'].some(k=>(l[k]||'').toLowerCase().includes(searchQ));
+        return ['fullname','email','phone','national_id','display_id'].some(k=>(l[k]||'').toString().toLowerCase().includes(searchQ));
         });
         const grid=document.getElementById('grid');
         if(!filtered.length){grid.innerHTML='<div class="state-msg">No landlords found.</div>';return;}
@@ -1115,11 +1126,12 @@
         const isFixed=l.verified===1||l.verified===-1||l.verified==='1'||l.verified==='-1';
         const idSrc=l.id_photo?escH(l.id_photo):null;
         const profSrc=l.profile_pic?escH(l.profile_pic):'https://ui-avatars.com/api/?name='+encodeURIComponent(l.fullname||'L')+'&background=7c3aed&color=fff';
+        const displayId=l.display_id?escH(l.display_id):'—';
         return `
         <div class="card" style="animation-delay:${delay}ms" id="card-${l.id}">
         <div class="card-header">
         <img class="avatar" src="${profSrc}" alt="Profile" onclick="openLightbox('${profSrc}')">
-        <div class="card-title"><h3>${escH(l.fullname||'—')}</h3><small>#${l.id} · ${escH(l.email||'')}</small></div>
+        <div class="card-title"><h3>${escH(l.fullname||'—')}</h3><small><span class="id-chip">${displayId}</span> · #${l.id} · ${escH(l.email||'')}</small></div>
         ${statusBadge(l.verified)}
         </div>
         <div class="id-wrap">
@@ -1127,7 +1139,7 @@
         ${idSrc?`<img class="id-img" src="${idSrc}" alt="National ID" onclick="openLightbox('${idSrc}')">`:'<div class="id-missing">No ID uploaded</div>'}
         </div>
         <div class="details">
-        ${row('Phone',l.phone)}${row('Nat. ID',l.national_id)}${row('KRA PIN',l.kra_pin)}
+        ${row('Landlord ID',l.display_id,true)}${row('Phone',l.phone)}${row('Nat. ID',l.national_id)}${row('KRA PIN',l.kra_pin)}
         ${row('County',l.county)}${row('Town',l.town)}${row('Property',l.property_name)}
         ${row('Type',l.property_type)}${row('Units',l.units)}${row('Joined',fmtDate(l.created_at))}
         ${l.description?row('Notes',l.description):''}
@@ -1158,9 +1170,10 @@
         </div>`;
         }
 
-        function row(k,v){
+        function row(k,v,isIdChip){
         if(!v&&v!==0) return '';
-        return `<div class="detail-row"><span class="detail-key">${k}</span><span class="detail-val">${escH(String(v))}</span></div>`;
+        const valClass = isIdChip ? 'detail-val id-chip' : 'detail-val';
+        return `<div class="detail-row"><span class="detail-key">${k}</span><span class="${valClass}">${escH(String(v))}</span></div>`;
         }
 
         async function verifyLandlord(id,action,btn){

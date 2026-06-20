@@ -828,7 +828,7 @@
         // Preload the logo image and convert it to a base64 data URL so jsPDF can embed it.
         async function preloadLogoForWatermark() {
         try {
-        const res  = await fetch('logo.jpg');
+        const res  = await fetch('logo.png');
         const blob = await res.blob();
         logoDataUrl = await new Promise((resolve, reject) => {
         const reader = new FileReader();
@@ -1258,8 +1258,8 @@
         doc.saveGraphicsState();
         doc.setGState(new doc.GState({ opacity: 0.18 }));
         if (logoDataUrl) {
-        const wmSize = 120; // mm
-        doc.addImage(logoDataUrl, 'JPEG', (210 - wmSize) / 2, (297 - wmSize) / 2, wmSize, wmSize);
+        const wmSize = 150; // mm
+        doc.addImage(logoDataUrl, 'PNG', (210 - wmSize) / 2, (297 - wmSize) / 2, wmSize, wmSize);
         } else {
         doc.setFont('helvetica', 'bold');
         doc.setFontSize(60);
@@ -1280,7 +1280,7 @@
         ['Receipt Date',     now],
         ['Receipt No.',      `QJR-${ref.slice(-8).toUpperCase()}`],
         ['M-Pesa Reference', ref],
-        ['Tenant Name',      loggedUser.name || loggedUser.username || 'Tenant'],
+        ['Tenant Name',      loggedUser.name || loggedUser.fullname || 'Tenant'],
         ['Tenant Phone',     loggedUser.phone || '—'],
         ['Property',         t.property_title || '—'],
         ['Location',         t.location || '—'],

@@ -257,6 +257,20 @@
             color: var(--muted);
         }
 
+        .display-id-tag {
+            display: inline-flex;
+            align-items: center;
+            font-family: 'DM Mono', monospace, monospace;
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: #a78bfa;
+            background: rgba(124,58,237,0.12);
+            border: 1px solid rgba(124,58,237,0.3);
+            border-radius: 8px;
+            padding: 4px 10px;
+            white-space: nowrap;
+        }
+
         .muted-text {
             color: var(--muted);
         }
@@ -482,7 +496,7 @@
             <div class="toolbar">
                 <div class="search-wrap">
                     <span class="search-icon">🔍</span>
-                    <input type="text" id="searchInput" placeholder="Search by name, email, or phone…">
+                    <input type="text" id="searchInput" placeholder="Search by ID, name, email, or phone…">
                 </div>
                 <div class="stat-pill">Total tenants: <strong id="totalCount">—</strong></div>
             </div>
@@ -492,6 +506,7 @@
                     <table>
                         <thead>
                             <tr>
+                                <th>Tenant ID</th>
                                 <th>Tenant</th>
                                 <th class="col-phone">Phone</th>
                                 <th>Email</th>
@@ -500,7 +515,7 @@
                             </tr>
                         </thead>
                         <tbody id="tenantsBody">
-                            <tr><td colspan="5"><div class="loading-state">Loading tenants…</div></td></tr>
+                            <tr><td colspan="6"><div class="loading-state">Loading tenants…</div></td></tr>
                         </tbody>
                     </table>
                 </div>
@@ -591,7 +606,7 @@
         async function loadTenants() {
         const search = document.getElementById('searchInput').value.trim();
         const tbody = document.getElementById('tenantsBody');
-        tbody.innerHTML = `<tr><td colspan="5"><div class="loading-state">Loading tenants…</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6"><div class="loading-state">Loading tenants…</div></td></tr>`;
 
         try {
         const params = new URLSearchParams({
@@ -622,7 +637,7 @@
 
         } catch (err) {
         console.error(err);
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">⚠️ Could not load tenants. ${err.message}</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">⚠️ Could not load tenants. ${err.message}</div></td></tr>`;
         }
         }
 
@@ -640,7 +655,7 @@
         const tbody = document.getElementById('tenantsBody');
 
         if (!tenants || tenants.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="5"><div class="empty-state">No tenants found.</div></td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6"><div class="empty-state">No tenants found.</div></td></tr>`;
         return;
         }
 
@@ -649,9 +664,11 @@
         const avatar = t.profile_pic
         ? `<img class="avatar" src="${t.profile_pic}" alt="">`
         : `<div class="avatar">${initials(t.fullname)}</div>`;
+        const displayId = t.display_id ? escapeHtml(t.display_id) : '—';
 
         return `
         <tr>
+        <td><span class="display-id-tag">${displayId}</span></td>
         <td>
         <div class="tenant-cell">
         ${avatar}

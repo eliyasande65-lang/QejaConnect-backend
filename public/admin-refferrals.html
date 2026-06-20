@@ -3,504 +3,855 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Referrals & Payouts · QejaConnect Admin</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-    <style>
-        :root {
-            --bg: #0d0a1a;
-            --surface: #13102a;
-            --card: #1a1535;
-            --border: rgba(139, 92, 246, 0.18);
-            --border-focus: #7c3aed;
-            --accent: #7c3aed;
-            --accent-light: #a78bfa;
-            --accent-glow: rgba(124, 58, 237, 0.25);
-            --text: #f1f0f7;
-            --muted: #8b84a8;
-            --dim: rgba(255,255,255,0.06);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --gold: #fbbf24;
+    <title>Admin — Landlords & Withdrawals | Qeja Connect</title>
+    <script>
+        (function () {
+        let secret = localStorage.getItem('admin_secret');
+        if (!secret) {
+        secret = prompt('🛡️ Enter Admin Secret:');
+        if (!secret) { window.location.replace('login.html'); return; }
+        localStorage.setItem('admin_secret', secret);
         }
-
+        })();
+    </script>
+    <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
 
+        :root {
+            --navy: #1a1535;
+            --navy2: #13102a;
+            --indigo: #4f46e5;
+            --purple: #7c3aed;
+            --bg: #0d0a1a;
+            --surface: #13102a;
+            --card: #1a1535;
+            --border: rgba(139,92,246,0.18);
+            --text: #f1f0f7;
+            --muted: #8b84a8;
+            --green: #10b981;
+            --amber: #f59e0b;
+            --red: #ef4444;
+            --dim: rgba(255,255,255,0.05);
+        }
+
         body {
-            font-family: 'DM Sans', sans-serif;
+            font-family: 'Segoe UI', Arial, sans-serif;
             background: var(--bg);
             color: var(--text);
             min-height: 100vh;
-            padding: 32px 16px 64px;
         }
 
-            body::before, body::after {
-                content: '';
-                position: fixed;
-                border-radius: 50%;
-                filter: blur(120px);
-                pointer-events: none;
-                z-index: 0;
-            }
-
-            body::before {
-                width: 500px;
-                height: 500px;
-                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
-                top: -100px;
-                left: -150px;
-            }
-
-            body::after {
-                width: 400px;
-                height: 400px;
-                background: radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%);
-                bottom: 0;
-                right: -120px;
-            }
-
-        .page {
-            max-width: 1200px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
-        }
-
-        /* Header */
-        .header {
-            margin-bottom: 22px;
-        }
-
-            .header .eyebrow {
-                font-size: 0.72rem;
-                font-weight: 600;
-                letter-spacing: 0.16em;
-                text-transform: uppercase;
-                color: var(--accent-light);
-                margin-bottom: 8px;
-            }
-
-            .header h1 {
-                font-family: 'DM Serif Display', serif;
-                font-size: clamp(1.8rem, 5vw, 2.4rem);
-                font-weight: 400;
-                letter-spacing: -0.5px;
-            }
-
-            .header p {
-                color: var(--muted);
-                font-size: 0.92rem;
-                margin-top: 6px;
-                font-weight: 300;
-            }
-
-        /* Admin nav strip */
-        .admin-nav {
+        /* ── HEADER ── */
+        header {
+            background: var(--navy2);
+            border-bottom: 1px solid var(--border);
+            padding: 0 28px;
+            height: 64px;
             display: flex;
-            gap: 8px;
-            margin-bottom: 24px;
-            flex-wrap: wrap;
-        }
-
-            .admin-nav a {
-                text-decoration: none;
-            }
-
-        .admin-nav-btn {
-            display: inline-flex;
             align-items: center;
-            gap: 6px;
-            padding: 9px 16px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--card);
-            color: var(--muted);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.84rem;
-            font-weight: 500;
-            transition: border-color 0.2s, color 0.2s, background 0.2s;
-            white-space: nowrap;
+            justify-content: space-between;
+            position: sticky;
+            top: 0;
+            z-index: 200;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.4);
         }
 
-            .admin-nav-btn:hover {
-                border-color: var(--accent);
-                color: var(--text);
-                background: rgba(124,58,237,0.08);
-            }
-
-            .admin-nav-btn.active {
-                background: var(--accent-glow);
-                border-color: var(--accent);
-                color: var(--accent-light);
-            }
-
-        /* Admin key gate */
-        .key-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
+        .logo-area {
             display: flex;
+            align-items: center;
             gap: 12px;
-            align-items: flex-end;
-            flex-wrap: wrap;
         }
 
-            .key-card .field {
-                flex: 1;
-                min-width: 220px;
-            }
-
-            .key-card label {
-                display: block;
-                font-size: 0.75rem;
-                font-weight: 500;
-                color: var(--muted);
-                margin-bottom: 6px;
-                letter-spacing: 0.02em;
-            }
-
-        input, select {
-            width: 100%;
-            padding: 11px 14px;
-            background: var(--dim);
-            border: 1.5px solid var(--border);
+        .logo-badge {
+            width: 40px;
+            height: 40px;
             border-radius: 10px;
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.92rem;
-            outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-        }
-
-            input::placeholder {
-                color: var(--muted);
-            }
-
-            input:focus, select:focus {
-                border-color: var(--border-focus);
-                background: rgba(124,58,237,0.06);
-                box-shadow: 0 0 0 3px var(--accent-glow);
-            }
-
-        .btn {
-            padding: 11px 22px;
-            border-radius: 10px;
-            border: none;
             background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            color: white;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.92rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: opacity 0.2s, transform 0.15s;
-            white-space: nowrap;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            box-shadow: 0 4px 16px rgba(124,58,237,0.4);
         }
 
-            .btn:hover {
-                opacity: 0.9;
-                transform: translateY(-1px);
-            }
-
-            .btn:active {
-                transform: translateY(0);
-            }
-
-            .btn.secondary {
-                background: var(--dim);
-                border: 1px solid var(--border);
-                color: var(--text);
-            }
-
-            .btn.small {
-                padding: 6px 14px;
-                font-size: 0.78rem;
-            }
-
-            .btn:disabled {
-                opacity: 0.5;
-                cursor: not-allowed;
-                pointer-events: none;
-            }
-
-        /* Summary cards */
-        .summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
-            margin-bottom: 24px;
+        .brand-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
         }
 
-        .summary-stat {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 18px 16px;
+        .brand-tag {
+            font-size: 11px;
+            color: var(--muted);
         }
 
-            .summary-stat .stat-value {
-                font-family: 'DM Serif Display', serif;
-                font-size: clamp(1.2rem, 4vw, 1.6rem);
-                color: var(--text);
-                margin-bottom: 4px;
-            }
+        .admin-badge {
+            background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(79,70,229,0.3));
+            border: 1px solid rgba(124,58,237,0.4);
+            color: #c4b5fd;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+        }
 
-            .summary-stat.gold .stat-value {
-                color: var(--gold);
-            }
-
-            .summary-stat.success .stat-value {
-                color: var(--success);
-            }
-
-            .summary-stat.warning .stat-value {
-                color: var(--warning);
-            }
-
-            .summary-stat .stat-label {
-                font-size: 0.68rem;
-                font-weight: 600;
-                letter-spacing: 0.08em;
-                text-transform: uppercase;
-                color: var(--muted);
-            }
-
-        /* Controls row */
-        .controls-row {
+        .header-right {
             display: flex;
             gap: 10px;
-            margin-bottom: 18px;
-            flex-wrap: wrap;
-            align-items: flex-end;
+            align-items: center;
         }
 
-            .controls-row .field {
-                min-width: 180px;
+        .back-btn {
+            color: var(--muted);
+            text-decoration: none;
+            font-size: 13px;
+            background: var(--dim);
+            padding: 7px 14px;
+            border-radius: 8px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+            .back-btn:hover {
+                color: var(--text);
+                border-color: rgba(124,58,237,0.4);
             }
 
-                .controls-row .field.grow {
-                    flex: 1;
-                }
-
-            .controls-row label {
-                display: block;
-                font-size: 0.75rem;
-                font-weight: 500;
-                color: var(--muted);
-                margin-bottom: 6px;
-                letter-spacing: 0.02em;
-            }
-
-        /* Tabs */
+        /* ── TABS ── */
         .tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 18px;
+            gap: 0;
             border-bottom: 1px solid var(--border);
+            padding: 0 28px;
+            background: var(--surface);
         }
 
         .tab-btn {
-            padding: 10px 18px;
+            padding: 14px 20px;
             background: none;
             border: none;
-            border-bottom: 2px solid transparent;
+            border-bottom: 3px solid transparent;
             color: var(--muted);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.9rem;
-            font-weight: 500;
+            font-size: 13px;
+            font-weight: 600;
             cursor: pointer;
-            transition: color 0.2s, border-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            white-space: nowrap;
         }
-
-            .tab-btn.active {
-                color: var(--accent-light);
-                border-bottom-color: var(--accent);
-            }
 
             .tab-btn:hover {
                 color: var(--text);
             }
 
-        /* Section label */
-        .section-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.12em;
+            .tab-btn.active {
+                color: #a78bfa;
+                border-bottom-color: #7c3aed;
+            }
+
+        .tab-badge {
+            background: rgba(124,58,237,0.25);
+            color: #c4b5fd;
+            padding: 2px 8px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+            .tab-badge.amber {
+                background: rgba(245,158,11,0.2);
+                color: #fcd34d;
+            }
+
+            .tab-badge.red {
+                background: rgba(239,68,68,0.2);
+                color: #fca5a5;
+            }
+
+        /* ── PAGE ── */
+        .page {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 28px 20px;
+        }
+
+        .tab-panel {
+            display: none;
+        }
+
+            .tab-panel.active {
+                display: block;
+            }
+
+        /* ── STAT ROW ── */
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+            gap: 14px;
+            margin-bottom: 28px;
+        }
+
+        .stat-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            padding: 18px 16px;
+            text-align: center;
+            border-top: 3px solid var(--purple);
+        }
+
+            .stat-card.green {
+                border-top-color: var(--green);
+            }
+
+            .stat-card.amber {
+                border-top-color: var(--amber);
+            }
+
+            .stat-card.red {
+                border-top-color: var(--red);
+            }
+
+        .stat-num {
+            font-size: 1.7rem;
+            font-weight: 800;
+            color: var(--purple);
+        }
+
+        .stat-card.green .stat-num {
+            color: var(--green);
+        }
+
+        .stat-card.amber .stat-num {
+            color: var(--amber);
+        }
+
+        .stat-card.red .stat-num {
+            color: var(--red);
+        }
+
+        .stat-lbl {
+            font-size: 11px;
+            color: var(--muted);
+            margin-top: 4px;
+        }
+
+        /* ── SEARCH ── */
+        .search-bar {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+            .search-bar input {
+                flex: 1;
+                min-width: 200px;
+                padding: 10px 16px;
+                background: var(--dim);
+                border: 1px solid var(--border);
+                border-radius: 10px;
+                color: var(--text);
+                font-size: 14px;
+                outline: none;
+            }
+
+                .search-bar input:focus {
+                    border-color: var(--purple);
+                    box-shadow: 0 0 0 3px rgba(124,58,237,0.15);
+                }
+
+                .search-bar input::placeholder {
+                    color: var(--muted);
+                }
+
+        .filter-select {
+            padding: 10px 14px;
+            background: var(--dim);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 13px;
+            outline: none;
+            cursor: pointer;
+        }
+
+        /* ── LANDLORD CARD ── */
+        .landlord-card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            margin-bottom: 16px;
+            overflow: hidden;
+            transition: border-color 0.2s;
+        }
+
+            .landlord-card:hover {
+                border-color: rgba(124,58,237,0.4);
+            }
+
+        .landlord-header {
+            padding: 18px 22px;
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .landlord-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, #7c3aed22, #4f46e522);
+            border: 1px solid rgba(124,58,237,0.3);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .landlord-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .landlord-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+        }
+
+        .landlord-id-chip {
+            display: inline-flex;
+            align-items: center;
+            font-family: 'Courier New', monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #a78bfa;
+            background: rgba(124,58,237,0.15);
+            border: 1px solid rgba(124,58,237,0.3);
+            border-radius: 6px;
+            padding: 2px 8px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+        .landlord-meta {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .landlord-stats {
+            display: flex;
+            gap: 16px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .ls-pill {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .ls-green {
+            background: rgba(16,185,129,0.15);
+            color: #34d399;
+        }
+
+        .ls-amber {
+            background: rgba(245,158,11,0.15);
+            color: #fbbf24;
+        }
+
+        .ls-red {
+            background: rgba(239,68,68,0.15);
+            color: #f87171;
+        }
+
+        .ls-purple {
+            background: rgba(124,58,237,0.15);
+            color: #a78bfa;
+        }
+
+        .landlord-chevron {
+            color: var(--muted);
+            font-size: 1rem;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .landlord-card.expanded .landlord-chevron {
+            transform: rotate(180deg);
+        }
+
+        /* ── TENANCY DETAILS PANEL ── */
+        .tenancy-panel {
+            display: none;
+            padding: 0 22px 22px;
+            border-top: 1px solid var(--border);
+        }
+
+        .landlord-card.expanded .tenancy-panel {
+            display: block;
+        }
+
+        .tenancy-panel-title {
+            font-size: 12px;
+            font-weight: 700;
+            color: var(--muted);
             text-transform: uppercase;
-            color: var(--accent-light);
-            margin: 0 0 12px;
+            letter-spacing: 0.08em;
+            margin: 18px 0 12px;
             display: flex;
             align-items: center;
             gap: 8px;
         }
 
-            .section-label::after {
+            .tenancy-panel-title::after {
                 content: '';
                 flex: 1;
                 height: 1px;
                 background: var(--border);
             }
 
-        /* Table card */
-        .table-card {
+        /* TENANCY ROW */
+        .tenancy-item {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 18px;
+            margin-bottom: 12px;
+        }
+
+        .tenancy-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .tenancy-prop {
+            font-weight: 700;
+            font-size: 0.95rem;
+            color: var(--text);
+        }
+
+        .tenancy-tenant {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 3px;
+        }
+
+        .tenancy-rent {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--green);
+            white-space: nowrap;
+        }
+
+        /* MONTH GRID */
+        .month-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .month-cell {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            width: 52px;
+            padding: 6px 4px;
+            border-radius: 8px;
+            font-size: 10px;
+            border: 1px solid transparent;
+            cursor: default;
+            transition: all 0.15s;
+        }
+
+            .month-cell:hover {
+                transform: translateY(-2px);
+            }
+
+        .mc-paid {
+            background: rgba(16,185,129,0.15);
+            border-color: rgba(16,185,129,0.3);
+            color: #34d399;
+        }
+
+        .mc-pending {
+            background: rgba(245,158,11,0.1);
+            border-color: rgba(245,158,11,0.25);
+            color: #fbbf24;
+        }
+
+        .mc-overdue {
+            background: rgba(239,68,68,0.12);
+            border-color: rgba(239,68,68,0.3);
+            color: #f87171;
+        }
+
+        .mc-future {
+            background: rgba(255,255,255,0.04);
+            border-color: rgba(255,255,255,0.08);
+            color: var(--muted);
+        }
+
+        .mc-icon {
+            font-size: 14px;
+            margin-bottom: 2px;
+        }
+
+        .mc-label {
+            font-weight: 600;
+            text-align: center;
+            line-height: 1.2;
+        }
+
+        /* MONTH LEGEND */
+        .month-legend {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            margin-top: 10px;
+        }
+
+        .ml-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 11px;
+            color: var(--muted);
+        }
+
+        .ml-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 3px;
+        }
+
+        .ml-paid {
+            background: #10b981;
+        }
+
+        .ml-overdue {
+            background: #ef4444;
+        }
+
+        .ml-pending {
+            background: #f59e0b;
+        }
+
+        .ml-future {
+            background: #333;
+        }
+
+        /* ── WITHDRAWAL SECTION ── */
+        .wd-request-card {
             background: var(--card);
             border: 1px solid var(--border);
             border-radius: 16px;
-            overflow: hidden;
+            padding: 22px;
+            margin-bottom: 14px;
+            display: flex;
+            gap: 18px;
+            align-items: flex-start;
+            flex-wrap: wrap;
         }
 
-        .table-wrap {
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.85rem;
-            min-width: 820px;
-        }
-
-        thead th {
-            text-align: left;
-            font-size: 0.68rem;
-            font-weight: 600;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: var(--muted);
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-            white-space: nowrap;
-        }
-
-        tbody td {
-            padding: 14px 16px;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
-            vertical-align: middle;
-        }
-
-        tbody tr:last-child td {
-            border-bottom: none;
-        }
-
-        tbody tr:hover {
-            background: rgba(124,58,237,0.05);
-        }
-
-        .cell-name {
-            font-weight: 500;
-        }
-
-        .cell-sub {
-            font-size: 0.74rem;
-            color: var(--muted);
-            margin-top: 2px;
-        }
-
-        .phone-cell {
-            font-family: monospace;
-            font-size: 0.84rem;
-            color: var(--text);
-            white-space: nowrap;
-        }
-
-        .code-pill {
-            display: inline-block;
-            font-family: monospace;
-            font-size: 0.78rem;
-            background: rgba(124,58,237,0.12);
-            color: var(--accent-light);
-            border: 1px solid rgba(139,92,246,0.3);
-            border-radius: 6px;
-            padding: 2px 8px;
-        }
-
-        .status-badge {
-            display: inline-block;
-            font-size: 0.68rem;
-            font-weight: 600;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-            padding: 3px 10px;
-            border-radius: 20px;
-        }
-
-            .status-badge.pending {
-                background: rgba(245,158,11,0.15);
-                color: var(--warning);
-                border: 1px solid rgba(245,158,11,0.3);
-            }
-
-            .status-badge.paid {
-                background: rgba(16,185,129,0.15);
-                color: var(--success);
-                border: 1px solid rgba(16,185,129,0.3);
-            }
-
-        .amount-strong {
-            font-weight: 600;
-        }
-
-        .rank-badge {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            width: 26px;
-            height: 26px;
-            border-radius: 50%;
-            background: rgba(124,58,237,0.12);
-            color: var(--accent-light);
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-            .rank-badge.gold {
-                background: rgba(251,191,36,0.15);
-                color: var(--gold);
-            }
-
-        /* Pagination */
-        .pagination {
+        .wd-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 14px;
+            background: linear-gradient(135deg, rgba(124,58,237,0.3), rgba(79,70,229,0.3));
+            border: 1px solid rgba(124,58,237,0.4);
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            padding: 16px 18px;
-            border-top: 1px solid var(--border);
-            font-size: 0.82rem;
+            justify-content: center;
+            font-size: 1.5rem;
+            flex-shrink: 0;
+        }
+
+        .wd-info {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .wd-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+
+        .wd-meta {
+            font-size: 12px;
             color: var(--muted);
-            flex-wrap: wrap;
+            line-height: 1.7;
+        }
+
+            .wd-meta strong {
+                color: var(--text);
+            }
+
+        .wd-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
             gap: 10px;
         }
 
-        .empty-state, .loading-state {
+        .wd-amount-big {
+            font-size: 1.4rem;
+            font-weight: 800;
+            color: var(--purple);
+        }
+
+        .wd-method-tag {
+            background: rgba(124,58,237,0.15);
+            color: #a78bfa;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .wd-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-top: 14px;
+            width: 100%;
+        }
+
+        .btn-mark-paid {
+            padding: 9px 20px;
+            border: none;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.15s;
+            box-shadow: 0 4px 16px rgba(16,185,129,0.3);
+        }
+
+            .btn-mark-paid:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
+
+            .btn-mark-paid.loading {
+                opacity: 0.5;
+                pointer-events: none;
+            }
+
+        .btn-reject {
+            padding: 9px 18px;
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 9px;
+            background: rgba(239,68,68,0.1);
+            color: #f87171;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .btn-reject:hover {
+                background: rgba(239,68,68,0.2);
+                border-color: rgba(239,68,68,0.5);
+            }
+
+        .btn-add-note {
+            padding: 9px 18px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--dim);
+            color: var(--muted);
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+            .btn-add-note:hover {
+                color: var(--text);
+                border-color: rgba(124,58,237,0.4);
+            }
+
+        .wd-status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .wsb-pending {
+            background: rgba(245,158,11,0.15);
+            color: #fbbf24;
+            border: 1px solid rgba(245,158,11,0.3);
+        }
+
+        .wsb-paid {
+            background: rgba(16,185,129,0.15);
+            color: #34d399;
+            border: 1px solid rgba(16,185,129,0.3);
+        }
+
+        .wsb-rejected {
+            background: rgba(239,68,68,0.15);
+            color: #f87171;
+            border: 1px solid rgba(239,68,68,0.3);
+        }
+
+        /* NOTE MODAL */
+        .note-modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 600;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+            .note-modal-overlay.open {
+                display: flex;
+            }
+
+        .note-modal {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 420px;
+            padding: 28px;
+            box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+            animation: slideUp 0.3s ease;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .note-modal h3 {
+            font-size: 1rem;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .note-modal textarea {
+            width: 100%;
+            padding: 12px;
+            background: var(--dim);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            color: var(--text);
+            font-size: 14px;
+            resize: vertical;
+            min-height: 100px;
+            outline: none;
+            font-family: inherit;
+        }
+
+            .note-modal textarea:focus {
+                border-color: var(--purple);
+            }
+
+        .note-modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+
+        .btn-nm-cancel {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 9px;
+            background: var(--dim);
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .btn-nm-save {
+            flex: 2;
+            padding: 10px;
+            border: none;
+            border-radius: 9px;
+            background: linear-gradient(135deg, #7c3aed, #4f46e5);
+            color: white;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+        }
+
+        /* LOADER / EMPTY */
+        .loader {
             text-align: center;
-            padding: 50px 24px;
+            padding: 40px;
+            color: var(--muted);
+            font-style: italic;
+        }
+
+        .empty {
+            text-align: center;
+            padding: 60px 20px;
             color: var(--muted);
         }
 
-            .empty-state .empty-icon {
-                font-size: 2.2rem;
+            .empty .icon {
+                font-size: 3.5rem;
                 margin-bottom: 12px;
-                display: block;
             }
 
-            .empty-state p, .loading-state p {
-                font-size: 0.88rem;
-                line-height: 1.5;
+            .empty h3 {
+                font-size: 1rem;
+                margin-bottom: 6px;
+                color: var(--text);
             }
 
-        /* Toast */
+        /* TOAST */
         #toast {
             position: fixed;
             bottom: 28px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #1a1535;
+            background: var(--card);
             border: 1px solid var(--border);
             color: var(--text);
             padding: 13px 20px;
@@ -510,12 +861,12 @@
             align-items: center;
             gap: 10px;
             box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-            z-index: 999;
-            max-width: 360px;
+            z-index: 900;
+            max-width: 380px;
             width: 90%;
             opacity: 0;
             pointer-events: none;
-            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s;
         }
 
             #toast.show {
@@ -524,157 +875,117 @@
             }
 
             #toast.success {
-                border-left: 4px solid var(--success);
+                border-left: 4px solid var(--green);
             }
 
             #toast.error {
-                border-left: 4px solid var(--error);
+                border-left: 4px solid var(--red);
+            }
+
+            #toast.warning {
+                border-left: 4px solid var(--amber);
             }
 
             #toast.info {
-                border-left: 4px solid var(--accent-light);
+                border-left: 4px solid #a78bfa;
             }
 
-        .hidden {
-            display: none;
-        }
+        @media (max-width: 680px) {
+            .tabs {
+                padding: 0 16px;
+                overflow-x: auto;
+            }
 
-        @media (max-width: 720px) {
-            .summary-grid {
-                grid-template-columns: 1fr 1fr;
+            .tab-btn {
+                padding: 12px 14px;
+                font-size: 12px;
+            }
+
+            .landlord-stats {
+                display: none;
+            }
+
+            .month-cell {
+                width: 44px;
             }
         }
     </style>
 </head>
 <body>
+
+    <header>
+        <div class="logo-area">
+            <div class="logo-badge">🏠</div>
+            <div>
+                <div class="brand-name">QejaConnect</div>
+                <div class="brand-tag">Administration Panel</div>
+            </div>
+        </div>
+        <div class="header-right">
+            <span class="admin-badge">🛡️ ADMIN</span>
+            <a href="admin.html" class="back-btn">← Dashboard</a>
+        </div>
+    </header>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('landlords', this)">
+            🏠 Active Landlords <span class="tab-badge" id="tab-ll-count">—</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('withdrawals', this)">
+            💸 Withdrawal Requests <span class="tab-badge amber" id="tab-wd-count">—</span>
+        </button>
+        <button class="tab-btn" onclick="switchTab('history', this)">
+            📋 Processed Withdrawals
+        </button>
+    </div>
+
     <div class="page">
 
-        <div class="header">
-            <div class="eyebrow">Admin · Referrals</div>
-            <h1>Referrals &amp; Payouts</h1>
-            <p>Track who referred whom, what they're owed, and mark payouts as completed.</p>
+        <!-- ══ TAB 1: LANDLORDS ══ -->
+        <div class="tab-panel active" id="panel-landlords">
+            <div class="stat-row" id="llStatRow">
+                <div class="stat-card"><div class="stat-num" id="stLandlords">—</div><div class="stat-lbl">Active Landlords</div></div>
+                <div class="stat-card green"><div class="stat-num" id="stCollected">—</div><div class="stat-lbl">Total Collected (Ksh)</div></div>
+                <div class="stat-card amber"><div class="stat-num" id="stPending">—</div><div class="stat-lbl">Pending Payments</div></div>
+                <div class="stat-card red"><div class="stat-num" id="stOverdue">—</div><div class="stat-lbl">Overdue Payments</div></div>
+            </div>
+            <div class="search-bar">
+                <input type="text" id="llSearch" placeholder="🔍  Search landlord ID, name, email, property…" oninput="filterLandlords()">
+                <select class="filter-select" id="llFilter" onchange="filterLandlords()">
+                    <option value="all">All Landlords</option>
+                    <option value="withOverdue">Has Overdue</option>
+                    <option value="allPaid">Fully Paid</option>
+                </select>
+            </div>
+            <div id="landlordList"><div class="loader">Loading landlords…</div></div>
         </div>
 
-        <!-- Admin nav strip -->
-        <div class="admin-nav">
-            <a href="admin.html"><span class="admin-nav-btn">🏘 Landlords</span></a>
-            <a href="admin.html"><span class="admin-nav-btn">💬 Messages</span></a>
-            <a href="admin-tenants.html"><span class="admin-nav-btn">👤 Tenants</span></a>
-            <a href="admin-updates.html"><span class="admin-nav-btn">📢 Updates</span></a>
-            <a href="admin-refferrals.html"><span class="admin-nav-btn active">💸 Pay Referrals</span></a>
-            <a href="home.html"><span class="admin-nav-btn">↗ Live Site</span></a>
+        <!-- ══ TAB 2: PENDING WITHDRAWALS ══ -->
+        <div class="tab-panel" id="panel-withdrawals">
+            <div class="stat-row">
+                <div class="stat-card amber"><div class="stat-num" id="stWdPending">—</div><div class="stat-lbl">Pending Requests</div></div>
+                <div class="stat-card purple" style="border-top-color:#7c3aed;"><div class="stat-num" id="stWdTotal" style="color:#a78bfa;">—</div><div class="stat-lbl">Total Requested (Ksh)</div></div>
+            </div>
+            <div id="withdrawalRequests"><div class="loader">Loading withdrawal requests…</div></div>
         </div>
 
-        <!-- Admin key gate -->
-        <div class="key-card" id="keyCard">
-            <div class="field">
-                <label>Admin secret key</label>
-                <input type="password" id="adminKey" placeholder="Enter x-admin-secret">
-            </div>
-            <button class="btn" id="loadBtn">Load data</button>
+        <!-- ══ TAB 3: PROCESSED ══ -->
+        <div class="tab-panel" id="panel-history">
+            <div id="withdrawalHistory"><div class="loader">Loading…</div></div>
         </div>
 
-        <div id="appContent" class="hidden">
+    </div>
 
-            <!-- Summary -->
-            <div class="summary-grid">
-                <div class="summary-stat gold">
-                    <div class="stat-value" id="sumTotal">&mdash;</div>
-                    <div class="stat-label">Total Reward</div>
-                </div>
-                <div class="summary-stat warning">
-                    <div class="stat-value" id="sumPending">&mdash;</div>
-                    <div class="stat-label">Pending Payout</div>
-                </div>
-                <div class="summary-stat success">
-                    <div class="stat-value" id="sumPaid">&mdash;</div>
-                    <div class="stat-label">Paid Out</div>
-                </div>
-                <div class="summary-stat">
-                    <div class="stat-value" id="sumReferrers">&mdash;</div>
-                    <div class="stat-label">Active Referrers</div>
-                </div>
+    <!-- NOTE MODAL -->
+    <div class="note-modal-overlay" id="noteModal">
+        <div class="note-modal">
+            <h3>📝 Add Admin Note</h3>
+            <textarea id="noteText" placeholder="E.g. 'Paid via M-Pesa on 17 Jun 2026, ref QA8X9Y3'…"></textarea>
+            <div class="note-modal-actions">
+                <button class="btn-nm-cancel" onclick="closeNoteModal()">Cancel</button>
+                <button class="btn-nm-save" onclick="saveNote()">Save Note</button>
             </div>
-
-            <!-- Tabs -->
-            <div class="tabs">
-                <button class="tab-btn active" data-tab="all">All Referrals</button>
-                <button class="tab-btn" data-tab="leaderboard">Leaderboard</button>
-            </div>
-
-            <!-- ALL REFERRALS TAB -->
-            <div id="tab-all">
-                <div class="controls-row">
-                    <div class="field grow">
-                        <label>Search (name, email, phone, referral code)</label>
-                        <input type="text" id="searchInput" placeholder="e.g. John Kamau, 0712345678 or REF1042">
-                    </div>
-                    <div class="field">
-                        <label>Status</label>
-                        <select id="statusFilter">
-                            <option value="">All</option>
-                            <option value="pending">Pending</option>
-                            <option value="paid">Paid</option>
-                        </select>
-                    </div>
-                    <button class="btn secondary" id="filterBtn">Filter</button>
-                </div>
-
-                <div class="section-label">Referral Earnings</div>
-
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Referrer</th>
-                                    <th>Phone</th>
-                                    <th>Referred Tenant</th>
-                                    <th>Rent</th>
-                                    <th>Reward (1%)</th>
-                                    <th>Status</th>
-                                    <th>Date</th>
-                                    <th>Action</th>
-                                </tr>
-                            </thead>
-                            <tbody id="referralsBody">
-                                <tr><td colspan="8"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                    <div class="pagination" id="pagination"></div>
-                </div>
-            </div>
-
-            <!-- LEADERBOARD TAB -->
-            <div id="tab-leaderboard" class="hidden">
-                <div class="section-label">Top Referrers</div>
-
-                <div class="table-card">
-                    <div class="table-wrap">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Rank</th>
-                                    <th>Referrer</th>
-                                    <th>Phone</th>
-                                    <th>Referral Code</th>
-                                    <th>Referrals</th>
-                                    <th>Total Earned</th>
-                                    <th>Pending</th>
-                                    <th>Paid</th>
-                                </tr>
-                            </thead>
-                            <tbody id="leaderboardBody">
-                                <tr><td colspan="8"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-
         </div>
-
     </div>
 
     <div id="toast">
@@ -683,46 +994,325 @@
     </div>
 
     <script>
-        const API = 'https://qeja-backend-azkf.onrender.com';
-
-        let currentPage = 1;
-        const PAGE_LIMIT = 20;
-        let adminKey = '';
-
-        // ── Toast ──────────────────────────────────────────────────
+        const API   = 'https://qeja-backend-azkf.onrender.com';
+        const adminSecret = localStorage.getItem('admin_secret');
+        let allLandlordData   = [];
+        let allWithdrawals    = [];
+        let noteTargetId      = null;
         let toastTimer;
-        function showToast(message, type = 'info', duration = 3000) {
+
+        // ── TOAST ──────────────────────────────────────────────
+        function showToast(message, type = 'info', dur = 3500) {
         const toast = document.getElementById('toast');
-        const icon  = document.getElementById('toast-icon');
-        const msg   = document.getElementById('toast-msg');
-        const icons = { success: '✅', error: '❌', info: 'ℹ️' };
+        const icons = { success:'✅', error:'❌', info:'ℹ️', warning:'⚠️' };
         toast.className = '';
         toast.classList.add(type);
-        icon.textContent = icons[type] || 'ℹ️';
-        msg.textContent  = message;
+        document.getElementById('toast-icon').textContent = icons[type] || 'ℹ️';
+        document.getElementById('toast-msg').textContent  = message;
         void toast.offsetWidth;
         toast.classList.add('show');
         clearTimeout(toastTimer);
-        toastTimer = setTimeout(() => toast.classList.remove('show'), duration);
+        toastTimer = setTimeout(() => toast.classList.remove('show'), dur);
         }
 
-        // ── Format helpers ──────────────────────────────────────────
-        function formatKES(amount) {
-        return 'KES ' + Number(amount || 0).toLocaleString('en-KE', {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
+        // ── TABS ──────────────────────────────────────────────
+        function switchTab(name, btn) {
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.getElementById('panel-' + name).classList.add('active');
+        btn.classList.add('active');
+        if (name === 'withdrawals') loadWithdrawals('pending');
+        if (name === 'history')     loadWithdrawals('processed');
+        }
+
+        // ── LOAD LANDLORDS ─────────────────────────────────────
+        async function loadLandlords() {
+        try {
+        const res  = await fetch(`${API}/admin/landlords`, {
+        headers: { 'x-admin-secret': adminSecret }
         });
-        }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
 
-        function formatDate(dateStr) {
-        if (!dateStr) return '';
-        return new Date(dateStr).toLocaleDateString('en-KE', {
-        year: 'numeric', month: 'short', day: 'numeric'
+        allLandlordData = data.landlords || [];
+        document.getElementById('tab-ll-count').textContent = allLandlordData.length;
+        document.getElementById('stLandlords').textContent  = allLandlordData.length;
+
+        // Compute global stats
+        let totalCollected = 0, totalPending = 0, totalOverdue = 0;
+        allLandlordData.forEach(ll => {
+        totalCollected += ll.total_collected || 0;
+        totalPending   += ll.pending_count   || 0;
+        totalOverdue   += ll.overdue_count   || 0;
         });
+        document.getElementById('stCollected').textContent = totalCollected.toLocaleString();
+        document.getElementById('stPending').textContent   = totalPending;
+        document.getElementById('stOverdue').textContent   = totalOverdue;
+
+        renderLandlords(allLandlordData);
+        } catch(e) {
+        document.getElementById('landlordList').innerHTML = `<div class="empty"><div class="icon">⚠️</div><h3>Failed to load landlords.</h3><p>${e.message}</p></div>`;
+        }
         }
 
-        function escapeHtml(str) {
-        return String(str ?? '')
+        function renderLandlords(landlords) {
+        const container = document.getElementById('landlordList');
+        if (!landlords.length) {
+        container.innerHTML = `<div class="empty"><div class="icon">🏠</div><h3>No landlords found.</h3></div>`;
+        return;
+        }
+        container.innerHTML = landlords.map(ll => buildLandlordCard(ll)).join('');
+        }
+
+        function buildLandlordCard(ll) {
+        const tenancies = ll.tenancies || [];
+        const paidCount    = ll.paid_count    || 0;
+        const pendingCount = ll.pending_count || 0;
+        const overdueCount = ll.overdue_count || 0;
+        const totalCollected = ll.total_collected || 0;
+        const displayId = ll.display_id ? `<span class="landlord-id-chip">${escHtml(ll.display_id)}</span>` : '';
+
+        const tenancyRows = tenancies.length
+        ? tenancies.map(t => buildTenancyRow(t, ll)).join('')
+        : `<div class="loader" style="padding:20px 0;">No active tenancies.</div>`;
+
+        return `
+        <div class="landlord-card" id="llcard-${ll.id}">
+        <div class="landlord-header" onclick="toggleCard(${ll.id})">
+        <div class="landlord-avatar">🏠</div>
+        <div class="landlord-info">
+        <div class="landlord-name">${escHtml(ll.fullname || 'Landlord')}${displayId}</div>
+        <div class="landlord-meta">📧 ${escHtml(ll.email || '—')} &nbsp;·&nbsp; 📱 ${escHtml(ll.phone || '—')} &nbsp;·&nbsp; ${tenancies.length} tenancy session${tenancies.length !== 1 ? 's' : ''}</div>
+        </div>
+        <div class="landlord-stats">
+        <span class="ls-pill ls-green">✅ ${paidCount} paid</span>
+        ${pendingCount ? `<span class="ls-pill ls-amber">⏳ ${pendingCount} pending</span>` : ''}
+        ${overdueCount ? `<span class="ls-pill ls-red">❌ ${overdueCount} overdue</span>` : ''}
+        <span class="ls-pill ls-purple">💰 Ksh ${totalCollected.toLocaleString()}</span>
+        </div>
+        <div class="landlord-chevron">▼</div>
+        </div>
+        <div class="tenancy-panel">
+        <div class="tenancy-panel-title">Tenancy Sessions &amp; Monthly Payment Status</div>
+        ${tenancyRows}
+        <div class="month-legend">
+        <div class="ml-item"><div class="ml-dot ml-paid"></div> Paid</div>
+        <div class="ml-item"><div class="ml-dot ml-overdue"></div> Overdue</div>
+        <div class="ml-item"><div class="ml-dot ml-pending"></div> Pending</div>
+        <div class="ml-item"><div class="ml-dot ml-future"></div> Upcoming</div>
+        </div>
+        </div>
+        </div>`;
+        }
+
+        function buildTenancyRow(t, ll) {
+        const payments = t.payments || [];
+        const start    = new Date(t.start_date);
+        const dur      = t.duration_months || 12;
+        const now      = new Date();
+
+        let cells = '';
+        for (let i = 0; i < dur; i++) {
+        const due  = new Date(start); due.setMonth(due.getMonth() + i); due.setDate(1);
+        const paid = payments.find(p => p.month_index === i || p.month_number === i + 1);
+        const isFuture = due > now;
+        let cls = 'mc-future', icon = '○';
+        if (paid)            { cls = 'mc-paid';    icon = '✓'; }
+        else if (!isFuture)  { cls = 'mc-overdue'; icon = '!'; }
+        else                 { cls = 'mc-pending'; icon = '○'; }
+        const lbl = due.toLocaleDateString('en-KE', { month: 'short' });
+        const yr  = due.getFullYear().toString().slice(-2);
+        const tip = `${lbl} '${yr}${paid ? ' · ' + (paid.mpesa_ref || 'Ref N/A') : ''}`;
+        cells += `<div class="month-cell ${cls}" title="${tip}"><div class="mc-icon">${icon}</div><div class="mc-label">${lbl}<br>'${yr}</div></div>`;
+        }
+
+        return `
+        <div class="tenancy-item">
+        <div class="tenancy-top">
+        <div>
+        <div class="tenancy-prop">🏢 ${escHtml(t.property_title || 'Property')}</div>
+        <div class="tenancy-tenant">Tenant: ${escHtml(t.tenant_name || '—')} &nbsp;·&nbsp; ${escHtml(t.tenant_phone || '—')}</div>
+        <div class="tenancy-tenant" style="margin-top:2px;">📅 ${formatDate2(t.start_date)} → ${t.duration_months} months</div>
+        </div>
+        <div class="tenancy-rent">Ksh ${Number(t.rent_amount || 0).toLocaleString()}/mo</div>
+        </div>
+        <div class="month-grid">${cells}</div>
+        </div>`;
+        }
+
+        function toggleCard(id) {
+        document.getElementById('llcard-' + id).classList.toggle('expanded');
+        }
+
+        // ── FILTER LANDLORDS ───────────────────────────────────
+        function filterLandlords() {
+        const q   = document.getElementById('llSearch').value.toLowerCase();
+        const flt = document.getElementById('llFilter').value;
+        let filtered = allLandlordData.filter(ll => {
+        const match = (ll.fullname || '').toLowerCase().includes(q)
+        || (ll.email   || '').toLowerCase().includes(q)
+        || (ll.phone   || '').toLowerCase().includes(q)
+        || (ll.display_id || '').toLowerCase().includes(q)
+        || (ll.tenancies || []).some(t => (t.property_title || '').toLowerCase().includes(q));
+        if (!match) return false;
+        if (flt === 'withOverdue') return (ll.overdue_count || 0) > 0;
+        if (flt === 'allPaid')    return (ll.overdue_count || 0) === 0 && (ll.pending_count || 0) === 0;
+        return true;
+        });
+        renderLandlords(filtered);
+        }
+
+        // ── LOAD WITHDRAWALS ───────────────────────────────────
+        async function loadWithdrawals(mode = 'pending') {
+        const containerId = mode === 'pending' ? 'withdrawalRequests' : 'withdrawalHistory';
+        document.getElementById(containerId).innerHTML = '<div class="loader">Loading…</div>';
+        try {
+        const status = mode === 'pending' ? 'pending' : 'paid,rejected';
+        const res  = await fetch(`${API}/admin/withdrawals?status=${status}`, {
+        headers: { 'x-admin-secret': adminSecret }
+        });
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        allWithdrawals = data.withdrawals || [];
+
+        if (mode === 'pending') {
+        const pending = allWithdrawals.filter(w => w.status === 'pending');
+        document.getElementById('tab-wd-count').textContent = pending.length;
+        document.getElementById('stWdPending').textContent  = pending.length;
+        const totalReq = pending.reduce((s,w) => s + Number(w.amount||0), 0);
+        document.getElementById('stWdTotal').textContent = totalReq.toLocaleString();
+        renderWithdrawals(pending, 'withdrawalRequests', true);
+        } else {
+        renderWithdrawals(allWithdrawals.filter(w => w.status !== 'pending'), 'withdrawalHistory', false);
+        }
+        } catch(e) {
+        document.getElementById(containerId).innerHTML = `<div class="empty"><div class="icon">⚠️</div><h3>Failed to load.</h3><p>${e.message}</p></div>`;
+        }
+        }
+
+        function renderWithdrawals(withdrawals, containerId, showActions) {
+        const container = document.getElementById(containerId);
+        if (!withdrawals.length) {
+        const msg = showActions ? 'No pending withdrawal requests. 🎉' : 'No processed withdrawals yet.';
+        container.innerHTML = `<div class="empty"><div class="icon">💸</div><h3>${msg}</h3></div>`;
+        return;
+        }
+        const sorted = [...withdrawals].sort((a,b) => new Date(b.created_at) - new Date(a.created_at));
+        container.innerHTML = sorted.map(w => buildWithdrawalCard(w, showActions)).join('');
+        }
+
+        function buildWithdrawalCard(w, showActions) {
+        const statusClass = { pending:'wsb-pending', paid:'wsb-paid', rejected:'wsb-rejected' }[w.status] || 'wsb-pending';
+        const statusLabel = { pending:'⏳ Pending', paid:'✅ Paid', rejected:'❌ Rejected' }[w.status] || '⏳ Pending';
+        const actionBtns  = showActions ? `
+        <div class="wd-actions">
+        <button class="btn-mark-paid" id="mppbtn-${w.id}" onclick="markWithdrawalPaid(${w.id})">✅ Mark as Paid</button>
+        <button class="btn-reject" onclick="rejectWithdrawal(${w.id})">❌ Reject</button>
+        <button class="btn-add-note" onclick="openNoteModal(${w.id})">📝 Add Note</button>
+        </div>` : '';
+
+        return `
+        <div class="wd-request-card" id="wdcard-${w.id}">
+        <div class="wd-avatar">💸</div>
+        <div class="wd-info">
+        <div class="wd-name">${escHtml(w.landlord_name || 'Landlord')}${w.landlord_display_id ? `<span class="landlord-id-chip">${escHtml(w.landlord_display_id)}</span>` : ''}</div>
+        <div class="wd-meta">
+        📱 <strong>${escHtml(w.phone)}</strong> — ${escHtml(w.account_name || '—')}<br>
+        📧 ${escHtml(w.landlord_email || '—')}<br>
+        🗓️ Submitted: ${formatDate(w.created_at)}
+        ${w.bank_details ? `<br>🏦 ${escHtml(w.bank_details)}` : ''}
+        ${w.note ? `<br>📝 <em>"${escHtml(w.note)}"</em>` : ''}
+        ${w.admin_note ? `<br>🛡️ Admin note: <strong style="color:#a78bfa;">${escHtml(w.admin_note)}</strong>` : ''}
+        </div>
+        ${actionBtns}
+        </div>
+        <div class="wd-right">
+        <div class="wd-amount-big">Ksh ${Number(w.amount).toLocaleString()}</div>
+        <span class="wd-method-tag">${escHtml((w.method || 'MPESA').toUpperCase())}</span>
+        <span class="wd-status-badge ${statusClass}">${statusLabel}</span>
+        </div>
+        </div>`;
+        }
+
+        // ── MARK AS PAID ───────────────────────────────────────
+        async function markWithdrawalPaid(wdId) {
+        const btn = document.getElementById('mppbtn-' + wdId);
+        if (btn) { btn.textContent = 'Processing…'; btn.classList.add('loading'); }
+        try {
+        const res  = await fetch(`${API}/admin/withdrawals/${wdId}/mark-paid`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }
+        });
+        const data = await res.json();
+        if (data.success) {
+        showToast('Withdrawal marked as paid!', 'success');
+        loadWithdrawals('pending');
+        } else {
+        showToast(data.message || 'Failed.', 'error');
+        if (btn) { btn.textContent = '✅ Mark as Paid'; btn.classList.remove('loading'); }
+        }
+        } catch {
+        showToast('Network error.', 'error');
+        if (btn) { btn.textContent = '✅ Mark as Paid'; btn.classList.remove('loading'); }
+        }
+        }
+
+        // ── REJECT ─────────────────────────────────────────────
+        async function rejectWithdrawal(wdId) {
+        if (!confirm('Reject this withdrawal request?')) return;
+        try {
+        const res  = await fetch(`${API}/admin/withdrawals/${wdId}/reject`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }
+        });
+        const data = await res.json();
+        if (data.success) { showToast('Request rejected.', 'warning'); loadWithdrawals('pending'); }
+        else showToast(data.message || 'Failed.', 'error');
+        } catch { showToast('Network error.', 'error'); }
+        }
+
+        // ── NOTE MODAL ─────────────────────────────────────────
+        function openNoteModal(wdId) {
+        noteTargetId = wdId;
+        document.getElementById('noteText').value = '';
+        document.getElementById('noteModal').classList.add('open');
+        }
+        function closeNoteModal() {
+        document.getElementById('noteModal').classList.remove('open');
+        noteTargetId = null;
+        }
+        document.getElementById('noteModal').addEventListener('click', function(e) {
+        if (e.target === this) closeNoteModal();
+        });
+        async function saveNote() {
+        const note = document.getElementById('noteText').value.trim();
+        if (!note || !noteTargetId) return;
+        try {
+        const res  = await fetch(`${API}/admin/withdrawals/${noteTargetId}/note`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        body: JSON.stringify({ admin_note: note })
+        });
+        const data = await res.json();
+        if (data.success) {
+        showToast('Note saved.', 'success');
+        closeNoteModal();
+        loadWithdrawals('pending');
+        } else showToast(data.message || 'Failed.', 'error');
+        } catch { showToast('Network error.', 'error'); }
+        }
+
+        // ── HELPERS ────────────────────────────────────────────
+        function formatDate(d) {
+        if (!d) return '—';
+        return new Date(d).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' });
+        }
+        function formatDate2(d) {
+        if (!d) return '—';
+        return new Date(d).toLocaleDateString('en-KE', { day:'numeric', month:'short', year:'numeric' });
+        }
+        function escHtml(str) {
+        return String(str)
         .replace(/&/g, '&amp;')
         .replace(/</g, '&lt;')
         .replace(/>/g, '&gt;')
@@ -730,221 +1320,19 @@
         .replace(/'/g, '&#39;');
         }
 
-        // ── Fetch wrapper with admin header ─────────────────────────
-        async function adminFetch(path) {
-        const res = await fetch(`${API}${path}`, {
-        headers: { 'x-admin-secret': adminKey }
-        });
-        const data = await res.json();
-        if (!res.ok || data.success === false) {
-        throw new Error(data.message || 'Request failed');
+        // ── INIT ───────────────────────────────────────────────
+        window.onload = function () {
+        loadLandlords();
+        // Pre-fetch pending count for badge
+        fetch(`${API}/admin/withdrawals?status=pending`, { headers: { 'x-admin-secret': adminSecret } })
+        .then(r => r.json())
+        .then(d => {
+        if (d.success) {
+        const n = (d.withdrawals || []).filter(w => w.status === 'pending').length;
+        document.getElementById('tab-wd-count').textContent = n;
         }
-        return data;
-        }
-
-        // ── Load referrals (paginated) ──────────────────────────────
-        async function loadReferrals(page = 1) {
-        currentPage = page;
-        const tbody = document.getElementById('referralsBody');
-        tbody.innerHTML = `<tr><td colspan="8"><div class="loading-state"><p>Loading referrals&hellip;</p></div></td></tr>`;
-
-        const search = document.getElementById('searchInput').value.trim();
-        const status = document.getElementById('statusFilter').value;
-
-        const params = new URLSearchParams({ page, limit: PAGE_LIMIT });
-        if (search) params.set('search', search);
-        if (status) params.set('status', status);
-
-        try {
-        const data = await adminFetch(`/admin/referrals?${params.toString()}`);
-
-        // Summary
-        const s = data.summary || {};
-        document.getElementById('sumTotal').textContent     = formatKES(s.totalReward);
-        document.getElementById('sumPending').textContent   = formatKES(s.totalPending);
-        document.getElementById('sumPaid').textContent      = formatKES(s.totalPaid);
-        document.getElementById('sumReferrers').textContent = (s.activeReferrers ?? 0).toLocaleString();
-
-        renderReferrals(data.referrals, data.total, data.page, data.limit);
-
-        } catch (err) {
-        console.error(err);
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load referrals.')}</p></div></td></tr>`;
-        document.getElementById('pagination').innerHTML = '';
-        }
-        }
-
-        function renderReferrals(referrals, total, page, limit) {
-        const tbody = document.getElementById('referralsBody');
-
-        if (!referrals || referrals.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral earnings found for these filters.</p></div></td></tr>`;
-        document.getElementById('pagination').innerHTML = '';
-        return;
-        }
-
-        tbody.innerHTML = referrals.map(r => `
-        <tr>
-        <td>
-        <div class="cell-name">${escapeHtml(r.referrer_name)}</div>
-        <div class="cell-sub">${escapeHtml(r.referrer_email)}${r.referral_code ? ` &middot; <span class="code-pill">${escapeHtml(r.referral_code)}</span>` : ''}</div>
-        </td>
-        <td class="phone-cell">${escapeHtml(r.referrer_phone || '&mdash;')}</td>
-        <td>
-        <div class="cell-name">${escapeHtml(r.referred_name)}</div>
-        <div class="cell-sub">${escapeHtml(r.referred_email)}</div>
-        </td>
-        <td>${formatKES(r.rent_amount)}</td>
-        <td class="amount-strong">${formatKES(r.reward_amount)}</td>
-        <td><span class="status-badge ${r.status}">${r.status === 'paid' ? 'Paid' : 'Pending'}</span></td>
-        <td>${formatDate(r.paid_at || r.created_at)}</td>
-        <td>
-        ${r.status === 'pending'
-        ? `<button class="btn small" data-pay-id="${r.id}">Mark paid</button>`
-        : `<span class="cell-sub">${r.paid_at ? 'Paid ' + formatDate(r.paid_at) : '&mdash;'}</span>`}
-        </td>
-        </tr>
-        `).join('');
-
-        // Pagination
-        const totalPages = Math.max(1, Math.ceil(total / limit));
-        const pag = document.getElementById('pagination');
-        pag.innerHTML = `
-        <span>Showing page ${page} of ${totalPages} &middot; ${total.toLocaleString()} total</span>
-        <div style="display:flex; gap:8px;">
-        <button class="btn secondary small" id="prevPage" ${page <= 1 ? 'disabled' : ''}>Previous</button>
-        <button class="btn secondary small" id="nextPage" ${page >= totalPages ? 'disabled' : ''}>Next</button>
-        </div>
-        `;
-
-        document.getElementById('prevPage')?.addEventListener('click', () => loadReferrals(page - 1));
-        document.getElementById('nextPage')?.addEventListener('click', () => loadReferrals(page + 1));
-
-        // Mark paid buttons
-        tbody.querySelectorAll('[data-pay-id]').forEach(btn => {
-        btn.addEventListener('click', () => markAsPaid(btn.dataset.payId, btn));
-        });
-        }
-
-        // ── Mark a referral earning as paid ──────────────────────────
-        async function markAsPaid(id, btn) {
-        btn.disabled = true;
-        btn.textContent = 'Updating…';
-        try {
-        const res = await fetch(`${API}/admin/referrals/${id}/pay`, {
-        method: 'PATCH',
-        headers: { 'x-admin-secret': adminKey }
-        });
-        const data = await res.json();
-        if (!res.ok || !data.success) throw new Error(data.message || 'Failed to update');
-
-        showToast('Marked as paid.', 'success');
-        loadReferrals(currentPage);
-        } catch (err) {
-        console.error(err);
-        showToast(err.message || 'Could not mark as paid.', 'error');
-        btn.disabled = false;
-        btn.textContent = 'Mark paid';
-        }
-        }
-
-        // ── Load leaderboard ──────────────────────────────────────────
-        async function loadLeaderboard() {
-        const tbody = document.getElementById('leaderboardBody');
-        tbody.innerHTML = `<tr><td colspan="8"><div class="loading-state"><p>Loading leaderboard&hellip;</p></div></td></tr>`;
-
-        try {
-        const data = await adminFetch('/admin/referrals/leaderboard?limit=50');
-        renderLeaderboard(data.leaderboard);
-        } catch (err) {
-        console.error(err);
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">⚠️</span><p>${escapeHtml(err.message || 'Could not load leaderboard.')}</p></div></td></tr>`;
-        }
-        }
-
-        function renderLeaderboard(rows) {
-        const tbody = document.getElementById('leaderboardBody');
-
-        if (!rows || rows.length === 0) {
-        tbody.innerHTML = `<tr><td colspan="8"><div class="empty-state"><span class="empty-icon">🌱</span><p>No referral activity yet.</p></div></td></tr>`;
-        return;
-        }
-
-        tbody.innerHTML = rows.map((r, i) => {
-        const rank = i + 1;
-        const rankClass = rank === 1 ? 'gold' : '';
-        return `
-        <tr>
-        <td><span class="rank-badge ${rankClass}">${rank}</span></td>
-        <td>
-        <div class="cell-name">${escapeHtml(r.fullname)}</div>
-        <div class="cell-sub">${escapeHtml(r.email)}</div>
-        </td>
-        <td class="phone-cell">${escapeHtml(r.phone || '&mdash;')}</td>
-        <td>${r.referral_code ? `<span class="code-pill">${escapeHtml(r.referral_code)}</span>` : '&mdash;'}</td>
-        <td>${Number(r.referral_count).toLocaleString()}</td>
-        <td class="amount-strong">${formatKES(r.totalEarned)}</td>
-        <td>${formatKES(r.totalPending)}</td>
-        <td>${formatKES(r.totalPaid)}</td>
-        </tr>
-        `;
-        }).join('');
-        }
-
-        // ── Tabs ───────────────────────────────────────────────────
-        document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-
-        const tab = btn.dataset.tab;
-        document.getElementById('tab-all').classList.toggle('hidden', tab !== 'all');
-        document.getElementById('tab-leaderboard').classList.toggle('hidden', tab !== 'leaderboard');
-
-        if (tab === 'leaderboard') {
-        loadLeaderboard();
-        }
-        });
-        });
-
-        // ── Filter button ─────────────────────────────────────────
-        document.getElementById('filterBtn').addEventListener('click', () => loadReferrals(1));
-        document.getElementById('searchInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') loadReferrals(1);
-        });
-
-        // ── Admin key gate ─────────────────────────────────────────
-        document.getElementById('loadBtn').addEventListener('click', async () => {
-        const key = document.getElementById('adminKey').value.trim();
-        if (!key) {
-        showToast('Please enter the admin secret key.', 'error');
-        return;
-        }
-
-        adminKey = key;
-        const btn = document.getElementById('loadBtn');
-        btn.textContent = 'Loading…';
-        btn.disabled = true;
-
-        try {
-        // Verify the key works before showing the dashboard
-        await adminFetch('/admin/referrals?page=1&limit=1');
-
-        document.getElementById('keyCard').classList.add('hidden');
-        document.getElementById('appContent').classList.remove('hidden');
-
-        loadReferrals(1);
-        } catch (err) {
-        console.error(err);
-        showToast('Invalid admin key or server error.', 'error');
-        btn.textContent = 'Load data';
-        btn.disabled = false;
-        }
-        });
-
-        document.getElementById('adminKey').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') document.getElementById('loadBtn').click();
-        });
+        }).catch(() => {});
+        };
     </script>
 </body>
 </html>
