@@ -1126,7 +1126,7 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
 
 
 // GET /landlord/extension-requests/:landlordId
-app.get('/landlord/extension-requests/:landlordId', authenticate, async (req, res) => {
+app.get('/landlord/extension-requests/:landlordId', auth, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT er.*, t.property_title, t.location, t.rent_amount, t.duration_months,
@@ -1146,7 +1146,7 @@ app.get('/landlord/extension-requests/:landlordId', authenticate, async (req, re
 });
 
 // POST /tenancy/extension-request
-app.post('/tenancy/extension-request', authenticate, async (req, res) => {
+app.post('/tenancy/extension-request', auth, async (req, res) => {
   const { tenancy_id, landlord_id, tenant_id, extra_months, message } = req.body;
 
   if (!tenancy_id || !landlord_id || !tenant_id || !extra_months || extra_months < 1) {
@@ -1176,7 +1176,7 @@ app.post('/tenancy/extension-request', authenticate, async (req, res) => {
 });
 
 // POST /tenancy/extension-request/:id/respond
-app.post('/tenancy/extension-request/:id/respond', authenticate, async (req, res) => {
+app.post('/tenancy/extension-request/:id/respond', auth, async (req, res) => {
   const { id } = req.params;
   const { action } = req.body; // 'approve' | 'decline'
 
