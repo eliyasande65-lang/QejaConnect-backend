@@ -691,7 +691,7 @@ app.post("/upload-profile-pic", auth, upload.single("image"), (req, res) => {
   streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 });
 // In-memory OTP store (replace with DB table in production)
-const otpStore = new Map();
+//const otpStore = new Map();
 
 // Clean up expired OTPs every 10 minutes
 setInterval(() => {
@@ -702,30 +702,30 @@ setInterval(() => {
 }, 10 * 60 * 1000);
 
 // SEND OTP
-app.post("/auth/send-otp", signupLimiter, async (req, res) => {
-  const { email } = req.body;
-  if (!email || !z.string().email().safeParse(email).success) {
-    return res.status(400).json({ success: false, message: "Valid email required" });
-  }
+//app.post("/auth/send-otp", signupLimiter, async (req, res) => {
+  //const { email } = req.body;
+  //if (!email || !z.string().email().safeParse(email).success) {
+    //return res.status(400).json({ success: false, message: "Valid email required" });
+  //}
 
   // Check if email already registered
-  const [existing] = await dbPromise.query(
+  //const [existing] = await dbPromise.query(
     "SELECT id FROM landlords WHERE email = ?", [email]
-  );
-  if (existing.length) {
-    return res.status(409).json({ success: false, message: "Email already registered" });
-  }
+  //);
+  //if (existing.length) {
+    //return res.status(409).json({ success: false, message: "Email already registered" });
+  //}
 
-  const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
-  otpStore.set(email, { otp, expires: Date.now() + 10 * 60 * 1000 }); // 10 min expiry
+  //const otp = Math.floor(100000 + Math.random() * 900000).toString(); // 6-digit OTP
+  //otpStore.set(email, { otp, expires: Date.now() + 10 * 60 * 1000 }); // 10 min expiry
 
-  try {
+  //try {
     // AFTER
-    await resend.emails.send({
-      from: "QejaConnect <onboarding@resend.dev>",
-      to: email,
-      subject: "Your QejaConnect Verification Code",
-      html: `
+    //await resend.emails.send({
+      //from: "QejaConnect <onboarding@resend.dev>",
+      //to: email,
+      //subject: "Your QejaConnect Verification Code",
+     // html: `
         <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9f9f9;border-radius:12px;">
           <h2 style="color:#1a1535;">🏠 QejaConnect</h2>
           <p>Use the code below to verify your email. It expires in <strong>10 minutes</strong>.</p>
@@ -735,37 +735,37 @@ app.post("/auth/send-otp", signupLimiter, async (req, res) => {
           <p style="color:#666;font-size:13px;">If you didn't request this, ignore this email.</p>
         </div>
       `
-    });
-    res.json({ success: true, message: "OTP sent to your email" });
-  } catch (err) {
-    console.error("[SEND OTP]", err.message);
-    res.status(500).json({ success: false, message: "Failed to send OTP email" });
-  }
-});
+    //});
+   // res.json({ success: true, message: "OTP sent to your email" });
+  //} catch (err) {
+    //console.error("[SEND OTP]", err.message);
+    //res.status(500).json({ success: false, message: "Failed to send OTP email" });
+  //}
+//});
 
 // VERIFY OTP
-app.post("/auth/verify-otp", (req, res) => {
-  const { email, otp } = req.body;
-  if (!email || !otp) {
-    return res.status(400).json({ success: false, message: "Email and OTP required" });
-  }
+//app.post("/auth/verify-otp", (req, res) => {
+  //const { email, otp } = req.body;
+  //if (!email || !otp) {
+    //return res.status(400).json({ success: false, message: "Email and OTP required" });
+ // }
 
-  const entry = otpStore.get(email);
-  if (!entry) {
-    return res.status(400).json({ success: false, message: "No OTP found. Please request a new one." });
-  }
-  if (Date.now() > entry.expires) {
-    otpStore.delete(email);
-    return res.status(400).json({ success: false, message: "OTP expired. Please request a new one." });
-  }
-  if (entry.otp !== otp.trim()) {
-    return res.status(400).json({ success: false, message: "Incorrect OTP. Try again." });
-  }
+ // const entry = otpStore.get(email);
+ // if (!entry) {
+  //  return res.status(400).json({ success: false, message: "No OTP found. Please request a new one." });
+ // }
+ // if (Date.now() > entry.expires) {
+ //   otpStore.delete(email);
+ //   return res.status(400).json({ success: false, message: "OTP expired. Please request a new one." });
+ // }
+ // if (entry.otp !== otp.trim()) {
+  //  return res.status(400).json({ success: false, message: "Incorrect OTP. Try again." });
+ // }
 
   // Mark email as verified (so register-landlord can check)
-  otpStore.set(email, { otp, verified: true, expires: Date.now() + 30 * 60 * 1000 });
-  res.json({ success: true, message: "Email verified" });
-});
+ // otpStore.set(email, { otp, verified: true, expires: Date.now() + 30 * 60 * 1000 });
+  //res.json({ success: true, message: "Email verified" });
+//});
 
 // =========================
 // DISPLAY ID GENERATOR

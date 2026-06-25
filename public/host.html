@@ -617,9 +617,9 @@
                         <label>Email Address</label>
                         <div class="otp-row">
                             <input type="email" id="email" placeholder="you@gmail.com" autocomplete="email" oninput="onEmailChange()">
-                            <button type="button" class="btn-send-otp" id="sendOtpBtn" onclick="sendOtp()" disabled>Send OTP</button>
+                            <!-- <button type="button" class="btn-send-otp" id="sendOtpBtn" onclick="sendOtp()" disabled>Send OTP</button>-->
                         </div>
-                        <div id="otpGroup" style="display:none; margin-top:10px;">
+                        <!--<div id="otpGroup" style="display:none; margin-top:10px;">
                             <div id="otpInputArea">
                                 <div class="otp-row">
                                     <input type="text" id="otpInput" maxlength="6" placeholder="000000">
@@ -635,7 +635,7 @@
                                 <span class="verified-badge">✅ Email verified</span>
                             </div>
                         </div>
-                    </div>
+                    </div>-->
                     <div class="field">
                         <label>Phone Number</label>
                         <input type="tel" id="phone" placeholder="254712345678" autocomplete="tel">
@@ -999,11 +999,11 @@
         showToast('Please enter a valid email address.', 'warning'); return;
         }
 
-        if (!emailVerified) {
-        showToast('Please verify your email with the OTP before submitting.', 'warning');
-        document.getElementById('otpGroup').style.display = 'block';
-        return;
-        }
+        //if (!emailVerified) {
+        //showToast('Please verify your email with the OTP before submitting.', 'warning');
+        //document.getElementById('otpGroup').style.display = 'block';
+        //return;
+        //}
 
         if (!phone || !/^(254|0)[17]\d{8}$/.test(phone)) {
         showToast('Enter a valid Kenyan phone number (e.g. 254712345678).', 'warning'); return;
