@@ -727,7 +727,9 @@ setInterval(() => {
       //from: "QejaConnect <onboarding@resend.dev>",
       //to: email,
       //subject: "Your QejaConnect Verification Code",
-     // html: `
+      //
+      /*
+     html: `
         <div style="font-family:Arial,sans-serif;max-width:480px;margin:auto;padding:32px;background:#f9f9f9;border-radius:12px;">
           <h2 style="color:#1a1535;">🏠 QejaConnect</h2>
           <p>Use the code below to verify your email. It expires in <strong>10 minutes</strong>.</p>
@@ -768,7 +770,7 @@ setInterval(() => {
  // otpStore.set(email, { otp, verified: true, expires: Date.now() + 30 * 60 * 1000 });
   //res.json({ success: true, message: "Email verified" });
 //});
-
+*/
 // =========================
 // DISPLAY ID GENERATOR
 // =========================
@@ -803,13 +805,15 @@ app.post("/register-landlord",
         fullname, email, phone, id, kra, county,
         town, property, type, units, description, password
       } = req.body;
-
+      //
+      /*
       const otpEntry = otpStore.get(email);
       if (!otpEntry || !otpEntry.verified) {
         return res.status(403).json({ success: false, message: "Email not verified. Please verify your email first." });
       }
       otpStore.delete(email);
-
+      */
+      //
       const profileFile = req.files?.["profile_pic"]?.[0];
       const idFile      = req.files?.["id_photo"]?.[0];
 
