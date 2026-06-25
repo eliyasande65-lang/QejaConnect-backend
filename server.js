@@ -691,16 +691,18 @@ app.post("/upload-profile-pic", auth, upload.single("image"), (req, res) => {
   streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
 });
 // In-memory OTP store (replace with DB table in production)
-//const otpStore = new Map();
+const otpStore = new Map();
 
 // Clean up expired OTPs every 10 minutes
+//
+/*
 setInterval(() => {
   const now = Date.now();
   for (const [key, val] of otpStore.entries()) {
     if (now > val.expires) otpStore.delete(key);
   }
 }, 10 * 60 * 1000);
-
+*/
 // SEND OTP
 //app.post("/auth/send-otp", signupLimiter, async (req, res) => {
   //const { email } = req.body;
