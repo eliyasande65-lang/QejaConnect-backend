@@ -1003,13 +1003,19 @@
         const res  = await fetch("https://qeja-backend-azkf.onrender.com/interested", {
         method: "POST",
         headers: { "Content-Type": "application/json", "Authorization": "Bearer " + token },
-        body: JSON.stringify({ landlord_id, tenant_id: loggedUser.id, message: "Hi, I am interested in this property" })
+        body: JSON.stringify({
+        landlord_id: parseInt(landlord_id),
+        tenant_id:   parseInt(loggedUser.id),
+        message:     "Hi, I am interested in this property"
+        })
         });
         const data = await res.json();
         if (data.success) {
+        // Save conversation_id AND the landlord's real name from the API
+        localStorage.setItem("conversation_id",   data.conversation_id);
+        localStorage.setItem("chat_partner_name", data.landlord_name || "Landlord");
         alert("Chat started successfully ✅");
-        localStorage.setItem("chatLandlord", landlord_id);
-        window.location.href = "hostdashboard.html";
+        window.location.href = "chat-tenant.html";
         } else {
         alert(data.message || "Failed");
         }

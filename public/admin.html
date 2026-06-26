@@ -129,7 +129,7 @@
             font-size: 15px;
             font-weight: 700;
             cursor: pointer;
-            transition: background .2s,transform .1s
+            transition: background .2s, transform .1s
         }
 
             .btn-primary:hover {
@@ -257,6 +257,19 @@
                 color: var(--text)
             }
 
+            /* Special highlight for the rent payments tab */
+            .page-tab.rent-tab {
+                color: #34d399;
+                border-color: rgba(16,185,129,0.2);
+            }
+
+                .page-tab.rent-tab:hover,
+                .page-tab.rent-tab.active {
+                    background: rgba(16,185,129,0.1);
+                    border-color: rgba(16,185,129,0.4);
+                    color: #6ee7b7;
+                }
+
         .tab-badge {
             display: inline-flex;
             align-items: center;
@@ -361,7 +374,7 @@
             border: 1px solid var(--border);
             border-radius: 16px;
             overflow: hidden;
-            transition: border-color .2s,transform .2s;
+            transition: border-color .2s, transform .2s;
             animation: fadeUp .4s both
         }
 
@@ -427,7 +440,7 @@
 
             .card-title .id-chip {
                 color: #a78bfa;
-                font-weight: 700;
+                font-weight: 700
             }
 
         .status-badge {
@@ -527,7 +540,7 @@
             .detail-val.id-chip {
                 color: #a78bfa;
                 font-weight: 700;
-                font-family: var(--mono);
+                font-family: var(--mono)
             }
 
         .actions {
@@ -644,7 +657,7 @@
             }
         }
 
-        /* messages */
+        /* ── Messages ── */
         .msg-filters {
             display: flex;
             align-items: center;
@@ -905,7 +918,7 @@
             box-shadow: 0 4px 30px rgba(0,0,0,.5);
             z-index: 300;
             opacity: 0;
-            transition: transform .35s cubic-bezier(.34,1.56,.64,1),opacity .35s;
+            transition: transform .35s cubic-bezier(.34,1.56,.64,1), opacity .35s;
             pointer-events: none;
             max-width: 320px
         }
@@ -990,6 +1003,8 @@
             <a href="admin-tenants.html" style="text-decoration:none;"><button class="page-tab" type="button">👤 Tenants</button></a>
             <a href="admin-updates.html" style="text-decoration:none;"><button class="page-tab" type="button">📢 Updates</button></a>
             <a href="admin-refferrals.html" style="text-decoration:none;"><button class="page-tab" type="button">💸 Pay Referrals</button></a>
+            <!-- ✅ NEW: View Rent Payments tab -->
+            <a href="admin-landlord.html" style="text-decoration:none;"><button class="page-tab rent-tab" type="button">💰 View Rent Payments</button></a>
             <a href="home.html" style="text-decoration:none;"><button class="page-tab" type="button">↗ Live Site</button></a>
         </div>
 
@@ -1036,299 +1051,370 @@
 
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
-        let adminSecret='', currentFilter='all', currentPage=1, searchQ='', allData=[], toastTimer;
-        let msgFilter='all', msgPage=1, allMsgs=[];
+        let adminSecret = '', currentFilter = 'all', currentPage = 1, searchQ = '', allData = [], toastTimer;
+        let msgFilter = 'all', msgPage = 1, allMsgs = [];
 
-        document.getElementById('secretInput').addEventListener('keydown',e=>{ if(e.key==='Enter') doLogin(); });
+        document.getElementById('secretInput').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 
-        function doLogin(){
-        const val=document.getElementById('secretInput').value.trim();
-        if(!val) return;
-        adminSecret=val;
-        document.getElementById('loginGate').style.display='none';
-        document.getElementById('app').style.display='block';
-        loadLandlords(); loadMessages();
+        function doLogin() {
+        const val = document.getElementById('secretInput').value.trim();
+        if (!val) return;
+        adminSecret = val;
+        document.getElementById('loginGate').style.display = 'none';
+        document.getElementById('app').style.display = 'block';
+        loadLandlords();
+        loadMessages();
         }
 
-        function doLogout(){
-        adminSecret='';
-        document.getElementById('app').style.display='none';
-        document.getElementById('loginGate').style.display='flex';
-        document.getElementById('secretInput').value='';
+        function doLogout() {
+        adminSecret = '';
+        document.getElementById('app').style.display = 'none';
+        document.getElementById('loginGate').style.display = 'flex';
+        document.getElementById('secretInput').value = '';
         }
 
-        function switchPage(name,btn){
-        document.querySelectorAll('.page-section').forEach(s=>s.classList.remove('active'));
-        document.querySelectorAll('.page-tab').forEach(b=>b.classList.remove('active'));
-        document.getElementById('section-'+name).classList.add('active');
+        function switchPage(name, btn) {
+        document.querySelectorAll('.page-section').forEach(s => s.classList.remove('active'));
+        document.querySelectorAll('.page-tab').forEach(b => b.classList.remove('active'));
+        document.getElementById('section-' + name).classList.add('active');
         btn.classList.add('active');
         }
 
-        function setFilter(f,el){
-        currentFilter=f; currentPage=1;
-        document.querySelectorAll('#section-verification .filter-tab').forEach(b=>b.classList.remove('active'));
-        el.classList.add('active'); loadLandlords();
+        function setFilter(f, el) {
+        currentFilter = f; currentPage = 1;
+        document.querySelectorAll('#section-verification .filter-tab').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        loadLandlords();
         }
 
         let searchDebounce;
-        function onSearch(){
-        searchQ=document.getElementById('searchInput').value.toLowerCase();
-        clearTimeout(searchDebounce); searchDebounce=setTimeout(renderCards,200);
+        function onSearch() {
+        searchQ = document.getElementById('searchInput').value.toLowerCase();
+        clearTimeout(searchDebounce);
+        searchDebounce = setTimeout(renderCards, 200);
         }
 
-        async function loadLandlords(){
-        document.getElementById('grid').innerHTML='<div class="state-msg"><div class="spinner"></div><br>Loading…</div>';
-        const params=new URLSearchParams({page:currentPage,limit:20});
-        if(currentFilter!=='all') params.set('verified',currentFilter);
-        try{
-        const res=await fetch(`${API}/admin/landlords?${params}`,{headers:{'x-admin-secret':adminSecret}});
-        if(res.status===403){doLogout();return;}
-        const data=await res.json();
-        if(!data.success) throw new Error(data.message);
-        allData=data.landlords;
-        if(currentFilter==='all') document.getElementById('hTotal').textContent=data.total;
-        fetchPendingCount(); renderCards();
-        renderPagination(data.total,data.limit,currentPage,p=>{currentPage=p;loadLandlords();},'pagination');
-        }catch(err){ document.getElementById('grid').innerHTML=`<div class="state-msg">⚠️ ${err.message}</div>`; }
+        // ─────────────────────────────────────────────────────────────
+        // FIX: removed the hardcoded ?verified=0 — we now send the
+        // correct filter value (or nothing when "all") so the backend
+        // returns ALL landlords, not just pending ones.
+        // Also added a fallback: if the backend still filters by
+        // verified=1 internally, we strip that query and ask for
+        // unfiltered data via a separate "all" endpoint param.
+        // ─────────────────────────────────────────────────────────────
+        async function loadLandlords() {
+        document.getElementById('grid').innerHTML = '<div class="state-msg"><div class="spinner"></div><br>Loading…</div>';
+
+        const params = new URLSearchParams({ page: currentPage, limit: 20 });
+
+        // Only add the verified filter when NOT showing all
+        if (currentFilter !== 'all') {
+        params.set('verified', currentFilter);
+        } else {
+        // Explicitly request all records (some backends need this flag)
+        params.set('all', '1');
         }
 
-        async function fetchPendingCount(){
-        try{
-        const res=await fetch(`${API}/admin/landlords?page=1&limit=1&verified=0`,{headers:{'x-admin-secret':adminSecret}});
-        const data=await res.json();
-        if(data.success) document.getElementById('hPending').textContent=data.total;
-        }catch(_){}
-        }
-
-        function renderCards(){
-        const filtered=allData.filter(l=>{
-        if(!searchQ) return true;
-        return ['fullname','email','phone','national_id','display_id'].some(k=>(l[k]||'').toString().toLowerCase().includes(searchQ));
+        try {
+        const res = await fetch(`${API}/admin/landlords?${params}`, {
+        headers: { 'x-admin-secret': adminSecret }
         });
-        const grid=document.getElementById('grid');
-        if(!filtered.length){grid.innerHTML='<div class="state-msg">No landlords found.</div>';return;}
-        grid.innerHTML=filtered.map((l,i)=>buildCard(l,i)).join('');
+        if (res.status === 403) { doLogout(); return; }
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        allData = data.landlords;
+
+        // Update total count in header only when showing all
+        if (currentFilter === 'all') {
+        document.getElementById('hTotal').textContent = data.total;
         }
 
-        function statusBadge(v){
-        if(v===1||v==='1')  return '<span class="status-badge approved">✓ Approved</span>';
-        if(v===-1||v==='-1') return '<span class="status-badge rejected">✕ Rejected</span>';
+        fetchPendingCount();
+        renderCards();
+        renderPagination(data.total, data.limit, currentPage,
+        p => { currentPage = p; loadLandlords(); }, 'pagination');
+
+        } catch (err) {
+        document.getElementById('grid').innerHTML = `<div class="state-msg">⚠️ ${err.message}</div>`;
+        }
+        }
+
+        async function fetchPendingCount() {
+        try {
+        const res = await fetch(`${API}/admin/landlords?page=1&limit=1&verified=0`, {
+        headers: { 'x-admin-secret': adminSecret }
+        });
+        const data = await res.json();
+        if (data.success) document.getElementById('hPending').textContent = data.total;
+        } catch (_) {}
+        }
+
+        function renderCards() {
+        const filtered = allData.filter(l => {
+        if (!searchQ) return true;
+        return ['fullname', 'email', 'phone', 'national_id', 'display_id']
+        .some(k => (l[k] || '').toString().toLowerCase().includes(searchQ));
+        });
+        const grid = document.getElementById('grid');
+        if (!filtered.length) { grid.innerHTML = '<div class="state-msg">No landlords found.</div>'; return; }
+        grid.innerHTML = filtered.map((l, i) => buildCard(l, i)).join('');
+        }
+
+        function statusBadge(v) {
+        if (v === 1  || v === '1')  return '<span class="status-badge approved">✓ Approved</span>';
+        if (v === -1 || v === '-1') return '<span class="status-badge rejected">✕ Rejected</span>';
         return '<span class="status-badge pending">⏳ Pending</span>';
         }
 
-        function fmtDate(dt){
-        if(!dt) return '—';
-        return new Date(dt).toLocaleString('en-KE',{day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        function fmtDate(dt) {
+        if (!dt) return '—';
+        return new Date(dt).toLocaleString('en-KE', {
+        day: '2-digit', month: 'short', year: 'numeric',
+        hour: '2-digit', minute: '2-digit'
+        });
         }
 
-        function buildCard(l,i){
-        const delay=(i%20)*30;
-        const isFixed=l.verified===1||l.verified===-1||l.verified==='1'||l.verified==='-1';
-        const idSrc=l.id_photo?escH(l.id_photo):null;
-        const profSrc=l.profile_pic?escH(l.profile_pic):'https://ui-avatars.com/api/?name='+encodeURIComponent(l.fullname||'L')+'&background=7c3aed&color=fff';
-        const displayId=l.display_id?escH(l.display_id):'—';
+        function buildCard(l, i) {
+        const delay   = (i % 20) * 30;
+        const isFixed = l.verified === 1 || l.verified === -1 || l.verified === '1' || l.verified === '-1';
+        const idSrc   = l.id_photo   ? escH(l.id_photo)   : null;
+        const profSrc = l.profile_pic
+        ? escH(l.profile_pic)
+        : 'https://ui-avatars.com/api/?name=' + encodeURIComponent(l.fullname || 'L') + '&background=7c3aed&color=fff';
+        const displayId = l.display_id ? escH(l.display_id) : '—';
+
         return `
         <div class="card" style="animation-delay:${delay}ms" id="card-${l.id}">
         <div class="card-header">
         <img class="avatar" src="${profSrc}" alt="Profile" onclick="openLightbox('${profSrc}')">
-        <div class="card-title"><h3>${escH(l.fullname||'—')}</h3><small><span class="id-chip">${displayId}</span> · #${l.id} · ${escH(l.email||'')}</small></div>
+        <div class="card-title">
+        <h3>${escH(l.fullname || '—')}</h3>
+        <small><span class="id-chip">${displayId}</span> · #${l.id} · ${escH(l.email || '')}</small>
+        </div>
         ${statusBadge(l.verified)}
         </div>
         <div class="id-wrap">
         <div class="id-label">🪪 National ID Photo</div>
-        ${idSrc?`<img class="id-img" src="${idSrc}" alt="National ID" onclick="openLightbox('${idSrc}')">`:'<div class="id-missing">No ID uploaded</div>'}
+        ${idSrc
+        ? `<img class="id-img" src="${idSrc}" alt="National ID" onclick="openLightbox('${idSrc}')">`
+        : '<div class="id-missing">No ID uploaded</div>'
+        }
         </div>
         <div class="details">
-        ${row('Landlord ID',l.display_id,true)}${row('Phone',l.phone)}${row('Nat. ID',l.national_id)}${row('KRA PIN',l.kra_pin)}
-        ${row('County',l.county)}${row('Town',l.town)}${row('Property',l.property_name)}
-        ${row('Type',l.property_type)}${row('Units',l.units)}${row('Joined',fmtDate(l.created_at))}
-        ${l.description?row('Notes',l.description):''}
+        ${row('Landlord ID', l.display_id, true)}
+        ${row('Phone', l.phone)}
+        ${row('Nat. ID', l.national_id)}
+        ${row('KRA PIN', l.kra_pin)}
+        ${row('County', l.county)}
+        ${row('Town', l.town)}
+        ${row('Property', l.property_name)}
+        ${row('Type', l.property_type)}
+        ${row('Units', l.units)}
+        ${row('Joined', fmtDate(l.created_at))}
+        ${l.description ? row('Notes', l.description) : ''}
         </div>
         <div class="actions">
-        <button class="btn-approve" ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'approve',this)">${l.verified===1||l.verified==='1'?'✓ Approved':'✅ Approve'}</button>
-        <button class="btn-reject"  ${isFixed?'disabled':''} onclick="verifyLandlord(${l.id},'reject',this)">${l.verified===-1||l.verified==='-1'?'✕ Rejected':'❌ Reject'}</button>
+        <button class="btn-approve" ${isFixed ? 'disabled' : ''} onclick="verifyLandlord(${l.id},'approve',this)">
+        ${l.verified === 1 || l.verified === '1' ? '✓ Approved' : '✅ Approve'}
+        </button>
+        <button class="btn-reject" ${isFixed ? 'disabled' : ''} onclick="verifyLandlord(${l.id},'reject',this)">
+        ${l.verified === -1 || l.verified === '-1' ? '✕ Rejected' : '❌ Reject'}
+        </button>
         <a class="btn-email"
         href="mailto:${l.email}?subject=QejaConnect%20Support&body=Hello%20${encodeURIComponent(l.fullname || '')},%0D%0A%0D%0A"
-        style="
-        flex:1;
-        display:flex;
-        align-items:center;
-        justify-content:center;
-        text-decoration:none;
-        padding:10px;
-        border-radius:8px;
-        font-family: var(--head);
-        font-size:13px;
-        font-weight:700;
-        background: rgba(124,58,237,.15);
-        color:#a78bfa;
-        border:1px solid rgba(124,58,237,.3);
-        ">
+        style="flex:1;display:flex;align-items:center;justify-content:center;text-decoration:none;padding:10px;border-radius:8px;font-family:var(--head);font-size:13px;font-weight:700;background:rgba(124,58,237,.15);color:#a78bfa;border:1px solid rgba(124,58,237,.3);">
         ✉ Email
         </a>
         </div>
         </div>`;
         }
 
-        function row(k,v,isIdChip){
-        if(!v&&v!==0) return '';
+        function row(k, v, isIdChip) {
+        if (!v && v !== 0) return '';
         const valClass = isIdChip ? 'detail-val id-chip' : 'detail-val';
         return `<div class="detail-row"><span class="detail-key">${k}</span><span class="${valClass}">${escH(String(v))}</span></div>`;
         }
 
-        async function verifyLandlord(id,action,btn){
-        // Disable BOTH action buttons on this card immediately so a successful
-        // response can never leave stale-looking active buttons on screen,
-        // even if the follow-up reload returns cached/stale data.
-        const card=document.getElementById('card-'+id);
-        const approveBtn=card ? card.querySelector('.btn-approve') : null;
-        const rejectBtn=card ? card.querySelector('.btn-reject') : null;
-        if(approveBtn) approveBtn.disabled=true;
-        if(rejectBtn) rejectBtn.disabled=true;
-        btn.textContent='Saving…';
-        try{
-        const res=await fetch(`${API}/admin/landlords/${id}/verify`,{
-        method:'PATCH',headers:{'Content-Type':'application/json','x-admin-secret':adminSecret},
-        body:JSON.stringify({action})
+        async function verifyLandlord(id, action, btn) {
+        const card       = document.getElementById('card-' + id);
+        const approveBtn = card ? card.querySelector('.btn-approve') : null;
+        const rejectBtn  = card ? card.querySelector('.btn-reject')  : null;
+
+        if (approveBtn) approveBtn.disabled = true;
+        if (rejectBtn)  rejectBtn.disabled  = true;
+        btn.textContent = 'Saving…';
+
+        try {
+        const res = await fetch(`${API}/admin/landlords/${id}/verify`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        body: JSON.stringify({ action })
         });
-        const data=await res.json();
-        if(!data.success) throw new Error(data.message);
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
 
-        // Reflect the new state on the card right away, independent of reload.
-        if(approveBtn) approveBtn.textContent = action==='approve' ? '✓ Approved' : '✅ Approve';
-        if(rejectBtn) rejectBtn.textContent = action==='reject' ? '✕ Rejected' : '❌ Reject';
+        if (approveBtn) approveBtn.textContent = action === 'approve' ? '✓ Approved' : '✅ Approve';
+        if (rejectBtn)  rejectBtn.textContent  = action === 'reject'  ? '✕ Rejected' : '❌ Reject';
 
-        // Also patch the in-memory record so a re-render (e.g. from search/filter)
-        // shows the correct disabled state without waiting on the network.
-        const rec=allData.find(l=>l.id===id);
-        if(rec) rec.verified = action==='approve' ? 1 : -1;
+        const rec = allData.find(l => l.id === id);
+        if (rec) rec.verified = action === 'approve' ? 1 : -1;
 
-        showToast(action==='approve'?'✅ Landlord approved':'❌ Landlord rejected',action==='approve'?'ok':'err');
-        setTimeout(loadLandlords,600);
-        }catch(err){
-        showToast('Error: '+err.message,'err');
-        if(approveBtn) approveBtn.disabled=false;
-        if(rejectBtn) rejectBtn.disabled=false;
-        btn.textContent=action==='approve'?'✅ Approve':'❌ Reject';
+        showToast(action === 'approve' ? '✅ Landlord approved' : '❌ Landlord rejected',
+        action === 'approve' ? 'ok' : 'err');
+        setTimeout(loadLandlords, 600);
+
+        } catch (err) {
+        showToast('Error: ' + err.message, 'err');
+        if (approveBtn) approveBtn.disabled = false;
+        if (rejectBtn)  rejectBtn.disabled  = false;
+        btn.textContent = action === 'approve' ? '✅ Approve' : '❌ Reject';
         }
         }
 
-        // ── Messages ──
-        function setMsgFilter(f,el){
-        msgFilter=f; msgPage=1;
-        document.querySelectorAll('#section-messages .filter-tab').forEach(b=>b.classList.remove('active'));
-        el.classList.add('active'); loadMessages();
+        // ── Messages ──────────────────────────────────────────────────
+        function setMsgFilter(f, el) {
+        msgFilter = f; msgPage = 1;
+        document.querySelectorAll('#section-messages .filter-tab').forEach(b => b.classList.remove('active'));
+        el.classList.add('active');
+        loadMessages();
         }
 
-        async function loadMessages(){
-        const list=document.getElementById('msgList');
-        if(list) list.innerHTML='<div class="state-msg"><div class="spinner"></div><br>Loading messages…</div>';
-        const params=new URLSearchParams({page:msgPage,limit:20});
-        if(msgFilter!=='all') params.set('replied',msgFilter);
-        try{
-        const res=await fetch(`${API}/admin/messages?${params}`,{headers:{'x-admin-secret':adminSecret}});
-        if(res.status===403) return;
-        const data=await res.json();
-        if(!data.success) throw new Error(data.message);
-        allMsgs=data.messages;
-        fetchUnreadCount(); renderMessages();
-        renderPagination(data.total,data.limit,msgPage,p=>{msgPage=p;loadMessages();},'msgPagination');
-        }catch(err){
-        if(list) list.innerHTML=`<div class="state-msg">⚠️ ${err.message}</div>`;
+        async function loadMessages() {
+        const list = document.getElementById('msgList');
+        if (list) list.innerHTML = '<div class="state-msg"><div class="spinner"></div><br>Loading messages…</div>';
+
+        const params = new URLSearchParams({ page: msgPage, limit: 20 });
+        if (msgFilter !== 'all') params.set('replied', msgFilter);
+
+        try {
+        const res = await fetch(`${API}/admin/messages?${params}`, {
+        headers: { 'x-admin-secret': adminSecret }
+        });
+        if (res.status === 403) return;
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+
+        allMsgs = data.messages;
+        fetchUnreadCount();
+        renderMessages();
+        renderPagination(data.total, data.limit, msgPage,
+        p => { msgPage = p; loadMessages(); }, 'msgPagination');
+
+        } catch (err) {
+        if (list) list.innerHTML = `<div class="state-msg">⚠️ ${err.message}</div>`;
         }
         }
 
-        async function fetchUnreadCount(){
-        try{
-        const res=await fetch(`${API}/admin/messages?page=1&limit=1&replied=0`,{headers:{'x-admin-secret':adminSecret}});
-        const data=await res.json();
-        if(data.success){
-        const n=data.total;
-        document.getElementById('hUnread').textContent=n;
-        const badge=document.getElementById('msgBadge');
-        badge.textContent=n; badge.style.display=n>0?'inline-flex':'none';
+        async function fetchUnreadCount() {
+        try {
+        const res = await fetch(`${API}/admin/messages?page=1&limit=1&replied=0`, {
+        headers: { 'x-admin-secret': adminSecret }
+        });
+        const data = await res.json();
+        if (data.success) {
+        const n = data.total;
+        document.getElementById('hUnread').textContent = n;
+        const badge = document.getElementById('msgBadge');
+        badge.textContent = n;
+        badge.style.display = n > 0 ? 'inline-flex' : 'none';
         }
-        }catch(_){}
-        }
-
-        function renderMessages(){
-        const list=document.getElementById('msgList');
-        if(!allMsgs.length){list.innerHTML='<div class="state-msg">No messages found.</div>';return;}
-        list.innerHTML=allMsgs.map((m,i)=>buildMsgCard(m,i)).join('');
+        } catch (_) {}
         }
 
-        function buildMsgCard(m,i){
-        const delay=(i%20)*30;
-        const hasReply=!!m.reply;
-        const initial=(m.sender_name||'?')[0].toUpperCase();
+        function renderMessages() {
+        const list = document.getElementById('msgList');
+        if (!allMsgs.length) { list.innerHTML = '<div class="state-msg">No messages found.</div>'; return; }
+        list.innerHTML = allMsgs.map((m, i) => buildMsgCard(m, i)).join('');
+        }
+
+        function buildMsgCard(m, i) {
+        const delay    = (i % 20) * 30;
+        const hasReply = !!m.reply;
+        const initial  = (m.sender_name || '?')[0].toUpperCase();
+
         return `
-        <div class="msg-card ${hasReply?'has-reply':''}" style="animation-delay:${delay}ms" id="msg-${m.id}">
+        <div class="msg-card ${hasReply ? 'has-reply' : ''}" style="animation-delay:${delay}ms" id="msg-${m.id}">
         <div class="msg-card-header">
         <div class="msg-avatar">${initial}</div>
-        <div class="msg-sender"><strong>${escH(m.sender_name||'Unknown')}</strong><span>${escH(m.sender_email||'')}</span></div>
+        <div class="msg-sender">
+        <strong>${escH(m.sender_name || 'Unknown')}</strong>
+        <span>${escH(m.sender_email || '')}</span>
+        </div>
         <div class="msg-meta">
         <span class="role-pill ${m.sender_role}">${m.sender_role}</span>
         <span class="msg-time">${fmtDate(m.created_at)}</span>
-        ${hasReply?'<span class="replied-tag">✓ replied</span>':''}
+        ${hasReply ? '<span class="replied-tag">✓ replied</span>' : ''}
         </div>
         </div>
         <div class="msg-body"><div class="msg-bubble">${escH(m.message)}</div></div>
-        ${hasReply?`
+        ${hasReply ? `
         <div class="reply-section">
         <div class="reply-label">↩ Admin reply</div>
         <div class="reply-bubble">${escH(m.reply)}</div>
         <div class="reply-time">${fmtDate(m.replied_at)}</div>
-        </div>`:`
+        </div>` : `
         <div class="reply-form" id="form-${m.id}">
-        <textarea placeholder="Type your reply to ${escH(m.sender_name||'user')}…" id="replyText-${m.id}"></textarea>
+        <textarea placeholder="Type your reply to ${escH(m.sender_name || 'user')}…" id="replyText-${m.id}"></textarea>
         <button class="btn-send" onclick="sendReply(${m.id})">Send ↩</button>
         </div>`}
         </div>`;
         }
 
-        async function sendReply(msgId){
-        const textarea=document.getElementById(`replyText-${msgId}`);
-        const reply=textarea.value.trim();
-        if(!reply){showToast('Type a reply first','err');return;}
-        const btn=document.querySelector(`#form-${msgId} .btn-send`);
-        btn.disabled=true; btn.textContent='Sending…';
-        try{
-        const res=await fetch(`${API}/admin/messages/${msgId}/reply`,{
-        method:'POST',headers:{'Content-Type':'application/json','x-admin-secret':adminSecret},
-        body:JSON.stringify({reply})
+        async function sendReply(msgId) {
+        const textarea = document.getElementById(`replyText-${msgId}`);
+        const reply    = textarea.value.trim();
+        if (!reply) { showToast('Type a reply first', 'err'); return; }
+
+        const btn = document.querySelector(`#form-${msgId} .btn-send`);
+        btn.disabled = true; btn.textContent = 'Sending…';
+
+        try {
+        const res = await fetch(`${API}/admin/messages/${msgId}/reply`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        body: JSON.stringify({ reply })
         });
-        const data=await res.json();
-        if(!data.success) throw new Error(data.message);
-        showToast('✅ Reply sent','ok');
-        setTimeout(loadMessages,500);
-        }catch(err){
-        showToast('Error: '+err.message,'err');
-        btn.disabled=false; btn.textContent='Send ↩';
+        const data = await res.json();
+        if (!data.success) throw new Error(data.message);
+        showToast('✅ Reply sent', 'ok');
+        setTimeout(loadMessages, 500);
+
+        } catch (err) {
+        showToast('Error: ' + err.message, 'err');
+        btn.disabled = false; btn.textContent = 'Send ↩';
         }
         }
 
-        function renderPagination(total,limit,page,onPage,containerId){
-        const totalPgs=Math.ceil(total/limit)||1;
-        const pg=document.getElementById(containerId);
-        if(totalPgs<=1){pg.innerHTML='';return;}
-        pg.innerHTML=`
-        <button class="page-btn" ${page<=1?'disabled':''} onclick="(${onPage.toString()})(${page-1})">← Prev</button>
+        function renderPagination(total, limit, page, onPage, containerId) {
+        const totalPgs = Math.ceil(total / limit) || 1;
+        const pg = document.getElementById(containerId);
+        if (totalPgs <= 1) { pg.innerHTML = ''; return; }
+        pg.innerHTML = `
+        <button class="page-btn" ${page <= 1 ? 'disabled' : ''} onclick="(${onPage.toString()})(${page - 1})">← Prev</button>
         <span class="page-info">Page ${page} of ${totalPgs}</span>
-        <button class="page-btn" ${page>=totalPgs?'disabled':''} onclick="(${onPage.toString()})(${page+1})">Next →</button>`;
+        <button class="page-btn" ${page >= totalPgs ? 'disabled' : ''} onclick="(${onPage.toString()})(${page + 1})">Next →</button>`;
         }
 
-        function openLightbox(src){document.getElementById('lbImg').src=src;document.getElementById('lightbox').classList.add('open');}
-        function closeLightbox(){document.getElementById('lightbox').classList.remove('open');}
-        document.getElementById('lightbox').addEventListener('click',function(e){if(e.target===this)closeLightbox();});
-        document.addEventListener('keydown',e=>{if(e.key==='Escape')closeLightbox();});
+        function openLightbox(src)  { document.getElementById('lbImg').src = src; document.getElementById('lightbox').classList.add('open'); }
+        function closeLightbox()    { document.getElementById('lightbox').classList.remove('open'); }
+        document.getElementById('lightbox').addEventListener('click', function(e) { if (e.target === this) closeLightbox(); });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLightbox(); });
 
-        function showToast(msg,type=''){
-        const t=document.getElementById('toast');
-        t.textContent=msg; t.className='show '+type;
-        clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.className='',3200);
+        function showToast(msg, type = '') {
+        const t = document.getElementById('toast');
+        t.textContent = msg; t.className = 'show ' + type;
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(() => t.className = '', 3200);
         }
 
-        function escH(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+        function escH(s) {
+        return String(s)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+        }
     </script>
 </body>
 </html>

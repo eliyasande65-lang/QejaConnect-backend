@@ -2,9 +2,6 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <!-- ============================================================
-     QejaConnect PWA — paste this block inside <head> on EVERY page
-     ============================================================ -->
     <link rel="manifest" href="/QejaConnect/manifest.json">
     <meta name="theme-color" content="#1a1535">
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -20,12 +17,8 @@
         });
         }
     </script>
-    <!-- ============================================================
-         END QejaConnect PWA block
-         ============================================================ -->
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tenant Chat | Qeja Connect</title>
-
     <style>
         * {
             box-sizing: border-box;
@@ -269,13 +262,14 @@
 
     <script>
         const token      = localStorage.getItem("token");
-        const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser") || "null");
         const convId     = localStorage.getItem("conversation_id");
 
-        // Set partner name immediately from localStorage (set by dashboard)
+        // FIX: read the partner name that was saved by the interested() function in home.html
         const partnerName = localStorage.getItem("chat_partner_name") || "Landlord";
         document.getElementById("chatName").textContent = partnerName;
 
+        // FIX: cache these as numbers from the start
         let cachedLandlordId = null;
         let cachedTenantId   = null;
         let pollingTimer     = null;
@@ -292,46 +286,46 @@
         if (!timestamp) return "";
         const date = new Date(timestamp);
         if (isNaN(date)) return "";
-        const now = new Date();
-        const isToday = date.toDateString() === now.toDateString();
+        const now       = new Date();
+        const isToday   = date.toDateString() === now.toDateString();
         const yesterday = new Date(now);
         yesterday.setDate(now.getDate() - 1);
         const isYesterday = date.toDateString() === yesterday.toDateString();
-
         const timeStr = date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-
         if (isToday)     return timeStr;
-        if (isYesterday) return `Yesterday ${timeStr}`;
+        if (isYesterday) return "Yesterday " + timeStr;
         return date.toLocaleDateString([], { day: "numeric", month: "short" }) + " " + timeStr;
         }
 
         async function loadMessages() {
         try {
-        const res = await fetch(
-        `https://qeja-backend-azkf.onrender.com/messages/${convId}`,
+        const res  = await fetch(
+        "https://qeja-backend-azkf.onrender.com/messages/" + convId,
         { headers: { "Authorization": "Bearer " + token } }
         );
         const data = await res.json();
 
-        cachedLandlordId = data.landlord_id;
-        cachedTenantId   = data.tenant_id;
+        // FIX: always store as integers
+        cachedLandlordId = parseInt(data.landlord_id);
+        cachedTenantId   = parseInt(data.tenant_id);
 
-        const msgs = data.messages || [];
+        const msgs      = data.messages || [];
         const container = document.getElementById("messages");
-        const atBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+        const atBottom  = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
 
         if (msgs.length === 0) {
-        container.innerHTML = `<div class="empty-state">No messages yet. Start the conversation!</div>`;
+        container.innerHTML = '<div class="empty-state">No messages yet. Start the conversation!</div>';
         } else {
         container.innerHTML = msgs.map(chat => {
-        const isMe = chat.sender_role === "tenant";
+        const isMe    = chat.sender_role === "tenant";
         const timeStr = formatTime(chat.created_at || chat.timestamp || chat.sent_at);
-        return `
-        <div class="msg-wrap ${isMe ? "mine-wrap" : "other-wrap"}">
-        <div class="msg-label">${isMe ? "You" : escapeHtml(partnerName)}</div>
-        <div class="msg ${isMe ? "mine" : "other"}">${escapeHtml(chat.message)}</div>
-        ${timeStr ? `<div class="msg-time">${timeStr}</div>` : ""}
-        </div>`;
+        return (
+        '<div class="msg-wrap ' + (isMe ? "mine-wrap" : "other-wrap") + '">' +
+        '<div class="msg-label">' + (isMe ? "You" : escapeHtml(partnerName)) + '</div>' +
+        '<div class="msg ' + (isMe ? "mine" : "other") + '">' + escapeHtml(chat.message) + '</div>' +
+        (timeStr ? '<div class="msg-time">' + timeStr + '</div>' : "") +
+        '</div>'
+        );
         }).join("");
         }
 
@@ -348,33 +342,43 @@
         }
 
         async function sendMessage() {
-        const input = document.getElementById("messageInput");
+        const input   = document.getElementById("messageInput");
         const message = input.value.trim();
         if (!message) return;
 
         const btn = document.getElementById("sendBtn");
         btn.disabled = true;
-        input.value = "";
+        input.value  = "";
 
         try {
-        await fetch("https://qeja-backend-azkf.onrender.com/send-message", {
+        // FIX: send all IDs as proper integers, not strings
+        const res = await fetch("https://qeja-backend-azkf.onrender.com/send-message", {
         method: "POST",
         headers: {
         "Content-Type": "application/json",
         "Authorization": "Bearer " + token
         },
         body: JSON.stringify({
-        conversation_id: convId,
-        landlord_id: cachedLandlordId,
-        tenant_id: cachedTenantId,
-        sender_role: "tenant",
+        conversation_id: parseInt(convId),
+        landlord_id:     cachedLandlordId,
+        tenant_id:       cachedTenantId,
+        sender_role:     "tenant",
         message
         })
         });
+
+        const data = await res.json();
+        if (!data.success) {
+        console.error("Send failed:", data.message);
+        // Restore message if it failed so user doesn't lose it
+        input.value = message;
+        }
+
         await new Promise(r => setTimeout(r, 300));
         loadMessages();
         } catch (err) {
-        alert("Network error");
+        alert("Network error. Please check your connection.");
+        input.value = message; // restore on error
         }
 
         btn.disabled = false;

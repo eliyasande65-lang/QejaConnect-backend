@@ -1,24 +1,24 @@
 require("dotenv").config();
 
-const express    = require("express");
-const mysql      = require("mysql2");
-const cors       = require("cors");
-const bcrypt     = require("bcrypt");
-const jwt        = require("jsonwebtoken");
-const multer     = require("multer");
+const express     = require("express");
+const mysql       = require("mysql2");
+const cors        = require("cors");
+const bcrypt      = require("bcrypt");
+const jwt         = require("jsonwebtoken");
+const multer      = require("multer");
 const streamifier = require("streamifier");
-const cloudinary = require("cloudinary").v2;
-const axios      = require("axios");
-const webpush    = require("web-push");
-const helmet     = require("helmet");
-const rateLimit  = require("express-rate-limit");
-const { z }      = require("zod");
+const cloudinary  = require("cloudinary").v2;
+const axios       = require("axios");
+const webpush     = require("web-push");
+const helmet      = require("helmet");
+const rateLimit   = require("express-rate-limit");
+const { z }       = require("zod");
 
 const {
   generateRegistrationOptions,
   verifyRegistrationResponse,
   generateAuthenticationOptions,
-  verifyAuthenticationResponse
+  verifyAuthenticationResponse,
 } = require("@simplewebauthn/server");
 
 const SALT_ROUNDS = 12;
@@ -29,8 +29,9 @@ const app    = express();
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
   api_key:    process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+  api_secret: process.env.CLOUDINARY_API_SECRET,
 });
+
 webpush.setVapidDetails(
   process.env.VAPID_SUBJECT,
   process.env.VAPID_PUBLIC_KEY,
@@ -42,19 +43,20 @@ webpush.setVapidDetails(
 // =========================
 app.use(helmet());
 
-const allowedOrigins = [
-  "https://eliyasande65-lang.github.io",
-];
-app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true
-}));
+const allowedOrigins = ["https://eliyasande65-lang.github.io"];
+
+app.use(
+  cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true,
+  })
+);
 
 app.use(express.json());
 
@@ -63,7 +65,7 @@ const loginLimiter = rateLimit({
   max:             5,
   message:         { success: false, message: "Too many login attempts. Try again in 15 minutes." },
   standardHeaders: true,
-  legacyHeaders:   false
+  legacyHeaders:   false,
 });
 
 const signupLimiter = rateLimit({
@@ -71,25 +73,24 @@ const signupLimiter = rateLimit({
   max:             5,
   message:         { success: false, message: "Too many sign-ups from this IP. Try again later." },
   standardHeaders: true,
-  legacyHeaders:   false
+  legacyHeaders:   false,
 });
 
 const generalLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
   max:             100,
   standardHeaders: true,
-  legacyHeaders:   false
+  legacyHeaders:   false,
 });
 
 app.use(generalLimiter);
 
 // =========================
 // VALIDATION SCHEMAS
-// z.coerce.number() handles cases where the frontend sends IDs as strings
 // =========================
 const loginSchema = z.object({
   email:    z.string().email("Invalid email"),
-  password: z.string().min(6, "Password too short").max(100)
+  password: z.string().min(6, "Password too short").max(100),
 });
 
 const signupSchema = z.object({
@@ -97,26 +98,25 @@ const signupSchema = z.object({
   email:         z.string().email("Invalid email"),
   phone:         z.string().min(9).max(15),
   password:      z.string().min(6).max(100),
-  referral_code: z.string().max(20).optional()
+  referral_code: z.string().max(20).optional(),
 });
 
 const messageSchema = z.object({
-  message: z.string().min(1).max(2000)
+  message: z.string().min(1).max(2000),
 });
 
-// FIX: use z.coerce.number() so string IDs from localStorage are accepted
 const sendMessageSchema = z.object({
   conversation_id: z.coerce.number().int().positive(),
   landlord_id:     z.coerce.number().int().positive(),
   tenant_id:       z.coerce.number().int().positive(),
   sender_role:     z.enum(["landlord", "tenant"]),
-  message:         z.string().min(1).max(2000)
+  message:         z.string().min(1).max(2000),
 });
 
 const interestedSchema = z.object({
   landlord_id: z.coerce.number().int().positive(),
   tenant_id:   z.coerce.number().int().positive(),
-  message:     z.string().min(1).max(1000)
+  message:     z.string().min(1).max(1000),
 });
 
 const validate = (schema) => (req, res, next) => {
@@ -124,7 +124,7 @@ const validate = (schema) => (req, res, next) => {
   if (!result.success) {
     return res.status(400).json({
       success: false,
-      message: result.error.issues[0].message
+      message: result.error.issues[0].message,
     });
   }
   req.body = result.data;
@@ -135,15 +135,15 @@ const validate = (schema) => (req, res, next) => {
 // DB POOL
 // =========================
 const db = mysql.createPool({
-  host:     process.env.DB_HOST,
-  user:     process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port:     process.env.DB_PORT,
-  ssl:      { rejectUnauthorized: false },
+  host:               process.env.DB_HOST,
+  user:               process.env.DB_USER,
+  password:           process.env.DB_PASSWORD,
+  database:           process.env.DB_NAME,
+  port:               process.env.DB_PORT,
+  ssl:                { rejectUnauthorized: false },
   waitForConnections: true,
   connectionLimit:    10,
-  queueLimit:         0
+  queueLimit:         0,
 });
 
 const dbPromise = db.promise();
@@ -160,10 +160,7 @@ db.getConnection((err, connection) => {
 // MULTER
 // =========================
 const storage = multer.memoryStorage();
-const upload  = multer({
-  storage,
-  limits: { fileSize: 5 * 1024 * 1024 }
-});
+const upload  = multer({ storage, limits: { fileSize: 5 * 1024 * 1024 } });
 
 // =========================
 // AUTH MIDDLEWARE
@@ -171,7 +168,6 @@ const upload  = multer({
 function auth(req, res, next) {
   const header = req.headers.authorization;
   if (!header) return res.status(401).json({ message: "No token" });
-
   const token = header.split(" ")[1];
   try {
     req.user = jwt.verify(token, process.env.JWT_SECRET);
@@ -222,7 +218,7 @@ app.post("/signup", signupLimiter, validate(signupSchema), async (req, res) => {
       if (refRows.length) referredBy = refRows[0].referral_code;
     }
 
-    const hashed   = await bcrypt.hash(password, SALT_ROUNDS);
+    const hashed    = await bcrypt.hash(password, SALT_ROUNDS);
     const displayId = await getNextDisplayId("users", "QT");
 
     const [result] = await dbPromise.query(
@@ -253,7 +249,8 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
 
   try {
     const [users] = await dbPromise.query(
-      "SELECT * FROM users WHERE email = ?", [email]
+      "SELECT * FROM users WHERE email = ?",
+      [email]
     );
 
     if (users.length > 0) {
@@ -272,7 +269,8 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
     }
 
     const [landlords] = await dbPromise.query(
-      "SELECT * FROM landlords WHERE email = ?", [email]
+      "SELECT * FROM landlords WHERE email = ?",
+      [email]
     );
 
     if (landlords.length === 0) {
@@ -292,7 +290,6 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
     );
     const { password: _pw, ...safeLandlord } = landlord;
     res.json({ success: true, role: "landlord", token, user: safeLandlord });
-
   } catch (err) {
     console.error("[LOGIN ERROR]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
@@ -305,7 +302,8 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
 router.get("/referrals/:id", auth, async (req, res) => {
   try {
     const [userRows] = await dbPromise.query(
-      `SELECT referral_code FROM users WHERE id = ?`, [req.params.id]
+      `SELECT referral_code FROM users WHERE id = ?`,
+      [req.params.id]
     );
     if (!userRows.length) return res.json({ success: false, message: "User not found" });
 
@@ -322,8 +320,9 @@ router.get("/referrals/:id", auth, async (req, res) => {
     );
 
     const totalEarned  = earnings.reduce((sum, e) => sum + parseFloat(e.reward_amount), 0);
-    const totalPaid    = earnings.filter(e => e.status === "paid")
-                                  .reduce((sum, e) => sum + parseFloat(e.reward_amount), 0);
+    const totalPaid    = earnings
+      .filter((e) => e.status === "paid")
+      .reduce((sum, e) => sum + parseFloat(e.reward_amount), 0);
     const totalPending = totalEarned - totalPaid;
 
     res.json({ success: true, referral_code, totalEarned, totalPaid, totalPending, earnings });
@@ -334,7 +333,7 @@ router.get("/referrals/:id", auth, async (req, res) => {
 });
 
 // =========================
-// ADMIN: LIST/SEARCH TENANTS
+// ADMIN: LIST / SEARCH TENANTS
 // =========================
 router.get("/admin/tenants", adminAuth, async (req, res) => {
   try {
@@ -352,7 +351,8 @@ router.get("/admin/tenants", adminAuth, async (req, res) => {
     }
 
     const [countRows] = await dbPromise.query(
-      `SELECT COUNT(*) AS total FROM users ${where}`, params
+      `SELECT COUNT(*) AS total FROM users ${where}`,
+      params
     );
     const total = countRows[0].total;
 
@@ -385,17 +385,18 @@ router.post("/admin/tenants/:id/email", adminAuth, async (req, res) => {
     }
 
     const [rows] = await dbPromise.query(
-      `SELECT email, fullname FROM users WHERE id = ?`, [req.params.id]
+      `SELECT email, fullname FROM users WHERE id = ?`,
+      [req.params.id]
     );
     if (!rows.length) {
       return res.status(404).json({ success: false, message: "Tenant not found" });
     }
 
     await resend.emails.send({
-      from: "QejaConnect <onboarding@resend.dev>",
-      to: rows[0].email,
+      from:    "QejaConnect <onboarding@resend.dev>",
+      to:      rows[0].email,
       subject,
-      text: message
+      text:    message,
     });
 
     res.json({ success: true, message: `Email sent to ${rows[0].fullname}` });
@@ -417,10 +418,10 @@ app.post("/send-push", auth, async (req, res) => {
   const payload = JSON.stringify({
     title: "🏠 New Property Added",
     body:  "Check out the latest listing on QejaConnect!",
-    url:   "/QejaConnect/welcome.html"
+    url:   "/QejaConnect/welcome.html",
   });
   try {
-    await Promise.all(subscriptions.map(sub => webpush.sendNotification(sub, payload)));
+    await Promise.all(subscriptions.map((sub) => webpush.sendNotification(sub, payload)));
     res.json({ success: true, message: "Notifications sent" });
   } catch (err) {
     console.error(err);
@@ -462,7 +463,7 @@ app.get("/landlord-properties/:id", auth, (req, res) => {
 });
 
 // =========================
-// GET ALL LANDLORDS
+// GET ALL LANDLORDS (public)
 // =========================
 app.get("/landlords", (req, res) => {
   const sql = `
@@ -478,7 +479,7 @@ app.get("/landlords", (req, res) => {
 });
 
 // =========================
-// GET SINGLE LANDLORD
+// GET SINGLE LANDLORD (public)
 // =========================
 app.get("/landlords/:id", (req, res) => {
   const sql = `
@@ -498,16 +499,14 @@ app.get("/landlords/:id", (req, res) => {
 
 // =========================
 // INTERESTED -> START CHAT
-// FIX: use interestedSchema with coerce so string IDs from frontend are accepted
-// Also returns landlord_name so the chat page can show the correct name
 // =========================
 app.post("/interested", auth, validate(interestedSchema), async (req, res) => {
   const { landlord_id, tenant_id, message } = req.body;
 
   try {
-    // Fetch landlord name so we can return it for the chat header
     const [landlordRows] = await dbPromise.query(
-      `SELECT fullname FROM landlords WHERE id = ?`, [landlord_id]
+      `SELECT fullname FROM landlords WHERE id = ?`,
+      [landlord_id]
     );
     const landlord_name = landlordRows[0]?.fullname || "Landlord";
 
@@ -537,7 +536,6 @@ app.post("/interested", auth, validate(interestedSchema), async (req, res) => {
       [conversation_id, landlord_id, tenant_id, message]
     );
     return res.json({ success: true, message: "Chat started", conversation_id, landlord_name });
-
   } catch (err) {
     console.error("[INTERESTED]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
@@ -594,8 +592,6 @@ app.get("/tenant-chats/:id", auth, (req, res) => {
 
 // =========================
 // SEND MESSAGE
-// FIX: uses sendMessageSchema with z.coerce.number() so string conversation_id
-//      stored in localStorage is accepted without a 400 error
 // =========================
 app.post("/send-message", auth, validate(sendMessageSchema), (req, res) => {
   const { conversation_id, landlord_id, tenant_id, sender_role, message } = req.body;
@@ -662,7 +658,12 @@ app.get("/messages/:conversation_id", auth, (req, res) => {
         (err2, messages) => {
           if (err2) return res.status(500).json({ success: false, message: "Server error" });
           const conv = result[0];
-          res.json({ success: true, messages, landlord_id: conv.landlord_id, tenant_id: conv.tenant_id });
+          res.json({
+            success: true,
+            messages,
+            landlord_id: conv.landlord_id,
+            tenant_id:   conv.tenant_id,
+          });
         }
       );
     }
@@ -674,7 +675,9 @@ app.get("/messages/:conversation_id", auth, (req, res) => {
 // =========================
 app.post("/upload-profile-pic", auth, upload.single("image"), (req, res) => {
   if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
-  if (req.user.role !== "landlord") return res.status(403).json({ success: false, message: "Landlords only" });
+  if (req.user.role !== "landlord") {
+    return res.status(403).json({ success: false, message: "Landlords only" });
+  }
 
   const uploadStream = cloudinary.uploader.upload_stream(
     { folder: "qejaconnect_profiles" },
@@ -714,17 +717,18 @@ async function getNextDisplayId(table, prefix) {
 // =========================
 // REGISTER LANDLORD
 // =========================
-app.post("/register-landlord",
+app.post(
+  "/register-landlord",
   signupLimiter,
   upload.fields([
     { name: "profile_pic", maxCount: 1 },
-    { name: "id_photo",    maxCount: 1 }
+    { name: "id_photo",    maxCount: 1 },
   ]),
   async (req, res) => {
     try {
       const {
         fullname, email, phone, id, kra, county,
-        town, property, type, units, description, password
+        town, property, type, units, description, password,
       } = req.body;
 
       const profileFile = req.files?.["profile_pic"]?.[0];
@@ -737,21 +741,21 @@ app.post("/register-landlord",
       }
 
       const hashedPassword = await bcrypt.hash(password, SALT_ROUNDS);
-      const displayId = await getNextDisplayId("landlords", "QL");
+      const displayId      = await getNextDisplayId("landlords", "QL");
 
       function uploadToCloudinary(buffer, folder) {
         return new Promise((resolve, reject) => {
-          const stream = cloudinary.uploader.upload_stream(
-            { folder },
-            (err, result) => { if (err) return reject(err); resolve(result.secure_url); }
-          );
+          const stream = cloudinary.uploader.upload_stream({ folder }, (err, result) => {
+            if (err) return reject(err);
+            resolve(result.secure_url);
+          });
           streamifier.createReadStream(buffer).pipe(stream);
         });
       }
 
       const [profile_pic_url, id_photo_url] = await Promise.all([
         uploadToCloudinary(profileFile.buffer, "qejaconnect_profiles"),
-        uploadToCloudinary(idFile.buffer,      "qejaconnect_ids")
+        uploadToCloudinary(idFile.buffer,      "qejaconnect_ids"),
       ]);
 
       const sql = `
@@ -764,9 +768,11 @@ app.post("/register-landlord",
 
       db.query(
         sql,
-        [fullname, email, phone, id, kra, county, town,
-         property, type, units, description,
-         profile_pic_url, id_photo_url, hashedPassword, displayId],
+        [
+          fullname, email, phone, id, kra, county, town,
+          property, type, units, description,
+          profile_pic_url, id_photo_url, hashedPassword, displayId,
+        ],
         (err2) => {
           if (err2) {
             if (err2.code === "ER_DUP_ENTRY") {
@@ -786,54 +792,54 @@ app.post("/register-landlord",
 
 // =========================
 // ADMIN: LIST ALL LANDLORDS
+// ─ FIX: now respects ?verified= filter so the admin panel can
+//   show pending, approved, rejected, or ALL landlords.
+//   Also returns every column the admin card needs (profile_pic,
+//   id_photo, national_id, kra_pin, county, town, etc.)
+//   plus proper pagination via total / limit.
 // =========================
 app.get("/admin/landlords", adminAuth, async (req, res) => {
   try {
-    const [landlords] = await dbPromise.query(`
-      SELECT id, display_id, fullname, email, phone FROM landlords
-      WHERE verified = 1 ORDER BY created_at DESC
-    `);
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, parseInt(req.query.limit) || 20);
+    const offset = (page - 1) * limit;
 
-    const enriched = await Promise.all(landlords.map(async (ll) => {
-      const [tenancies] = await dbPromise.query(`
-        SELECT ten.id, ten.start_date, ten.duration_months, ten.rent_amount,
-               p.title AS property_title,
-               u.fullname AS tenant_name, u.phone AS tenant_phone
-        FROM tenancies ten
-        JOIN properties p ON ten.property_id = p.id
-        JOIN users u ON ten.tenant_id = u.id
-        WHERE ten.landlord_id = ? AND ten.status = 'active'
-      `, [ll.id]);
+    // Build WHERE clause based on ?verified= query param
+    // Accepted values: 0 (pending), 1 (approved), -1 (rejected)
+    // Omit (or pass all=1) to get every landlord regardless of status.
+    let where  = "";
+    let params = [];
 
-      let paid_count = 0, overdue_count = 0, total_collected = 0;
-      const now = new Date();
-
-      for (const t of tenancies) {
-        const [payments] = await dbPromise.query(`
-          SELECT month_index, month_number, amount, mpesa_ref
-          FROM rent_payments WHERE tenancy_id = ? AND status = 'paid'
-        `, [t.id]);
-
-        t.payments = payments;
-        paid_count      += payments.length;
-        total_collected += payments.reduce((s, p) => s + Number(p.amount || 0), 0);
-
-        const start = new Date(t.start_date);
-        for (let i = 0; i < (t.duration_months || 12); i++) {
-          const due = new Date(start);
-          due.setMonth(due.getMonth() + i);
-          due.setDate(1);
-          if (due <= now) {
-            const wasPaid = payments.some(p => p.month_index === i || p.month_number === i + 1);
-            if (!wasPaid) overdue_count++;
-          }
-        }
+    const verifiedParam = req.query.verified;
+    if (verifiedParam !== undefined && verifiedParam !== "") {
+      const v = parseInt(verifiedParam, 10);
+      if (!isNaN(v) && [-1, 0, 1].includes(v)) {
+        where  = "WHERE verified = ?";
+        params = [v];
       }
+    }
 
-      return { ...ll, tenancies, paid_count, overdue_count, total_collected };
-    }));
+    // Total count (for pagination)
+    const [countRows] = await dbPromise.query(
+      `SELECT COUNT(*) AS total FROM landlords ${where}`,
+      params
+    );
+    const total = countRows[0].total;
 
-    res.json({ success: true, landlords: enriched });
+    // Full row for admin cards
+    const [landlords] = await dbPromise.query(
+      `SELECT id, display_id, fullname, email, phone,
+              national_id, kra_pin, county, town,
+              property_name, property_type, units, description,
+              profile_pic, id_photo, verified, created_at
+       FROM landlords
+       ${where}
+       ORDER BY created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+
+    res.json({ success: true, total, page, limit, landlords });
   } catch (err) {
     console.error("[ADMIN LANDLORDS]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
@@ -841,14 +847,17 @@ app.get("/admin/landlords", adminAuth, async (req, res) => {
 });
 
 // =========================
-// ADMIN: APPROVE/REJECT LANDLORD
+// ADMIN: APPROVE / REJECT LANDLORD
 // =========================
 app.patch("/admin/landlords/:id/verify", adminAuth, (req, res) => {
   const { id }     = req.params;
   const { action } = req.body;
 
   if (!["approve", "reject"].includes(action)) {
-    return res.status(400).json({ success: false, message: 'action must be "approve" or "reject"' });
+    return res.status(400).json({
+      success: false,
+      message: 'action must be "approve" or "reject"',
+    });
   }
 
   const verified = action === "approve" ? 1 : -1;
@@ -861,6 +870,71 @@ app.patch("/admin/landlords/:id/verify", adminAuth, (req, res) => {
       res.json({ success: true, message: `Landlord ${action}d` });
     }
   );
+});
+
+// =========================
+// ADMIN: LANDLORD RENT OVERVIEW
+// (used by admin-landlord.html — separate from the verification list)
+// =========================
+app.get("/admin/landlords-overview", adminAuth, async (req, res) => {
+  try {
+    const [landlords] = await dbPromise.query(`
+      SELECT id, display_id, fullname, email, phone
+      FROM landlords
+      WHERE verified = 1
+      ORDER BY created_at DESC
+    `);
+
+    const enriched = await Promise.all(
+      landlords.map(async (ll) => {
+        const [tenancies] = await dbPromise.query(
+          `SELECT ten.id, ten.start_date, ten.duration_months, ten.rent_amount,
+                  p.title AS property_title,
+                  u.fullname AS tenant_name, u.phone AS tenant_phone
+           FROM tenancies ten
+           JOIN properties p ON ten.property_id = p.id
+           JOIN users u      ON ten.tenant_id   = u.id
+           WHERE ten.landlord_id = ? AND ten.status = 'active'`,
+          [ll.id]
+        );
+
+        let paid_count = 0, overdue_count = 0, total_collected = 0;
+        const now = new Date();
+
+        for (const t of tenancies) {
+          const [payments] = await dbPromise.query(
+            `SELECT month_index, month_number, amount, mpesa_ref
+             FROM rent_payments WHERE tenancy_id = ? AND status = 'paid'`,
+            [t.id]
+          );
+
+          t.payments       = payments;
+          paid_count      += payments.length;
+          total_collected += payments.reduce((s, p) => s + Number(p.amount || 0), 0);
+
+          const start = new Date(t.start_date);
+          for (let i = 0; i < (t.duration_months || 12); i++) {
+            const due = new Date(start);
+            due.setMonth(due.getMonth() + i);
+            due.setDate(1);
+            if (due <= now) {
+              const wasPaid = payments.some(
+                (p) => p.month_index === i || p.month_number === i + 1
+              );
+              if (!wasPaid) overdue_count++;
+            }
+          }
+        }
+
+        return { ...ll, tenancies, paid_count, overdue_count, total_collected };
+      })
+    );
+
+    res.json({ success: true, landlords: enriched });
+  } catch (err) {
+    console.error("[ADMIN LANDLORDS OVERVIEW]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
 });
 
 // =========================
@@ -888,7 +962,10 @@ function getTimestamp() {
   return new Date()
     .toLocaleString("en-KE", { timeZone: "Africa/Nairobi" })
     .replace(/[^0-9]/g, "")
-    .replace(/^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/, "20$3$2$1$4$5$6");
+    .replace(
+      /^(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})(\d{2})$/,
+      "20$3$2$1$4$5$6"
+    );
 }
 
 app.post("/mpesa/stk-push", auth, async (req, res) => {
@@ -922,30 +999,36 @@ app.post("/mpesa/stk-push", auth, async (req, res) => {
         PhoneNumber:       phone,
         CallBackURL:       process.env.MPESA_CALLBACK_URL,
         AccountReference:  "QejaConnect",
-        TransactionDesc:   description || "Property listing fee"
+        TransactionDesc:   description || "Property listing fee",
       },
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
     if (data.ResponseCode !== "0") {
-      return res.status(400).json({ success: false, message: data.ResponseDescription || "STK push failed" });
+      return res
+        .status(400)
+        .json({ success: false, message: data.ResponseDescription || "STK push failed" });
     }
 
     db.query(
       `INSERT INTO mpesa_payments (checkout_request_id, landlord_id, phone, amount, status, created_at)
        VALUES (?, ?, ?, ?, 'pending', NOW())`,
       [data.CheckoutRequestID, req.user.id, phone, amount],
-      (err) => { if (err) console.error("DB insert mpesa_payments:", err.message); }
+      (err) => {
+        if (err) console.error("DB insert mpesa_payments:", err.message);
+      }
     );
 
     return res.json({
       success:           true,
       CheckoutRequestID: data.CheckoutRequestID,
-      message:           "STK push sent successfully"
+      message:           "STK push sent successfully",
     });
   } catch (err) {
     console.error("[STK PUSH]", err.response?.data || err.message);
-    return res.status(500).json({ success: false, message: "Could not initiate M-Pesa payment. Try again." });
+    return res
+      .status(500)
+      .json({ success: false, message: "Could not initiate M-Pesa payment. Try again." });
   }
 });
 
@@ -960,9 +1043,9 @@ app.post("/mpesa/callback", (req, res) => {
 
     if (code === 0) {
       const items   = body?.CallbackMetadata?.Item || [];
-      const receipt = items.find(i => i.Name === "MpesaReceiptNumber")?.Value || null;
-      const amount  = items.find(i => i.Name === "Amount")?.Value || null;
-      const phone   = items.find(i => i.Name === "PhoneNumber")?.Value || null;
+      const receipt = items.find((i) => i.Name === "MpesaReceiptNumber")?.Value || null;
+      const amount  = items.find((i) => i.Name === "Amount")?.Value           || null;
+      const phone   = items.find((i) => i.Name === "PhoneNumber")?.Value      || null;
 
       db.query(
         `UPDATE mpesa_payments
@@ -970,13 +1053,17 @@ app.post("/mpesa/callback", (req, res) => {
              phone=COALESCE(?,phone), paid_at=NOW()
          WHERE checkout_request_id=?`,
         [receipt, amount, phone, checkId],
-        (err) => { if (err) console.error("Callback update (success):", err.message); }
+        (err) => {
+          if (err) console.error("Callback update (success):", err.message);
+        }
       );
     } else {
       db.query(
         `UPDATE mpesa_payments SET status='failed', result_desc=? WHERE checkout_request_id=?`,
         [body?.ResultDesc || "Failed", checkId],
-        (err) => { if (err) console.error("Callback update (fail):", err.message); }
+        (err) => {
+          if (err) console.error("Callback update (fail):", err.message);
+        }
       );
     }
   } catch (err) {
@@ -998,7 +1085,12 @@ app.post("/mpesa/check-payment", auth, (req, res) => {
       if (err) return res.status(500).json({ success: false, message: "Server error" });
       if (rows.length === 0) return res.json({ success: true, status: "pending" });
       const { status, transaction_id, result_desc } = rows[0];
-      res.json({ success: true, status, transaction_id: transaction_id || null, message: result_desc || null });
+      res.json({
+        success:        true,
+        status,
+        transaction_id: transaction_id || null,
+        message:        result_desc    || null,
+      });
     }
   );
 });
@@ -1014,7 +1106,7 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
   const {
     landlord_id, title, price, location,
     description, type, maps_url,
-    mpesa_transaction_id, listing_expires_at
+    mpesa_transaction_id, listing_expires_at,
   } = req.body;
 
   if (!req.file) return res.status(400).json({ success: false, message: "Image required" });
@@ -1030,7 +1122,10 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
     (verifyErr, verifyRows) => {
       if (verifyErr) return res.status(500).json({ success: false, message: "Server error" });
       if (verifyRows.length === 0) {
-        return res.status(402).json({ success: false, message: "Payment not verified. Please complete M-Pesa payment first." });
+        return res.status(402).json({
+          success: false,
+          message: "Payment not verified. Please complete M-Pesa payment first.",
+        });
       }
 
       const uploadStream = cloudinary.uploader.upload_stream(
@@ -1044,12 +1139,19 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
 
           db.query(
             `INSERT INTO properties
-               (landlord_id, title, price, location, description, type, image_url, maps_url, listing_expires_at, mpesa_transaction_id)
+               (landlord_id, title, price, location, description, type,
+                image_url, maps_url, listing_expires_at, mpesa_transaction_id)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [landlord_id, title, price, location, description, type, result.secure_url, maps_url || null, expiresAt, mpesa_transaction_id],
+            [
+              landlord_id, title, price, location, description, type,
+              result.secure_url, maps_url || null, expiresAt, mpesa_transaction_id,
+            ],
             (err2) => {
               if (err2) return res.status(500).json({ success: false, message: "Server error" });
-              db.query(`UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`, [mpesa_transaction_id]);
+              db.query(
+                `UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`,
+                [mpesa_transaction_id]
+              );
               res.json({ success: true, message: "Property uploaded", image_url: result.secure_url });
             }
           );
@@ -1063,15 +1165,15 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
 // =========================
 // TENANCY EXTENSION
 // =========================
-app.get('/landlord/extension-requests/:landlordId', auth, async (req, res) => {
+app.get("/landlord/extension-requests/:landlordId", auth, async (req, res) => {
   try {
     const [rows] = await dbPromise.query(
       `SELECT er.*, p.title AS property_title, p.location, t.rent_amount, t.duration_months,
               t.start_date, u.fullname AS tenant_name, u.phone AS tenant_phone
        FROM tenancy_extension_requests er
-       JOIN tenancies t   ON t.id = er.tenancy_id
-       JOIN properties p  ON p.id = t.property_id
-       JOIN users u       ON u.id = er.tenant_id
+       JOIN tenancies t  ON t.id = er.tenancy_id
+       JOIN properties p ON p.id = t.property_id
+       JOIN users u      ON u.id = er.tenant_id
        WHERE er.landlord_id = ?
        ORDER BY er.created_at DESC`,
       [req.params.landlordId]
@@ -1079,15 +1181,15 @@ app.get('/landlord/extension-requests/:landlordId', auth, async (req, res) => {
     res.json({ success: true, data: rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({ success: false, message: "Server error." });
   }
 });
 
-app.post('/tenancy/extension-request', auth, async (req, res) => {
+app.post("/tenancy/extension-request", auth, async (req, res) => {
   const { tenancy_id, landlord_id, tenant_id, extra_months, message } = req.body;
 
   if (!tenancy_id || !landlord_id || !tenant_id || !extra_months || extra_months < 1) {
-    return res.status(400).json({ success: false, message: 'Missing or invalid fields.' });
+    return res.status(400).json({ success: false, message: "Missing or invalid fields." });
   }
 
   try {
@@ -1100,16 +1202,16 @@ app.post('/tenancy/extension-request', auth, async (req, res) => {
     res.json({ success: true, request_id: result.insertId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({ success: false, message: "Server error." });
   }
 });
 
-app.post('/tenancy/extension-request/:id/respond', auth, async (req, res) => {
-  const { id } = req.params;
+app.post("/tenancy/extension-request/:id/respond", auth, async (req, res) => {
+  const { id }     = req.params;
   const { action } = req.body;
 
-  if (!['approve', 'decline'].includes(action)) {
-    return res.status(400).json({ success: false, message: 'Invalid action.' });
+  if (!["approve", "decline"].includes(action)) {
+    return res.status(400).json({ success: false, message: "Invalid action." });
   }
 
   const conn = await dbPromise.getConnection();
@@ -1123,10 +1225,12 @@ app.post('/tenancy/extension-request/:id/respond', auth, async (req, res) => {
     if (!reqRow) {
       await conn.rollback();
       conn.release();
-      return res.status(404).json({ success: false, message: 'Request not found or already handled.' });
+      return res
+        .status(404)
+        .json({ success: false, message: "Request not found or already handled." });
     }
 
-    if (action === 'approve') {
+    if (action === "approve") {
       await conn.query(
         `UPDATE tenancies SET duration_months = duration_months + ? WHERE id = ?`,
         [reqRow.extra_months, reqRow.tenancy_id]
@@ -1136,7 +1240,7 @@ app.post('/tenancy/extension-request/:id/respond', auth, async (req, res) => {
     await conn.query(
       `UPDATE tenancy_extension_requests
        SET status = ?, responded_at = NOW() WHERE id = ?`,
-      [action === 'approve' ? 'approved' : 'declined', id]
+      [action === "approve" ? "approved" : "declined", id]
     );
 
     await conn.commit();
@@ -1144,14 +1248,14 @@ app.post('/tenancy/extension-request/:id/respond', auth, async (req, res) => {
   } catch (err) {
     await conn.rollback();
     console.error(err);
-    res.status(500).json({ success: false, message: 'Server error.' });
+    res.status(500).json({ success: false, message: "Server error." });
   } finally {
     conn.release();
   }
 });
 
 // =========================
-// WEBAUTHN - FINGERPRINT LOGIN
+// WEBAUTHN – FINGERPRINT LOGIN
 // =========================
 const RP_NAME = "QejaConnect";
 const RP_ID   = "eliyasande65-lang.github.io";
@@ -1170,16 +1274,21 @@ app.post("/auth/webauthn/register/start", async (req, res) => {
   try {
     const { userId, userName, userEmail } = req.body;
     const options = await generateRegistrationOptions({
-      rpName: RP_NAME, rpID: RP_ID,
-      userID: new TextEncoder().encode(String(userId)),
-      userName: userEmail, userDisplayName: userName,
+      rpName:    RP_NAME,
+      rpID:      RP_ID,
+      userID:    new TextEncoder().encode(String(userId)),
+      userName:  userEmail,
+      userDisplayName: userName,
       authenticatorSelection: {
         authenticatorAttachment: "platform",
-        userVerification: "required",
-        residentKey: "preferred"
-      }
+        userVerification:        "required",
+        residentKey:             "preferred",
+      },
     });
-    challenges.set(String(userId), { challenge: options.challenge, expires: Date.now() + 5 * 60 * 1000 });
+    challenges.set(String(userId), {
+      challenge: options.challenge,
+      expires:   Date.now() + 5 * 60 * 1000,
+    });
     res.json(options);
   } catch (err) {
     console.error("[WebAuthn register/start]", err.message);
@@ -1196,24 +1305,28 @@ app.post("/auth/webauthn/register/finish", async (req, res) => {
     }
 
     const { verified, registrationInfo } = await verifyRegistrationResponse({
-      response: credential,
+      response:          credential,
       expectedChallenge: entry.challenge,
-      expectedOrigin: ORIGIN,
-      expectedRPID: RP_ID
+      expectedOrigin:    ORIGIN,
+      expectedRPID:      RP_ID,
     });
 
-    if (!verified) return res.status(400).json({ success: false, message: "Verification failed" });
+    if (!verified) {
+      return res.status(400).json({ success: false, message: "Verification failed" });
+    }
 
     db.query(
       `INSERT INTO webauthn_credentials (user_id, credential_id, public_key, counter)
        VALUES (?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE
-         credential_id=VALUES(credential_id), public_key=VALUES(public_key), counter=VALUES(counter)`,
+         credential_id=VALUES(credential_id),
+         public_key=VALUES(public_key),
+         counter=VALUES(counter)`,
       [
         parseInt(userId),
         Buffer.from(registrationInfo.credential.id, "base64url").toString("base64"),
         Buffer.from(registrationInfo.credential.publicKey),
-        registrationInfo.credential.counter ?? 0
+        registrationInfo.credential.counter ?? 0,
       ],
       (err) => {
         if (err) {
@@ -1237,16 +1350,21 @@ app.post("/auth/webauthn/login/start", (req, res) => {
     [parseInt(userId)],
     async (err, rows) => {
       if (err) return res.status(500).json({ success: false, message: "Server error" });
-      if (rows.length === 0) return res.status(404).json({ success: false, message: "No fingerprint registered" });
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: "No fingerprint registered" });
+      }
 
       try {
         const credIdBase64url = Buffer.from(rows[0].credential_id, "base64").toString("base64url");
         const options = await generateAuthenticationOptions({
-          rpID: RP_ID,
+          rpID:             RP_ID,
           userVerification: "required",
-          allowCredentials: [{ id: credIdBase64url, type: "public-key" }]
+          allowCredentials: [{ id: credIdBase64url, type: "public-key" }],
         });
-        challenges.set(String(userId), { challenge: options.challenge, expires: Date.now() + 5 * 60 * 1000 });
+        challenges.set(String(userId), {
+          challenge: options.challenge,
+          expires:   Date.now() + 5 * 60 * 1000,
+        });
         res.json(options);
       } catch (err2) {
         console.error("[WebAuthn login/start]", err2.message);
@@ -1268,42 +1386,59 @@ app.post("/auth/webauthn/login/finish", (req, res) => {
     [parseInt(userId)],
     async (err, rows) => {
       if (err) return res.status(500).json({ success: false, message: "Server error" });
-      if (rows.length === 0) return res.status(404).json({ success: false, message: "Credential not found" });
+      if (rows.length === 0) {
+        return res.status(404).json({ success: false, message: "Credential not found" });
+      }
 
       try {
         const cred = rows[0];
         const { verified, authenticationInfo } = await verifyAuthenticationResponse({
-          response: credential,
+          response:          credential,
           expectedChallenge: entry.challenge,
-          expectedOrigin: ORIGIN,
-          expectedRPID: RP_ID,
+          expectedOrigin:    ORIGIN,
+          expectedRPID:      RP_ID,
           authenticator: {
             credentialID:        new Uint8Array(Buffer.from(cred.credential_id, "base64")),
             credentialPublicKey: new Uint8Array(cred.public_key),
-            counter:             cred.counter
-          }
+            counter:             cred.counter,
+          },
         });
 
-        if (!verified) return res.status(401).json({ success: false, message: "Fingerprint verification failed" });
+        if (!verified) {
+          return res.status(401).json({ success: false, message: "Fingerprint verification failed" });
+        }
 
-        db.query("UPDATE webauthn_credentials SET counter=? WHERE user_id=?", [authenticationInfo.newCounter, parseInt(userId)]);
+        db.query(
+          "UPDATE webauthn_credentials SET counter=? WHERE user_id=?",
+          [authenticationInfo.newCounter, parseInt(userId)]
+        );
         challenges.delete(String(userId));
 
         db.query("SELECT * FROM users WHERE id=?", [parseInt(userId)], (err2, users) => {
           if (err2) return res.status(500).json({ success: false, message: "Server error" });
 
           if (users.length > 0) {
-            const user = users[0];
-            const token = jwt.sign({ id: user.id, role: "tenant" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+            const user  = users[0];
+            const token = jwt.sign(
+              { id: user.id, role: "tenant" },
+              process.env.JWT_SECRET,
+              { expiresIn: "1d" }
+            );
             const { password: _pw, ...safeUser } = user;
             return res.json({ success: true, role: "tenant", token, user: safeUser });
           }
 
           db.query("SELECT * FROM landlords WHERE id=?", [parseInt(userId)], (err3, landlords) => {
             if (err3) return res.status(500).json({ success: false, message: "Server error" });
-            if (landlords.length === 0) return res.status(404).json({ success: false, message: "User not found" });
+            if (landlords.length === 0) {
+              return res.status(404).json({ success: false, message: "User not found" });
+            }
             const landlord = landlords[0];
-            const token = jwt.sign({ id: landlord.id, role: "landlord" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+            const token    = jwt.sign(
+              { id: landlord.id, role: "landlord" },
+              process.env.JWT_SECRET,
+              { expiresIn: "1d" }
+            );
             const { password: _pw, ...safeLandlord } = landlord;
             res.json({ success: true, role: "landlord", token, user: safeLandlord });
           });
@@ -1321,8 +1456,10 @@ app.post("/auth/webauthn/login/finish", (req, res) => {
 // =========================
 app.patch("/update-phone", auth, (req, res) => {
   const { phone } = req.body;
-  if (!phone)                         return res.status(400).json({ success: false, message: "Phone number required" });
-  if (req.user.role !== "landlord")   return res.status(403).json({ success: false, message: "Only landlords can update phone" });
+  if (!phone) return res.status(400).json({ success: false, message: "Phone number required" });
+  if (req.user.role !== "landlord") {
+    return res.status(403).json({ success: false, message: "Only landlords can update phone" });
+  }
 
   db.query("UPDATE landlords SET phone=? WHERE id=?", [phone, req.user.id], (err) => {
     if (err) return res.status(500).json({ success: false, message: "Server error" });
@@ -1332,8 +1469,10 @@ app.patch("/update-phone", auth, (req, res) => {
 
 app.patch("/update-tenant-phone", auth, (req, res) => {
   const { phone } = req.body;
-  if (!phone)                       return res.status(400).json({ success: false, message: "Phone number required" });
-  if (req.user.role !== "tenant")   return res.status(403).json({ success: false, message: "Tenants only" });
+  if (!phone) return res.status(400).json({ success: false, message: "Phone number required" });
+  if (req.user.role !== "tenant") {
+    return res.status(403).json({ success: false, message: "Tenants only" });
+  }
 
   db.query("UPDATE users SET phone=? WHERE id=?", [phone, req.user.id], (err) => {
     if (err) return res.status(500).json({ success: false, message: "Server error" });
@@ -1345,8 +1484,10 @@ app.patch("/update-tenant-phone", auth, (req, res) => {
 // UPLOAD TENANT PROFILE PIC
 // =========================
 app.post("/upload-tenant-pic", auth, upload.single("image"), (req, res) => {
-  if (!req.file)                    return res.status(400).json({ success: false, message: "No image uploaded" });
-  if (req.user.role !== "tenant")   return res.status(403).json({ success: false, message: "Tenants only" });
+  if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
+  if (req.user.role !== "tenant") {
+    return res.status(403).json({ success: false, message: "Tenants only" });
+  }
 
   const uploadStream = cloudinary.uploader.upload_stream(
     { folder: "qejaconnect_profiles" },
@@ -1411,7 +1552,9 @@ app.post("/admin/messages/:id/reply", adminAuth, (req, res) => {
     [reply.trim(), req.params.id],
     (err, result) => {
       if (err) return res.status(500).json({ success: false, message: "Server error" });
-      if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "Message not found" });
+      if (result.affectedRows === 0) {
+        return res.status(404).json({ success: false, message: "Message not found" });
+      }
       res.json({ success: true, message: "Reply sent" });
     }
   );
@@ -1447,7 +1590,9 @@ app.get("/updates", (req, res) => {
 
 app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) => {
   const { title, body, type, cta_url, cta_label } = req.body;
-  if (!title || !body) return res.status(400).json({ success: false, message: "title and body are required" });
+  if (!title || !body) {
+    return res.status(400).json({ success: false, message: "title and body are required" });
+  }
 
   const validTypes = ["announcement", "maintenance", "alert", "feature", "promotion"];
   const updateType = validTypes.includes(type) ? type : "announcement";
@@ -1458,7 +1603,10 @@ app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) =
       image_url = await new Promise((resolve, reject) => {
         const stream = cloudinary.uploader.upload_stream(
           { folder: "qejaconnect_updates" },
-          (err, result) => { if (err) return reject(err); resolve(result.secure_url); }
+          (err, result) => {
+            if (err) return reject(err);
+            resolve(result.secure_url);
+          }
         );
         streamifier.createReadStream(req.file.buffer).pipe(stream);
       });
@@ -1482,7 +1630,9 @@ app.post("/admin/updates", adminAuth, upload.single("image"), async (req, res) =
 app.delete("/admin/updates/:id", adminAuth, (req, res) => {
   db.query("DELETE FROM updates WHERE id=?", [req.params.id], (err, result) => {
     if (err) return res.status(500).json({ success: false, message: "Server error" });
-    if (result.affectedRows === 0) return res.status(404).json({ success: false, message: "Update not found" });
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ success: false, message: "Update not found" });
+    }
     res.json({ success: true, message: "Update deleted" });
   });
 });
@@ -1502,7 +1652,10 @@ router.post("/bookings", auth, async (req, res) => {
       [tenant_id, property_id]
     );
     if (existing.length) {
-      return res.json({ success: false, message: "You already have a pending booking for this property." });
+      return res.json({
+        success: false,
+        message: "You already have a pending booking for this property.",
+      });
     }
 
     const [result] = await dbPromise.query(
@@ -1597,8 +1750,8 @@ router.post("/bookings/:id/cancel", auth, async (req, res) => {
 // =========================
 app.get("/admin/withdrawals", async (req, res) => {
   try {
-    const status = req.query.status || "pending";
-    const statuses = status.split(",");
+    const status     = req.query.status || "pending";
+    const statuses   = status.split(",");
     const placeholders = statuses.map(() => "?").join(",");
 
     const [rows] = await db.promise().query(
@@ -1661,7 +1814,8 @@ app.post("/withdrawals/request", async (req, res) => {
   try {
     const { landlord_id, amount, method, phone, account_name, bank_details, note } = req.body;
     const [result] = await db.promise().query(
-      `INSERT INTO withdrawal_requests (landlord_id, amount, method, phone, account_name, bank_details, note)
+      `INSERT INTO withdrawal_requests
+         (landlord_id, amount, method, phone, account_name, bank_details, note)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [landlord_id, amount, method, phone, account_name, bank_details, note]
     );
@@ -1690,23 +1844,30 @@ app.get("/withdrawals/landlord/:landlordId", async (req, res) => {
 // =========================
 router.post("/tenancy/start", auth, async (req, res) => {
   try {
-    const { booking_id, landlord_id, tenant_id, property_id,
-            rent_amount, start_date, duration_months } = req.body;
+    const {
+      booking_id, landlord_id, tenant_id, property_id,
+      rent_amount, start_date, duration_months,
+    } = req.body;
 
     if (!booking_id || !rent_amount || !start_date) {
       return res.json({ success: false, message: "Missing fields" });
     }
 
     const [existing] = await dbPromise.query(
-      `SELECT id FROM tenancies WHERE booking_id=?`, [booking_id]
+      `SELECT id FROM tenancies WHERE booking_id=?`,
+      [booking_id]
     );
     if (existing.length) {
-      return res.json({ success: false, message: "Tenancy session already started for this booking." });
+      return res.json({
+        success: false,
+        message: "Tenancy session already started for this booking.",
+      });
     }
 
     const [result] = await dbPromise.query(
       `INSERT INTO tenancies
-         (booking_id, tenant_id, landlord_id, property_id, rent_amount, start_date, duration_months)
+         (booking_id, tenant_id, landlord_id, property_id,
+          rent_amount, start_date, duration_months)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [booking_id, tenant_id, landlord_id, property_id,
        rent_amount, start_date, duration_months || 30]
@@ -1773,7 +1934,8 @@ router.post("/tenancy/payment-confirm", auth, async (req, res) => {
 
     await dbPromise.query(
       `INSERT INTO rent_payments
-         (tenancy_id, tenant_id, landlord_id, month_index, month_number, amount, mpesa_ref, status, paid_at)
+         (tenancy_id, tenant_id, landlord_id,
+          month_index, month_number, amount, mpesa_ref, status, paid_at)
        VALUES (?, ?, ?, ?, ?, ?, ?, 'paid', NOW())
        ON DUPLICATE KEY UPDATE mpesa_ref=VALUES(mpesa_ref), status='paid', paid_at=NOW()`,
       [tenancy_id, tenant_id, landlord_id, month_index, month_index + 1, amount, mpesa_ref]
@@ -1786,20 +1948,23 @@ router.post("/tenancy/payment-confirm", auth, async (req, res) => {
     const rent_payment_id = paymentRows[0]?.id;
 
     const [tenantRows] = await dbPromise.query(
-      `SELECT referred_by FROM users WHERE id=?`, [tenant_id]
+      `SELECT referred_by FROM users WHERE id=?`,
+      [tenant_id]
     );
     const referredByCode = tenantRows[0]?.referred_by;
 
     if (referredByCode && rent_payment_id) {
       const [referrerRows] = await dbPromise.query(
-        `SELECT id FROM users WHERE referral_code=?`, [referredByCode]
+        `SELECT id FROM users WHERE referral_code=?`,
+        [referredByCode]
       );
       if (referrerRows.length) {
         const referrer_id  = referrerRows[0].id;
         const rewardAmount = (parseFloat(amount) * 0.01).toFixed(2);
         await dbPromise.query(
           `INSERT INTO referral_earnings
-             (referrer_id, referred_id, tenancy_id, rent_payment_id, month_index, rent_amount, reward_amount, status)
+             (referrer_id, referred_id, tenancy_id, rent_payment_id,
+              month_index, rent_amount, reward_amount, status)
            VALUES (?, ?, ?, ?, ?, ?, ?, 'pending')
            ON DUPLICATE KEY UPDATE reward_amount=VALUES(reward_amount)`,
           [referrer_id, tenant_id, tenancy_id, rent_payment_id, month_index, amount, rewardAmount]
@@ -1860,7 +2025,12 @@ router.get("/mpesa/status/:checkoutRequestId", auth, async (req, res) => {
     const r = rows[0];
 
     if (r.status === "completed" || r.status === "used") {
-      return res.json({ status: "completed", paid: true, mpesa_ref: r.transaction_id, MpesaReceiptNumber: r.transaction_id });
+      return res.json({
+        status: "completed",
+        paid:   true,
+        mpesa_ref:             r.transaction_id,
+        MpesaReceiptNumber:    r.transaction_id,
+      });
     }
     if (r.status === "failed") return res.json({ status: "failed", message: r.result_desc });
     return res.json({ status: "pending" });
@@ -1881,15 +2051,17 @@ router.get("/admin/referrals", adminAuth, async (req, res) => {
     const status = req.query.status;
     const search = (req.query.search || "").trim();
 
-    let where  = [];
-    let params = [];
+    const where  = [];
+    const params = [];
 
     if (status === "pending" || status === "paid") {
       where.push("re.status=?");
       params.push(status);
     }
     if (search) {
-      where.push("(referrer.fullname LIKE ? OR referrer.email LIKE ? OR referrer.referral_code LIKE ? OR referred.fullname LIKE ?)");
+      where.push(
+        "(referrer.fullname LIKE ? OR referrer.email LIKE ? OR referrer.referral_code LIKE ? OR referred.fullname LIKE ?)"
+      );
       params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
     }
 
@@ -1931,7 +2103,14 @@ router.get("/admin/referrals", adminAuth, async (req, res) => {
       params
     );
 
-    res.json({ success: true, total: countRows[0].total, page, limit, summary: summaryRows[0], referrals: rows });
+    res.json({
+      success: true,
+      total:   countRows[0].total,
+      page,
+      limit,
+      summary: summaryRows[0],
+      referrals: rows,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: "Server error" });
@@ -1941,7 +2120,8 @@ router.get("/admin/referrals", adminAuth, async (req, res) => {
 router.patch("/admin/referrals/:id/pay", adminAuth, async (req, res) => {
   try {
     const [result] = await dbPromise.query(
-      `UPDATE referral_earnings SET status='paid', paid_at=NOW() WHERE id=? AND status='pending'`,
+      `UPDATE referral_earnings SET status='paid', paid_at=NOW()
+       WHERE id=? AND status='pending'`,
       [req.params.id]
     );
     if (result.affectedRows === 0) {
@@ -1977,15 +2157,16 @@ router.get("/admin/referrals/leaderboard", adminAuth, async (req, res) => {
   }
 });
 
-// Mount router
+// =========================
+// MOUNT ROUTER & ERROR HANDLER
+// =========================
 app.use(router);
 
-// =========================
-// GLOBAL ERROR HANDLER
-// =========================
 app.use((err, req, res, next) => {
   console.error("[UNHANDLED ERROR]", err.message);
-  res.status(err.status || 500).json({ success: false, message: "Something went wrong. Please try again." });
+  res
+    .status(err.status || 500)
+    .json({ success: false, message: "Something went wrong. Please try again." });
 });
 
 // =========================
