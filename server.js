@@ -434,10 +434,13 @@ app.post("/send-push", auth, async (req, res) => {
 // =========================
 app.get("/properties", (req, res) => {
   const sql = `
-    SELECT p.*, l.fullname AS landlord_name
+    SELECT p.*, l.fullname AS landlord_name,
+           COUNT(b.id) AS booking_count
     FROM properties p
     LEFT JOIN landlords l ON p.landlord_id = l.id
+    LEFT JOIN bookings b ON b.property_id = p.id
     WHERE l.verified = 1
+    GROUP BY p.id
     ORDER BY p.id DESC
   `;
   db.query(sql, (err, results) => {

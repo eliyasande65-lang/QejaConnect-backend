@@ -1,5 +1,4 @@
-﻿
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -239,6 +238,96 @@
                     background: darkviolet;
                 }
 
+        /* ── FILTER BAR ── */
+        .filter-bar {
+            max-width: 1200px;
+            margin: 0 auto 20px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .filter-chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #555;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            .filter-chip:hover {
+                background: #eef2ff;
+            }
+
+            .filter-chip.active {
+                background: indigo;
+                color: white;
+                border-color: indigo;
+            }
+
+        .sort-btn {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid indigo;
+            background: white;
+            color: indigo;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            transition: 0.2s;
+            white-space: nowrap;
+        }
+
+            .sort-btn.active {
+                background: indigo;
+                color: white;
+            }
+
+        .results-count {
+            width: 100%;
+            font-size: 13px;
+            color: #888;
+            margin: -6px 0 4px;
+        }
+
+        body.dark .filter-chip {
+            background: #1e1e1e;
+            color: #ccc;
+            border-color: #444;
+        }
+
+            body.dark .filter-chip.active {
+                background: #4f46e5;
+                color: white;
+            }
+
+        body.dark .sort-btn {
+            background: #1e1e1e;
+            border-color: #a78bfa;
+            color: #a78bfa;
+        }
+
+            body.dark .sort-btn.active {
+                background: #4f46e5;
+                color: white;
+            }
+
+        body.dark .results-count {
+            color: #999;
+        }
+
         /* ── PROPERTIES ── */
         .properties {
             padding: 20px;
@@ -299,6 +388,14 @@
             margin-bottom: 10px;
         }
 
+        .booked-tag {
+            display: block;
+            margin-top: 4px;
+            color: #4f46e5;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
         .features {
             display: flex;
             gap: 10px;
@@ -352,7 +449,7 @@
             max-height: 90vh;
             overflow-y: auto;
             animation: popupShow 0.25s ease;
-            z-index:10003
+            z-index: 10003
         }
 
             .popup-content img {
@@ -445,7 +542,7 @@
             background: #1b1b1b;
             color: white;
             padding: 40px 20px;
-            text-align:center;
+            text-align: center;
         }
 
         .footer-content {
@@ -538,7 +635,7 @@
                 min-height: 280px;
             }
         }
-        
+
 
         /*adminupdates*/
         /* ── UPDATE CARDS in the property grid ── */
@@ -645,13 +742,14 @@
             justify-content: space-between;
             margin-bottom: 6px;
         }
-        .head{
-            background:#1a1535;
-            height:60px;
-            width:100%;
-            text-align:center;
-            color:white;
-            font-size:2em;
+
+        .head {
+            background: #1a1535;
+            height: 60px;
+            width: 100%;
+            text-align: center;
+            color: white;
+            font-size: 2em;
         }
 
         .update-date {
@@ -705,17 +803,18 @@
         body.dark .feed-divider span {
             color: #a78bfa;
         }
-        .uni{
-            background-color:green;
-            border:none;
-            border-radius:5px;
-            font-weight:bold;
-            height:40px;
-            cursor:pointer;
+
+        .uni {
+            background-color: green;
+            border: none;
+            border-radius: 5px;
+            font-weight: bold;
+            height: 40px;
+            cursor: pointer;
         }
-        .dot{
-          
-            color:red;
+
+        .dot {
+            color: red;
         }
     </style>
 </head>
@@ -794,6 +893,15 @@
         <!-- Updates strip — injected by loadFeed() -->
         <div id="updatesStrip"></div>
 
+        <!-- Filter & sort bar — injected/controlled by loadFeed() / renderProperties() -->
+        <div class="filter-bar" id="filterBar">
+            <div class="filter-group" id="locationFilters">
+                <button class="filter-chip active" data-location="all" onclick="setLocationFilter('all')">All Locations</button>
+            </div>
+            <button class="sort-btn" id="sortBookedBtn" onclick="toggleSortByBooked()">🔥 Most Booked</button>
+            <div class="results-count" id="resultsCount"></div>
+        </div>
+
         <!-- Properties grid -->
         <div class="property-grid" id="propertyGrid"></div>
     </section>
@@ -821,9 +929,9 @@
     </footer>
 
     <!-- POPUP -->
-    
 
-  
+
+
     <div id="popup" class="popup-container">
         <div class="popup-content">
             <span class="close-popup" onclick="closePopup()">&times;</span>
@@ -1342,9 +1450,7 @@
     <script>
         function searchProperty() {
         const location = document.querySelector('input').value.toLowerCase();
-        document.querySelectorAll('.property-card').forEach(card => {
-        card.style.display = card.innerText.toLowerCase().includes(location) ? "block" : "none";
-        });
+        renderProperties(location);
         }
 
         function handleInterestedClick() {
@@ -1353,7 +1459,86 @@
         }
     </script>
 
-    
+    <!-- ── FILTER / SORT LOGIC ─────────────────────────── -->
+    <script>
+        let allProperties = [];
+        let activeLocation = "all";
+        let sortByBooked   = false;
+
+        function buildLocationFilters() {
+        const container = document.getElementById("locationFilters");
+        const locations = [...new Set(allProperties.map(p => p.location).filter(Boolean))].sort();
+
+        container.innerHTML = `<button class="filter-chip active" data-location="all" onclick="setLocationFilter('all')">All Locations</button>`;
+        locations.forEach(loc => {
+        const safe = loc.replace(/'/g, "\\'");
+        container.innerHTML += `<button class="filter-chip" data-location="${loc}" onclick="setLocationFilter('${safe}')">${loc}</button>`;
+        });
+        }
+
+        function setLocationFilter(location) {
+        activeLocation = location;
+        document.querySelectorAll('#locationFilters .filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.location === location);
+        });
+        renderProperties();
+        }
+
+        function toggleSortByBooked() {
+        sortByBooked = !sortByBooked;
+        document.getElementById('sortBookedBtn').classList.toggle('active', sortByBooked);
+        renderProperties();
+        }
+
+        function renderProperties(searchText) {
+        const grid  = document.getElementById("propertyGrid");
+        const count = document.getElementById("resultsCount");
+        let list    = [...allProperties];
+
+        // Location chip filter
+        if (activeLocation !== "all") {
+        list = list.filter(p => (p.location || "").toLowerCase() === activeLocation.toLowerCase());
+        }
+
+        // Text search box (town/area) — works alongside the chip filter
+        if (searchText) {
+        list = list.filter(p =>
+        (p.location || "").toLowerCase().includes(searchText) ||
+        (p.title || "").toLowerCase().includes(searchText) ||
+        (p.description || "").toLowerCase().includes(searchText)
+        );
+        }
+
+        // Most booked sort
+        if (sortByBooked) {
+        list.sort((a, b) => (b.booking_count || 0) - (a.booking_count || 0));
+        }
+
+        grid.innerHTML = "";
+        count.textContent = `${list.length} propert${list.length === 1 ? 'y' : 'ies'} found`;
+
+        if (!list.length) {
+        grid.innerHTML = `<p style="text-align:center;color:#999;padding:40px;">No properties match this filter.</p>`;
+        return;
+        }
+
+        list.forEach(property => {
+        grid.innerHTML += `
+        <div class="property-card">
+        <img src="${property.image_url}" />
+        <div class="property-info">
+        <h3>${property.title}</h3>
+        <div class="price">Ksh ${property.price}</div>
+        <div class="location">${property.location}</div>
+        <p>${property.description}</p>
+        <small>Posted by: ${property.landlord_name || "Unknown"}</small>
+        ${sortByBooked ? `<span class="booked-tag">🔥 ${property.booking_count || 0} booking${(property.booking_count || 0) === 1 ? '' : 's'}</span>` : ''}
+        <button class="view-btn" onclick='openPopup(${JSON.stringify(property)})'>View Details</button>
+        </div>
+        </div>`;
+        });
+        }
+    </script>
 
     <script>
         // ── Renders an update as a grid card ──────────────────────
@@ -1416,25 +1601,14 @@
         });
         }
 
-        // ── Render properties ─────────────────────────────────
-        grid.innerHTML = "";
+        // ── Render properties (with filters/sort) ─────────────
         if (propsData.success && propsData.properties.length) {
-        propsData.properties.forEach(property => {
-        grid.innerHTML += `
-        <div class="property-card">
-        <img src="${property.image_url}" />
-        <div class="property-info">
-        <h3>${property.title}</h3>
-        <div class="price">Ksh ${property.price}</div>
-        <div class="location">${property.location}</div>
-        <p>${property.description}</p>
-        <small>Posted by: ${property.landlord_name || "Unknown"}</small>
-        <button class="view-btn" onclick='openPopup(${JSON.stringify(property)})'>View Details</button>
-        </div>
-        </div>`;
-        });
+        allProperties = propsData.properties;
+        buildLocationFilters();
+        renderProperties();
         } else {
         grid.innerHTML = `<p style="text-align:center;color:#999;padding:40px;">No properties available right now.</p>`;
+        document.getElementById("resultsCount").textContent = "";
         }
 
         } catch (err) {

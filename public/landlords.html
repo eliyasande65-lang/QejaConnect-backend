@@ -83,7 +83,7 @@
         .banner {
             padding: 70px 20px;
             text-align: center;
-            background: background: rgba(75, 0, 130, 0.5);
+            background: rgba(75, 0, 130, 0.5);
         }
 
             .banner h1 {
@@ -91,11 +91,87 @@
                 font-size: 3rem;
             }
 
+        /* ── SEARCH + FILTER BAR ── */
+        .controls {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .search-wrap {
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 18px;
+            flex-wrap: wrap;
+        }
+
+            .search-wrap input {
+                flex: 1;
+                min-width: 200px;
+                padding: 12px 14px;
+                border: 1px solid #ccc;
+                border-radius: 10px;
+                font-size: 15px;
+            }
+
+            .search-wrap button {
+                margin: 0;
+                width: auto;
+                padding: 12px 20px;
+                border-radius: 10px;
+                background: #4f46e5;
+            }
+
+                .search-wrap button:hover {
+                    background: darkviolet;
+                }
+
+        .filter-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .filter-chip {
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #555;
+            font-size: 13px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+            .filter-chip:hover {
+                background: #eef2ff;
+            }
+
+            .filter-chip.active {
+                background: #4f46e5;
+                color: white;
+                border-color: #4f46e5;
+            }
+
+        .results-count {
+            font-size: 13px;
+            color: #777;
+            margin: 4px 2px 0;
+        }
+
         .landlord-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(280px,1fr));
             gap: 25px;
-            padding: 40px 20px;
+            padding: 20px 20px 40px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .profile {
@@ -128,6 +204,13 @@
             color: white;
             font-weight: bold;
             cursor: pointer;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+            grid-column: 1 / -1;
         }
 
         footer {
@@ -167,6 +250,19 @@
         <p>Meet trusted property owners and accommodation providers.</p>
     </section>
 
+    <div class="controls">
+        <div class="search-wrap">
+            <input type="text" id="landlordSearch" placeholder="Search by name, property or town..." oninput="filterAndRender()">
+            <button onclick="filterAndRender()">Search</button>
+        </div>
+
+        <div class="filter-group" id="countyFilters">
+            <button class="filter-chip active" data-county="all" onclick="setCountyFilter('all')">All Counties</button>
+        </div>
+
+        <div class="results-count" id="resultsCount"></div>
+    </div>
+
     <section class="landlord-grid" id="landlordGrid"></section>
 
     <footer>
@@ -175,17 +271,77 @@
 
     <script>
 
+        let allLandlords  = [];
+        let activeCounty  = "all";
+
         async function loadLandlords() {
 
         try {
         const res = await fetch("https://qeja-backend-azkf.onrender.com/landlords");
         const data = await res.json();
 
-        const grid = document.getElementById("landlordGrid");
-        grid.innerHTML = "";
+        allLandlords = data.landlords || [];
+        buildCountyFilters();
+        filterAndRender();
 
-        // SAFE GUARD
-        (data.landlords || []).forEach(landlord => {
+        } catch (err) {
+        console.error(err);
+        alert("Failed to load landlords");
+        }
+        }
+
+        function buildCountyFilters() {
+        const container = document.getElementById("countyFilters");
+        const counties = [...new Set(allLandlords.map(l => l.county).filter(Boolean))].sort();
+
+        container.innerHTML = `<button class="filter-chip active" data-county="all" onclick="setCountyFilter('all')">All Counties</button>`;
+        counties.forEach(county => {
+        const safe = county.replace(/'/g, "\\'");
+        container.innerHTML += `<button class="filter-chip" data-county="${county}" onclick="setCountyFilter('${safe}')">${county}</button>`;
+        });
+        }
+
+        function setCountyFilter(county) {
+        activeCounty = county;
+        document.querySelectorAll('#countyFilters .filter-chip').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.county === county);
+        });
+        filterAndRender();
+        }
+
+        function filterAndRender() {
+        const term = document.getElementById("landlordSearch").value.trim().toLowerCase();
+        let list = [...allLandlords];
+
+        if (activeCounty !== "all") {
+        list = list.filter(l => (l.county || "").toLowerCase() === activeCounty.toLowerCase());
+        }
+
+        if (term) {
+        list = list.filter(l =>
+        (l.fullname || "").toLowerCase().includes(term) ||
+        (l.property_name || "").toLowerCase().includes(term) ||
+        (l.town || "").toLowerCase().includes(term) ||
+        (l.county || "").toLowerCase().includes(term)
+        );
+        }
+
+        renderLandlords(list);
+        }
+
+        function renderLandlords(list) {
+        const grid  = document.getElementById("landlordGrid");
+        const count = document.getElementById("resultsCount");
+
+        count.textContent = `${list.length} landlord${list.length === 1 ? '' : 's'} found`;
+
+        if (!list.length) {
+        grid.innerHTML = `<p class="no-results">No landlords match your search.</p>`;
+        return;
+        }
+
+        grid.innerHTML = "";
+        list.forEach(landlord => {
 
         grid.innerHTML += `
         <div class="profile">
@@ -211,11 +367,6 @@
         </div>
         `;
         });
-
-        } catch (err) {
-        console.error(err);
-        alert("Failed to load landlords");
-        }
         }
 
         function viewLandlord(id) {
@@ -226,6 +377,6 @@
 
     </script>
 
-    
+
 </body>
 </html>
