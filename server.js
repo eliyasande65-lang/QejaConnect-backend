@@ -434,13 +434,11 @@ app.post("/send-push", auth, async (req, res) => {
 // =========================
 app.get("/properties", (req, res) => {
   const sql = `
-    SELECT p.*, l.fullname AS landlord_name,
-           COUNT(b.id) AS booking_count
+    SELECT p.*, l.fullname AS landlord_name
     FROM properties p
     LEFT JOIN landlords l ON p.landlord_id = l.id
-    LEFT JOIN bookings b ON b.property_id = p.id
     WHERE l.verified = 1
-    GROUP BY p.id
+      AND (p.listing_expires_at IS NULL OR p.listing_expires_at > NOW())
     ORDER BY p.id DESC
   `;
   db.query(sql, (err, results) => {
@@ -449,12 +447,77 @@ app.get("/properties", (req, res) => {
   });
 });
 
+//renew 
+// =========================
+// RENEW PROPERTY LISTING (PAID — KSh 95 per unit)
+// ─ Renewal now requires proof of M-Pesa payment before the listing
+//   is reactivated. The client sends the mpesa_transaction_id from a
+//   completed /mpesa/stk-push flow; we verify it belongs to this
+//   landlord and is 'completed' in mpesa_payments (same pattern used
+//   by /upload-property), then extend listing_expires_at by 30 days
+//   and mark the payment as 'used' so it can't be replayed.
+// =========================
+app.patch("/renew-property/:id", auth, async (req, res) => {
+  if (req.user.role !== "landlord") {
+    return res.status(403).json({ success: false, message: "Only landlords can renew listings." });
+  }
+
+  const { mpesa_transaction_id } = req.body;
+  if (!mpesa_transaction_id) {
+    return res.status(400).json({
+      success: false,
+      message: "Payment verification required. Please complete M-Pesa payment first.",
+    });
+  }
+
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT id, landlord_id FROM properties WHERE id = ?`,
+      [req.params.id]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "Property not found." });
+    }
+    if (rows[0].landlord_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Not your property." });
+    }
+
+    const [payRows] = await dbPromise.query(
+      `SELECT id FROM mpesa_payments
+       WHERE transaction_id=? AND landlord_id=? AND status='completed' LIMIT 1`,
+      [mpesa_transaction_id, req.user.id]
+    );
+    if (payRows.length === 0) {
+      return res.status(402).json({
+        success: false,
+        message: "Payment not verified. Please complete M-Pesa payment first.",
+      });
+    }
+
+    const newExpiry = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+    await dbPromise.query(
+      `UPDATE properties SET listing_expires_at = ? WHERE id = ?`,
+      [newExpiry, req.params.id]
+    );
+
+    await dbPromise.query(
+      `UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`,
+      [mpesa_transaction_id]
+    );
+
+    res.json({ success: true, message: "Listing renewed", listing_expires_at: newExpiry });
+  } catch (err) {
+    console.error("[RENEW PROPERTY]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // =========================
 // GET PROPERTIES BY LANDLORD ID
 // =========================
 app.get("/landlord-properties/:id", auth, (req, res) => {
   const sql = `
-    SELECT id, title, price, location, type, listing_expires_at, created_at
+    SELECT id, title, price, location, type, units, listing_expires_at, created_at
     FROM properties
     WHERE landlord_id = ?
     ORDER BY id DESC

@@ -335,6 +335,13 @@
             padding-top: 8px;
         }
 
+        .prop-hidden-note {
+            margin-top: 4px;
+            font-size: 11px;
+            color: #dc2626;
+            font-weight: 600;
+        }
+
         .relist-btn {
             display: inline-block;
             margin-top: 12px;
@@ -353,6 +360,11 @@
 
             .relist-btn:hover {
                 opacity: 0.85;
+            }
+
+            .relist-btn:disabled {
+                opacity: 0.6;
+                cursor: not-allowed;
             }
 
         /* ── TABS ── */
@@ -427,8 +439,20 @@
         </button>
     </div>
 
-    <button class="add" onclick="location.href='addproperty.html'">+ Add Property</button>
-    <button class="add" onclick="location.href='landlord_tenants.html'">Inquiries</button>
+    <!-- ── LANDLORD-ONLY ACTIONS ── -->
+    <div id="landlordActions">
+        <button class="add" onclick="location.href='addproperty.html'">+ Add Property</button>
+        <button class="add" id="inquiriesBtn" style="position:relative;" onclick="location.href='landlord_tenants.html'">
+            Inquiries
+            <span id="inquiriesBadge" style="display:none;position:absolute;top:-8px;right:-8px;background:indigo;color:white;border-radius:10px;font-size:11px;font-weight:700;padding:2px 7px;min-width:18px;">0</span>
+        </button>
+    </div>
+
+    <!-- ── TENANT-ONLY ACTIONS ── -->
+    <div id="tenantActions" style="display:none;">
+        <button class="add" onclick="location.href='bookings.html'">📋 Track My Booking</button>
+    </div>
+
     <div class="section-title">Your Properties</div>
     <div class="dashboard" id="myProperties"></div>
 
@@ -448,12 +472,29 @@
         const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
         const token      = localStorage.getItem("token");
         const userId     = loggedUser?.id;
+        const userRole   = localStorage.getItem("role");
 
         function switchTab(tabId, btn) {
         document.querySelectorAll(".tab-content").forEach(el => el.classList.remove("active"));
         document.querySelectorAll(".tab-bar button").forEach(el => el.classList.remove("active"));
         document.getElementById(tabId).classList.add("active");
         btn.classList.add("active");
+        }
+
+        // ── SHOW/HIDE ACTIONS BASED ON ROLE ──────────────────────
+        // Landlords see "Add Property" + "Inquiries".
+        // Tenants see "Track My Booking" instead.
+        function setupRoleUI() {
+        const landlordActions = document.getElementById("landlordActions");
+        const tenantActions   = document.getElementById("tenantActions");
+
+        if (userRole === "tenant") {
+        if (landlordActions) landlordActions.style.display = "none";
+        if (tenantActions)   tenantActions.style.display   = "block";
+        } else {
+        if (landlordActions) landlordActions.style.display = "";
+        if (tenantActions)   tenantActions.style.display   = "none";
+        }
         }
 
         async function loadRequests() {
@@ -589,6 +630,133 @@
         function toggleTheme() {
         document.body.classList.toggle("dark");
         }
+
+        // ── RENEW LISTING (PAID) ───────────────────────────────
+        // Renewal now costs KSh 95 per unit. Landlord is prompted for
+        // an M-Pesa phone number, an STK push is sent for
+        // (95 * units), and once payment is confirmed the backend
+        // verifies it and extends listing_expires_at by 30 days.
+        async function renewProperty(id, units, btn) {
+        if (!token) { alert("Please login first"); return; }
+
+        const unitCount = Number(units) > 0 ? Number(units) : 1;
+        const amount    = 95 * unitCount;
+
+        const phone = prompt(
+        `Renewal fee: KSh ${amount} (KSh 95 × ${unitCount} unit${unitCount === 1 ? "" : "s"}).\nEnter the M-Pesa phone number to pay from:`,
+        loggedUser?.phone || ""
+        );
+        if (!phone) return;
+
+        const originalText = btn.textContent;
+        btn.disabled  = true;
+        btn.textContent = "Sending M-Pesa prompt…";
+
+        try {
+        const stkRes = await fetch(
+        `https://qeja-backend-azkf.onrender.com/mpesa/stk-push`,
+        {
+        method: "POST",
+        headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+        phone,
+        amount,
+        description: "Property listing renewal"
+        })
+        }
+        );
+        const stkData = await stkRes.json();
+
+        if (!stkData.success) {
+        alert(stkData.message || "Failed to initiate M-Pesa payment.");
+        btn.disabled  = false;
+        btn.textContent = originalText;
+        return;
+        }
+
+        const checkoutId = stkData.CheckoutRequestID;
+        btn.textContent = "Waiting for M-Pesa confirmation…";
+
+        let attempts = 0;
+        const maxAttempts = 20; // ~60s of polling at 3s intervals
+
+        const poll = async () => {
+        attempts++;
+
+        let statusData;
+        try {
+        const statusRes = await fetch(
+        `https://qeja-backend-azkf.onrender.com/mpesa/status/${checkoutId}`,
+        { headers: { "Authorization": "Bearer " + token } }
+        );
+        statusData = await statusRes.json();
+        } catch {
+        statusData = { status: "pending" };
+        }
+
+        if (statusData.status === "completed") {
+        btn.textContent = "Renewing…";
+        try {
+        const renewRes = await fetch(
+        `https://qeja-backend-azkf.onrender.com/renew-property/${id}`,
+        {
+        method: "PATCH",
+        headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({ mpesa_transaction_id: statusData.mpesa_ref })
+        }
+        );
+        const renewData = await renewRes.json();
+
+        if (renewData.success) {
+        alert("✅ Payment received and listing renewed! It's live on Home again.");
+        loadMyProperties();
+        } else {
+        alert(renewData.message || "Payment received but renewal failed. Please contact support.");
+        btn.disabled  = false;
+        btn.textContent = originalText;
+        }
+        } catch (err) {
+        console.error(err);
+        alert("Payment received but we couldn't confirm the renewal. Please try clicking Renew again.");
+        btn.disabled  = false;
+        btn.textContent = originalText;
+        }
+        return;
+        }
+
+        if (statusData.status === "failed") {
+        alert("Payment failed: " + (statusData.message || "Please try again."));
+        btn.disabled  = false;
+        btn.textContent = originalText;
+        return;
+        }
+
+        if (attempts >= maxAttempts) {
+        alert("We didn't receive payment confirmation in time. If you completed the M-Pesa prompt, please wait a moment and click Renew again.");
+        btn.disabled  = false;
+        btn.textContent = originalText;
+        return;
+        }
+
+        setTimeout(poll, 3000);
+        };
+
+        setTimeout(poll, 3000);
+
+        } catch (err) {
+        console.error(err);
+        alert("Network error. Please try again.");
+        btn.disabled  = false;
+        btn.textContent = originalText;
+        }
+        }
+
         async function loadMyProperties() {
         const container = document.getElementById("myProperties");
         if (!userId || !token) {
@@ -613,6 +781,7 @@
         data.properties.map(p => {
         const expiry = p.listing_expires_at ? new Date(p.listing_expires_at) : null;
         const isExpired = expiry && now > expiry;
+        const unitCount = p.units || 1;
 
         const badge = isExpired
         ? `<span class="inactive-badge">⛔ Inactive</span>`
@@ -620,12 +789,12 @@
 
         const expiryLine = expiry
         ? isExpired
-        ? `<div class="prop-expires">⛔ Expired: ${expiry.toLocaleDateString()}</div>`
+        ? `<div class="prop-expires">⛔ Expired: ${expiry.toLocaleDateString()}<div class="prop-hidden-note">Hidden from Home until renewed</div></div>`
         : `<div class="prop-expires">🗓 Expires: ${expiry.toLocaleDateString()}</div>`
         : "";
 
         const relistBtn = isExpired
-        ? `<br><a class="relist-btn" href="addproperty.html">🔄 Upload Again</a>`
+        ? `<br><button class="relist-btn" onclick="renewProperty(${p.id}, ${unitCount}, this)">🔄 Renew Listing (KSh ${95 * unitCount})</button>`
         : "";
 
         return `
@@ -650,6 +819,7 @@
         }
 
         window.onload = function () {
+        setupRoleUI();
         loadRequests();
         loadLandlordChats();
         loadTenantChats();
@@ -691,9 +861,11 @@
         msgBadge.style.display = 'inline-block';
         }
 
-        // ── New booking requests → Dashboard badge ──
+        // ── New booking requests → Dashboard badge + Inquiries badge ──
+        // (landlords only — tenants have no "interests" to fetch)
+        const role   = localStorage.getItem('role');
         const userId = JSON.parse(localStorage.getItem('loggedUser') || '{}')?.id;
-        if (!userId) return;
+        if (!userId || role !== 'landlord') return;
 
         const reqRes  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
         const reqData = await reqRes.json();
@@ -709,6 +881,12 @@
         if (dashBadge && unseenRequests > 0) {
         dashBadge.textContent = unseenRequests;
         dashBadge.style.display = 'inline-block';
+        }
+
+        const inqBadge = document.getElementById('inquiriesBadge');
+        if (inqBadge && unseenRequests > 0) {
+        inqBadge.textContent = unseenRequests;
+        inqBadge.style.display = 'inline-block';
         }
 
         } catch (err) {

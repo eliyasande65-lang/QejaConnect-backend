@@ -9,7 +9,7 @@
     <link rel="manifest" href="/QejaConnect/manifest.json">
 
     <!-- Theme colour (browser chrome / Android status bar) -->
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#1a1535">
 
     <!-- iOS home-screen support -->
     <meta name="apple-mobile-web-app-capable" content="yes">
@@ -80,22 +80,29 @@
                 font-weight: bold;
             }
 
-        .banner {
-            padding: 70px 20px;
-            text-align: center;
-            background: rgba(75, 0, 130, 0.5);
+        .page-heading {
+            max-width: 1100px;
+            margin: 25px auto 5px;
+            padding: 0 20px;
         }
 
-            .banner h1 {
+            .page-heading h1 {
                 color: #1a1535;
-                font-size: 3rem;
+                font-size: 1.8rem;
+                margin: 0 0 4px;
+            }
+
+            .page-heading p {
+                color: #666;
+                margin: 0;
+                font-size: 14px;
             }
 
         /* ── SEARCH + FILTER BAR ── */
         .controls {
             max-width: 1100px;
             margin: 0 auto;
-            padding: 0 20px;
+            padding: 15px 20px 0;
         }
 
         .search-wrap {
@@ -105,7 +112,7 @@
             padding: 10px;
             border-radius: 12px;
             box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            margin-bottom: 18px;
+            margin-bottom: 14px;
             flex-wrap: wrap;
         }
 
@@ -119,11 +126,11 @@
             }
 
             .search-wrap button {
-                margin: 0;
                 width: auto;
+                margin: 0;
                 padding: 12px 20px;
                 border-radius: 10px;
-                background: #4f46e5;
+                background: #1a1535;
             }
 
                 .search-wrap button:hover {
@@ -138,6 +145,8 @@
         }
 
         .filter-chip {
+            width: auto;
+            margin-top: 0;
             padding: 8px 16px;
             border-radius: 20px;
             border: 1px solid #ddd;
@@ -154,9 +163,9 @@
             }
 
             .filter-chip.active {
-                background: #4f46e5;
+                background: #1a1535;
                 color: white;
-                border-color: #4f46e5;
+                border-color: #1a1535;
             }
 
         .results-count {
@@ -245,10 +254,10 @@
 
     </header>
 
-    <section class="banner">
+    <div class="page-heading">
         <h1>Verified Landlords</h1>
         <p>Meet trusted property owners and accommodation providers.</p>
-    </section>
+    </div>
 
     <div class="controls">
         <div class="search-wrap">

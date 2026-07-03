@@ -1011,9 +1011,14 @@
         }
 
         // ── LOAD LANDLORDS ─────────────────────────────────────
+        // NOTE: uses /admin/landlords-overview — the route that actually
+        // computes and returns tenancies, paid_count, pending_count,
+        // overdue_count and total_collected. /admin/landlords (the other
+        // route) only returns flat landlord rows and was the cause of the
+        // empty-looking cards/stats.
         async function loadLandlords() {
         try {
-        const res  = await fetch(`${API}/admin/landlords`, {
+        const res  = await fetch(`${API}/admin/landlords-overview`, {
         headers: { 'x-admin-secret': adminSecret }
         });
         const data = await res.json();
