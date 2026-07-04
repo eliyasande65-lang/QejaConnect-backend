@@ -861,7 +861,7 @@
         msgBadge.style.display = 'inline-block';
         }
 
-        // ── New booking requests → Dashboard badge + Inquiries badge ──
+        // ── New booking requests → Dashboard badge ──
         // (landlords only — tenants have no "interests" to fetch)
         const role   = localStorage.getItem('role');
         const userId = JSON.parse(localStorage.getItem('loggedUser') || '{}')?.id;
@@ -870,6 +870,7 @@
         const reqRes  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
         const reqData = await reqRes.json();
 
+        // Dashboard badge = "unseen" interests since last visit to My Tenants
         let unseenRequests = 0;
         if (reqData.success && reqData.data?.length) {
         let seenReqs = [];
@@ -883,10 +884,23 @@
         dashBadge.style.display = 'inline-block';
         }
 
+        // Inquiries badge = count of bookings still PENDING (mirrors the
+        // "Pending" stat on landlord_tenants.html). This stays accurate
+        // even after visiting that page, unlike "unseen" counts, since it
+        // only clears once a booking is approved/rejected — not just viewed.
+        let pendingCount = 0;
+        if (reqData.success && reqData.data?.length) {
+        pendingCount = reqData.data.filter(r => (r.status || 'pending') === 'pending').length;
+        }
+
         const inqBadge = document.getElementById('inquiriesBadge');
-        if (inqBadge && unseenRequests > 0) {
-        inqBadge.textContent = unseenRequests;
+        if (inqBadge) {
+        if (pendingCount > 0) {
+        inqBadge.textContent = pendingCount;
         inqBadge.style.display = 'inline-block';
+        } else {
+        inqBadge.style.display = 'none';
+        }
         }
 
         } catch (err) {

@@ -2,27 +2,48 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#1a1535">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <script>
+        (function() {
+        if (!localStorage.getItem('token')) {
+        window.location.replace('login.html');
+        }
+        })();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Refer & Earn · QejaConnect</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
         :root {
-            --bg: #0d0a1a;
-            --surface: #13102a;
-            --card: #1a1535;
-            --border: rgba(139, 92, 246, 0.18);
-            --border-focus: #7c3aed;
-            --accent: #7c3aed;
-            --accent-light: #a78bfa;
-            --accent-glow: rgba(124, 58, 237, 0.25);
-            --text: #f1f0f7;
-            --muted: #8b84a8;
-            --dim: rgba(255,255,255,0.06);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --gold: #fbbf24;
+            --brand: #1a1535;
+            --brand-light: #2a2354;
+            --bg: #f4f4f4;
+            --white: #ffffff;
+            --border: #e5e5e5;
+            --ink: #1a1a1a;
+            --muted: #777;
+            --gold: #b8860b;
+            --gold-tint: #fbf3e2;
+            --success: #1a8f5c;
+            --success-tint: #e7f6ee;
+            --warning: #b8720b;
+            --warning-tint: #fbf1e2;
+            --error: #c0392b;
+            --radius: 12px;
         }
 
         * {
@@ -31,297 +52,447 @@
             padding: 0;
         }
 
+        html, body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
         body {
-            font-family: 'DM Sans', sans-serif;
+            font-family: Arial, Helvetica, sans-serif;
             background: var(--bg);
-            color: var(--text);
+            color: var(--ink);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 32px 16px 64px;
+            padding-bottom: 64px;
         }
 
-            body::before, body::after {
-                content: '';
-                position: fixed;
-                border-radius: 50%;
-                filter: blur(120px);
-                pointer-events: none;
-                z-index: 0;
+        img, input, button {
+            max-width: 100%;
+        }
+
+        /* ══════════════════════════════════════════════════════
+           HEADER
+           ══════════════════════════════════════════════════════ */
+        header {
+            width: 100%;
+            background: var(--brand);
+            padding: 16px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: sticky;
+            top: 0;
+            z-index: 500;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            max-width: 100%;
+        }
+
+        #logo {
+            width: 48px;
+            height: 48px;
+            border-radius: 10px;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+
+        .brand-text h2 {
+            margin: 0;
+            font-size: 1.05rem;
+            color: var(--white);
+        }
+
+        .brand-text p {
+            margin: 0;
+            font-size: 12px;
+            color: rgba(255,255,255,0.75);
+        }
+
+        .menu-btn {
+            position: fixed;
+            top: 12px;
+            left: 10px;
+            width: 44px;
+            height: 44px;
+            border: none;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.12);
+            color: var(--white);
+            font-size: 20px;
+            cursor: pointer;
+            z-index: 510;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+            .menu-btn:active {
+                background: rgba(255,255,255,0.22);
             }
 
-            body::before {
-                width: 500px;
-                height: 500px;
-                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
-                top: -100px;
-                left: -150px;
+        /* ══════════════════════════════════════════════════════
+           OVERLAY + SIDE MENU
+           ══════════════════════════════════════════════════════ */
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: none;
+            z-index: 400;
+        }
+
+            .overlay.active {
+                display: block;
             }
 
-            body::after {
-                width: 400px;
-                height: 400px;
-                background: radial-gradient(circle, rgba(251,191,36,0.08) 0%, transparent 70%);
-                bottom: 0;
-                right: -120px;
+        .side-menu {
+            position: fixed;
+            top: 0;
+            left: -280px;
+            width: 78%;
+            max-width: 300px;
+            height: 100%;
+            background: var(--brand);
+            z-index: 520;
+            transition: left 0.3s ease;
+            padding-bottom: 24px;
+            box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+            .side-menu.active {
+                left: 0;
             }
 
+        .side-menu-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 18px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.12);
+            margin-bottom: 8px;
+        }
+
+            .side-menu-header img {
+                width: 40px;
+                height: 40px;
+                border-radius: 9px;
+                object-fit: cover;
+            }
+
+            .side-menu-header span {
+                color: var(--white);
+                font-weight: bold;
+                font-size: 1.05rem;
+            }
+
+        .side-menu-close {
+            margin-left: auto;
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.7);
+            font-size: 22px;
+            cursor: pointer;
+            padding: 4px 8px;
+            line-height: 1;
+        }
+
+        .side-menu a {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            color: var(--white);
+            text-decoration: none;
+            padding: 15px 22px;
+            font-size: 15px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+
+            .side-menu a .icon {
+                font-size: 18px;
+                width: 22px;
+                text-align: center;
+                flex-shrink: 0;
+            }
+
+            .side-menu a .label {
+                flex: 1;
+            }
+
+            .side-menu a:hover,
+            .side-menu a:active {
+                background: rgba(255,255,255,0.1);
+            }
+
+            .side-menu a.active-link {
+                background: rgba(255,255,255,0.14);
+                border-left: 3px solid var(--white);
+                padding-left: 19px;
+            }
+
+        .side-menu .logout-link {
+            margin-top: auto;
+            border-top: 1px solid rgba(255,255,255,0.12);
+        }
+
+        .menu-badge {
+            background: var(--white);
+            color: var(--brand);
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            padding: 2px 8px;
+            min-width: 22px;
+            text-align: center;
+            flex-shrink: 0;
+        }
+
+        /* ══════════════════════════════════════════════════════
+           PAGE
+           ══════════════════════════════════════════════════════ */
         .page {
             width: 100%;
             max-width: 560px;
-            position: relative;
-            z-index: 1;
+            padding: 24px 16px 0;
         }
 
-        /* Header */
-        .header {
-            text-align: center;
-            margin-bottom: 28px;
+        .page-header {
+            margin-bottom: 22px;
         }
 
-            .header .eyebrow {
+            .page-header .eyebrow {
                 font-size: 0.72rem;
-                font-weight: 600;
-                letter-spacing: 0.16em;
+                font-weight: 700;
+                letter-spacing: 0.08em;
                 text-transform: uppercase;
-                color: var(--accent-light);
-                margin-bottom: 10px;
+                color: var(--brand);
+                margin-bottom: 8px;
             }
 
-            .header h1 {
-                font-family: 'DM Serif Display', serif;
-                font-size: clamp(1.8rem, 6vw, 2.6rem);
-                font-weight: 400;
-                letter-spacing: -0.5px;
-                line-height: 1.15;
+            .page-header h1 {
+                font-size: clamp(1.4rem, 5vw, 1.8rem);
+                font-weight: 700;
+                line-height: 1.25;
+                color: var(--brand);
+                word-wrap: break-word;
             }
 
-            .header p {
+            .page-header p {
                 color: var(--muted);
-                font-size: 0.95rem;
-                margin-top: 10px;
-                font-weight: 300;
-                max-width: 420px;
-                margin-inline: auto;
+                font-size: 0.92rem;
+                margin-top: 8px;
+                line-height: 1.5;
             }
 
-        /* Signature: Code card */
+        /* ── Referral code card ── */
         .code-card {
-            background: linear-gradient(135deg, #1a1535 0%, #241b4a 100%);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 28px;
-            margin-bottom: 18px;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.05);
-            position: relative;
-            overflow: hidden;
+            background: var(--brand);
+            border-radius: var(--radius);
+            padding: 22px;
+            margin-bottom: 16px;
         }
-
-            .code-card::before {
-                content: '';
-                position: absolute;
-                top: -50%;
-                right: -20%;
-                width: 220px;
-                height: 220px;
-                background: radial-gradient(circle, rgba(124,58,237,0.35) 0%, transparent 70%);
-                pointer-events: none;
-            }
 
         .code-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.14em;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: var(--accent-light);
-            margin-bottom: 14px;
-            position: relative;
+            color: rgba(255,255,255,0.7);
+            margin-bottom: 12px;
         }
 
         .code-display {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            background: rgba(0,0,0,0.25);
-            border: 1.5px dashed var(--border);
-            border-radius: 14px;
-            padding: 18px 20px;
-            margin-bottom: 16px;
-            position: relative;
+            gap: 10px;
+            flex-wrap: wrap;
+            background: rgba(255,255,255,0.08);
+            border: 1px dashed rgba(255,255,255,0.35);
+            border-radius: 10px;
+            padding: 14px 16px;
+            margin-bottom: 14px;
         }
 
         .code-value {
-            font-family: 'DM Serif Display', serif;
-            font-size: clamp(1.6rem, 7vw, 2.2rem);
-            letter-spacing: 0.08em;
-            color: var(--text);
-            font-style: italic;
+            font-size: clamp(1.2rem, 6vw, 1.5rem);
+            font-weight: 700;
+            letter-spacing: 0.03em;
+            color: var(--white);
+            word-break: break-all;
         }
 
             .code-value.loading {
-                color: var(--muted);
-                font-size: 1rem;
-                font-style: normal;
+                color: rgba(255,255,255,0.65);
+                font-size: 0.92rem;
+                font-weight: 400;
                 letter-spacing: normal;
             }
 
         .copy-btn {
             flex-shrink: 0;
-            padding: 10px 18px;
-            border-radius: 10px;
+            padding: 9px 14px;
+            border-radius: 8px;
             border: none;
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            color: white;
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.85rem;
-            font-weight: 600;
+            background: var(--white);
+            color: var(--brand);
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 0.82rem;
+            font-weight: 700;
             cursor: pointer;
-            transition: opacity 0.2s, transform 0.15s;
             white-space: nowrap;
         }
 
-            .copy-btn:hover {
-                opacity: 0.9;
-                transform: translateY(-1px);
-            }
-
             .copy-btn:active {
-                transform: translateY(0);
+                opacity: 0.85;
             }
 
         .share-row {
             display: flex;
-            gap: 10px;
-            position: relative;
+            gap: 8px;
             flex-wrap: wrap;
         }
 
         .share-link-box {
-            flex: 1;
+            flex: 1 1 100%;
             min-width: 0;
-            background: rgba(0,0,0,0.2);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 10px 14px;
-            font-size: 0.8rem;
-            color: var(--muted);
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.75rem;
+            color: rgba(255,255,255,0.8);
             overflow-x: auto;
             white-space: nowrap;
-            font-family: monospace;
+            font-family: 'Courier New', monospace;
         }
 
         .share-btn {
-            padding: 10px 16px;
-            border-radius: 10px;
-            border: 1px solid var(--border);
-            background: var(--dim);
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 0.82rem;
-            font-weight: 500;
+            flex: 1;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid rgba(255,255,255,0.35);
+            background: transparent;
+            color: var(--white);
+            font-family: Arial, Helvetica, sans-serif;
+            font-size: 0.8rem;
+            font-weight: 600;
             cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
             white-space: nowrap;
         }
 
-            .share-btn:hover {
-                border-color: var(--accent);
-                background: rgba(124,58,237,0.1);
+            .share-btn:active {
+                background: rgba(255,255,255,0.14);
             }
 
-        /* How it works strip */
+        /* ── How it works ── */
         .how-it-works {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 24px;
+            gap: 8px;
+            margin-bottom: 18px;
         }
 
         .step {
-            background: var(--card);
+            background: var(--white);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 16px 14px;
+            border-radius: var(--radius);
+            padding: 14px 10px;
             text-align: center;
+            min-width: 0;
         }
 
             .step .step-icon {
-                font-size: 1.4rem;
-                margin-bottom: 8px;
+                font-size: 1.2rem;
+                margin-bottom: 6px;
             }
 
             .step .step-text {
-                font-size: 0.78rem;
+                font-size: 0.72rem;
                 color: var(--muted);
-                line-height: 1.4;
+                line-height: 1.35;
             }
 
-        /* Earnings summary */
+        /* ── Earnings summary ── */
         .earnings-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
-            margin-bottom: 24px;
+            gap: 8px;
+            margin-bottom: 22px;
         }
 
         .earning-stat {
-            background: var(--card);
+            background: var(--white);
             border: 1px solid var(--border);
-            border-radius: 14px;
-            padding: 18px 14px;
+            border-radius: var(--radius);
+            padding: 14px 8px;
             text-align: center;
+            min-width: 0;
         }
 
             .earning-stat .stat-value {
-                font-family: 'DM Serif Display', serif;
-                font-size: clamp(1.2rem, 5vw, 1.6rem);
-                color: var(--text);
+                font-size: clamp(0.95rem, 4.5vw, 1.2rem);
+                font-weight: 700;
+                color: var(--ink);
                 margin-bottom: 4px;
+                word-break: break-word;
             }
 
-            .earning-stat.gold .stat-value {
-                color: var(--gold);
+            .earning-stat.gold {
+                background: var(--gold-tint);
+                border-color: rgba(184,134,11,0.2);
             }
 
-            .earning-stat.success .stat-value {
-                color: var(--success);
+                .earning-stat.gold .stat-value {
+                    color: var(--gold);
+                }
+
+            .earning-stat.success {
+                background: var(--success-tint);
+                border-color: rgba(26,143,92,0.2);
             }
+
+                .earning-stat.success .stat-value {
+                    color: var(--success);
+                }
 
             .earning-stat .stat-label {
-                font-size: 0.68rem;
-                font-weight: 600;
-                letter-spacing: 0.08em;
+                font-size: 0.62rem;
+                font-weight: 700;
+                letter-spacing: 0.05em;
                 text-transform: uppercase;
                 color: var(--muted);
             }
 
-        /* Section label */
+        /* ── Section label ── */
         .section-label {
             font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.12em;
+            font-weight: 700;
+            letter-spacing: 0.06em;
             text-transform: uppercase;
-            color: var(--accent-light);
+            color: var(--muted);
             margin: 0 0 12px;
-            display: flex;
-            align-items: center;
-            gap: 8px;
         }
 
-            .section-label::after {
-                content: '';
-                flex: 1;
-                height: 1px;
-                background: var(--border);
-            }
-
-        /* Earnings list */
+        /* ── Earnings list ── */
         .earnings-card {
-            background: var(--card);
+            background: var(--white);
             border: 1px solid var(--border);
-            border-radius: 16px;
+            border-radius: var(--radius);
             overflow: hidden;
         }
 
@@ -329,25 +500,33 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            gap: 12px;
-            padding: 16px 18px;
-            border-bottom: 1px solid rgba(255,255,255,0.04);
+            gap: 10px;
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
         }
 
             .earning-row:last-child {
                 border-bottom: none;
             }
 
-        .earning-info .earning-name {
-            font-weight: 500;
-            font-size: 0.92rem;
-            margin-bottom: 3px;
+        .earning-info {
+            min-width: 0;
         }
 
-        .earning-info .earning-meta {
-            font-size: 0.74rem;
-            color: var(--muted);
-        }
+            .earning-info .earning-name {
+                font-weight: 700;
+                font-size: 0.9rem;
+                margin-bottom: 3px;
+                color: var(--ink);
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .earning-info .earning-meta {
+                font-size: 0.74rem;
+                color: var(--muted);
+            }
 
         .earning-amount {
             text-align: right;
@@ -355,89 +534,85 @@
         }
 
             .earning-amount .amount-value {
-                font-weight: 600;
-                font-size: 0.98rem;
+                font-weight: 700;
+                font-size: 0.92rem;
                 margin-bottom: 4px;
+                color: var(--ink);
             }
 
         .status-badge {
             display: inline-block;
-            font-size: 0.68rem;
-            font-weight: 600;
-            letter-spacing: 0.04em;
+            font-size: 0.64rem;
+            font-weight: 700;
+            letter-spacing: 0.03em;
             text-transform: uppercase;
             padding: 3px 10px;
             border-radius: 20px;
         }
 
             .status-badge.pending {
-                background: rgba(245,158,11,0.15);
+                background: var(--warning-tint);
                 color: var(--warning);
-                border: 1px solid rgba(245,158,11,0.3);
             }
 
             .status-badge.paid {
-                background: rgba(16,185,129,0.15);
+                background: var(--success-tint);
                 color: var(--success);
-                border: 1px solid rgba(16,185,129,0.3);
             }
 
         .empty-state {
             text-align: center;
-            padding: 50px 24px;
+            padding: 40px 20px;
             color: var(--muted);
         }
 
             .empty-state .empty-icon {
-                font-size: 2.2rem;
-                margin-bottom: 12px;
+                font-size: 1.8rem;
+                margin-bottom: 10px;
                 display: block;
             }
 
             .empty-state p {
-                font-size: 0.88rem;
+                font-size: 0.86rem;
                 line-height: 1.5;
             }
 
             .empty-state a {
-                color: var(--accent-light);
-                font-weight: 600;
+                color: var(--brand);
+                font-weight: 700;
                 text-decoration: none;
             }
 
-                .empty-state a:hover {
-                    color: #c4b5fd;
-                }
-
         .loading-state {
             text-align: center;
-            padding: 50px 24px;
+            padding: 40px 20px;
             color: var(--muted);
-            font-size: 0.9rem;
+            font-size: 0.88rem;
         }
 
-        /* Toast */
+        /* ══════════════════════════════════════════════════════
+           TOAST
+           ══════════════════════════════════════════════════════ */
         #toast {
             position: fixed;
-            bottom: 28px;
+            bottom: 24px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #1a1535;
-            border: 1px solid var(--border);
-            color: var(--text);
-            padding: 13px 20px;
-            border-radius: 14px;
-            font-size: 0.9rem;
+            background: var(--ink);
+            color: var(--white);
+            padding: 12px 18px;
+            border-radius: 10px;
+            font-size: 0.88rem;
             display: flex;
             align-items: center;
             gap: 10px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
-            z-index: 999;
-            max-width: 360px;
-            width: 90%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+            z-index: 900;
+            max-width: calc(100% - 32px);
+            width: max-content;
             opacity: 0;
             pointer-events: none;
-            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+            transition: transform 0.35s ease, opacity 0.3s ease;
         }
 
             #toast.show {
@@ -454,10 +629,113 @@
             }
 
             #toast.info {
-                border-left: 4px solid var(--accent-light);
+                border-left: 4px solid var(--brand-light);
             }
 
-        @media (max-width: 480px) {
+        /* ══════════════════════════════════════════════════════
+           SHARE POPUP — centered, firm on mobile
+           ══════════════════════════════════════════════════════ */
+        .share-popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20,20,20,0.6);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+            .share-popup-overlay.active {
+                display: flex;
+            }
+
+        .share-popup {
+            background: var(--white);
+            border-radius: 16px;
+            width: 100%;
+            max-width: 360px;
+            padding: 22px;
+            box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+            margin: auto;
+        }
+
+        .share-popup-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 16px;
+        }
+
+            .share-popup-header h3 {
+                font-weight: 700;
+                font-size: 1.05rem;
+                color: var(--brand);
+            }
+
+        .share-popup-close {
+            cursor: pointer;
+            font-size: 22px;
+            color: var(--muted);
+            line-height: 1;
+            background: none;
+            border: none;
+        }
+
+        .share-popup-link {
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-size: 0.74rem;
+            color: var(--muted);
+            font-family: 'Courier New', monospace;
+            overflow-x: auto;
+            white-space: nowrap;
+            margin-bottom: 16px;
+        }
+
+        .share-options {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+        }
+
+        .share-option {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            background: var(--bg);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px 6px;
+            cursor: pointer;
+        }
+
+            .share-option:active {
+                background: #eeecf7;
+            }
+
+            .share-option .share-icon {
+                font-size: 1.3rem;
+            }
+
+            .share-option .share-label {
+                font-size: 0.68rem;
+                color: var(--muted);
+                font-weight: 600;
+                text-align: center;
+            }
+
+        /* ══════════════════════════════════════════════════════
+           SMALL SCREEN TWEAKS (still no horizontal scroll)
+           ══════════════════════════════════════════════════════ */
+        @media (max-width: 420px) {
             .how-it-works {
                 grid-template-columns: 1fr;
             }
@@ -473,28 +751,62 @@
             .share-row {
                 flex-direction: column;
             }
-
-            .share-link-box {
-                order: 1;
-            }
-
-            .share-btn {
-                order: 2;
-                width: 100%;
-            }
         }
     </style>
 </head>
 <body>
+
+    <button class="menu-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo" alt="logo">
+            <div class="brand-text">
+                <h2>Qeja Connect</h2>
+                <p>Quality accommodation providence</p>
+            </div>
+        </div>
+    </header>
+
+    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
+
+    <div class="side-menu" id="sideMenu">
+        <div class="side-menu-header">
+            <img src="logo.jpg" alt="logo">
+            <span>Qeja Connect</span>
+            <button class="side-menu-close" onclick="closeMenu()" aria-label="Close menu">&times;</button>
+        </div>
+
+        <a href="home.html"><span class="icon">🏠</span><span class="label">Home</span></a>
+        <a href="landlords.html"><span class="icon">🏘️</span><span class="label">Landlords</span></a>
+        <a href="contact.html"><span class="icon">📞</span><span class="label">Contact</span></a>
+        <a href="hostdashboard.html" id="menuDashboard">
+            <span class="icon">📊</span><span class="label">Dashboard</span>
+            <span id="menuDashboardBadge" class="menu-badge" style="display:none;"></span>
+        </a>
+        <a href="myprofile.html"><span class="icon">👤</span><span class="label">Profile</span></a>
+        <a href="mymessages.html" id="menuMessages">
+            <span class="icon">💬</span><span class="label">Messages</span>
+            <span id="navNotifBadge" class="menu-badge" style="display:none;">0</span>
+        </a>
+        <a href="bookings.html"><span class="icon">📌</span><span class="label">My Bookings</span></a>
+        <a href="mytenancy.html"><span class="icon">🔑</span><span class="label">My House</span></a>
+        <a href="refer-earn.html"><span class="icon">🎉</span><span class="label">Refer & earn</span></a>
+
+        <a class="logout-link" href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
+            <span class="icon">🚪</span><span class="label">Log out</span>
+        </a>
+    </div>
+
     <div class="page">
 
-        <div class="header">
-            <div class="eyebrow">Refer & Earn</div>
-            <h1>Know someone looking<br>for a place?</h1>
+        <div class="page-header">
+            <div class="eyebrow">Refer &amp; Earn</div>
+            <h1>Know someone looking for a place?</h1>
             <p>Share your code. When they move into a home through QejaConnect, you earn 1% of their monthly rent &mdash; every month they pay.</p>
         </div>
 
-        <!-- Signature: referral code card -->
+        <!-- Referral code card -->
         <div class="code-card">
             <div class="code-label">Your referral code</div>
             <div class="code-display">
@@ -549,6 +861,43 @@
 
     </div>
 
+    <!-- SHARE POPUP -->
+    <div class="share-popup-overlay" id="sharePopupOverlay">
+        <div class="share-popup">
+            <div class="share-popup-header">
+                <h3>Share your link</h3>
+                <button class="share-popup-close" id="sharePopupClose" aria-label="Close">&times;</button>
+            </div>
+            <div class="share-popup-link" id="sharePopupLink">&mdash;</div>
+            <div class="share-options">
+                <div class="share-option" data-platform="whatsapp">
+                    <span class="share-icon">🟢</span>
+                    <span class="share-label">WhatsApp</span>
+                </div>
+                <div class="share-option" data-platform="twitter">
+                    <span class="share-icon">✖️</span>
+                    <span class="share-label">X / Twitter</span>
+                </div>
+                <div class="share-option" data-platform="facebook">
+                    <span class="share-icon">📘</span>
+                    <span class="share-label">Facebook</span>
+                </div>
+                <div class="share-option" data-platform="telegram">
+                    <span class="share-icon">✈️</span>
+                    <span class="share-label">Telegram</span>
+                </div>
+                <div class="share-option" data-platform="email">
+                    <span class="share-icon">✉️</span>
+                    <span class="share-label">Email</span>
+                </div>
+                <div class="share-option" data-platform="copy">
+                    <span class="share-icon">📋</span>
+                    <span class="share-label">Copy Link</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div id="toast">
         <span id="toast-icon"></span>
         <span id="toast-msg"></span>
@@ -557,6 +906,17 @@
     <script>
         const API = 'https://qeja-backend-azkf.onrender.com';
         const SIGNUP_URL = 'https://eliyasande65-lang.github.io/QejaConnect/tenant.html';
+
+        // ── Side menu toggling ───────────────────────────────────────
+        function toggleMenu() {
+        document.getElementById("sideMenu").classList.toggle("active");
+        document.getElementById("overlay").classList.toggle("active");
+        }
+
+        function closeMenu() {
+        document.getElementById("sideMenu").classList.remove("active");
+        document.getElementById("overlay").classList.remove("active");
+        }
 
         // ── Toast ──────────────────────────────────────────────────
         let toastTimer;
@@ -716,22 +1076,108 @@
         });
         });
 
-        document.getElementById('shareBtn').addEventListener('click', () => {
+        // ── Share popup ──────────────────────────────────────────────
+        function openSharePopup() {
+        const link = document.getElementById('shareLink').textContent;
+        if (!link || link.includes('Loading') || link === '—') {
+        showToast('Please wait for your link to load.', 'info');
+        return;
+        }
+        document.getElementById('sharePopupLink').textContent = link;
+        document.getElementById('sharePopupOverlay').classList.add('active');
+        }
+
+        function closeSharePopup() {
+        document.getElementById('sharePopupOverlay').classList.remove('active');
+        }
+
+        document.getElementById('shareBtn').addEventListener('click', openSharePopup);
+        document.getElementById('sharePopupClose').addEventListener('click', closeSharePopup);
+        document.getElementById('sharePopupOverlay').addEventListener('click', (e) => {
+        if (e.target.id === 'sharePopupOverlay') closeSharePopup();
+        });
+
+        document.querySelectorAll('.share-option').forEach(opt => {
+        opt.addEventListener('click', () => {
         const link = document.getElementById('shareLink').textContent;
         if (!link || link.includes('Loading') || link === '—') return;
 
-        if (navigator.share) {
-        navigator.share({
-        title: 'QejaConnect - Find your perfect home',
-        text: 'Use my referral code to sign up on QejaConnect and find your perfect home in Kenya!',
-        url: link
-        }).catch(() => {});
-        } else {
+        const platform = opt.dataset.platform;
+        const text = 'Use my referral code to sign up on QejaConnect and find your perfect home in Kenya!';
+        let url = '';
+
+        switch (platform) {
+        case 'whatsapp':
+        url = `https://wa.me/?text=${encodeURIComponent(text + ' ' + link)}`;
+        window.open(url, '_blank');
+        break;
+        case 'twitter':
+        url = `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(link)}`;
+        window.open(url, '_blank');
+        break;
+        case 'facebook':
+        url = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(link)}`;
+        window.open(url, '_blank');
+        break;
+        case 'telegram':
+        url = `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(text)}`;
+        window.open(url, '_blank');
+        break;
+        case 'email':
+        url = `mailto:?subject=${encodeURIComponent('Join me on QejaConnect')}&body=${encodeURIComponent(text + '\n\n' + link)}`;
+        window.location.href = url;
+        break;
+        case 'copy':
         navigator.clipboard.writeText(link).then(() => {
-        showToast('Referral link copied! Share it with friends.', 'success');
+        showToast('Referral link copied!', 'success');
         });
+        break;
         }
+
+        if (platform !== 'copy') closeSharePopup();
+        else closeSharePopup();
         });
+        });
+
+        // ── Side-menu active link + notification badges ─────────────
+        (async function initMenuBadges() {
+        const { user, token } = getAuth();
+        if (!token) return;
+
+        const path = location.pathname.split('/').pop();
+        document.querySelectorAll('.side-menu a').forEach(a => {
+        const href = a.getAttribute('href');
+        if (href && path && href.includes(path)) a.classList.add('active-link');
+        });
+
+        try {
+        const msgRes  = await fetch(`${API}/my-messages`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const msgData = await msgRes.json();
+        if (msgData.success) {
+        let seen = [];
+        try { seen = JSON.parse(localStorage.getItem('seenReplies') || '[]'); } catch {}
+        const unread = msgData.messages.filter(m => m.reply && !seen.includes(m.id)).length;
+        const msgBadge = document.getElementById('navNotifBadge');
+        if (msgBadge && unread > 0) { msgBadge.textContent = unread; msgBadge.style.display = 'inline-block'; }
+        }
+
+        const userId = user?.id;
+        if (!userId) return;
+        const reqRes  = await fetch(`${API}/landlord/interests/${userId}`);
+        const reqData = await reqRes.json();
+        if (reqData.success && reqData.data?.length) {
+        let seenReqs = [];
+        try { seenReqs = JSON.parse(localStorage.getItem('seenRequests') || '[]'); } catch {}
+        const unseen = reqData.data.filter(r => !seenReqs.includes(r.id)).length;
+        const dashBadge = document.getElementById('menuDashboardBadge');
+        if (dashBadge && unseen > 0) { dashBadge.textContent = unseen; dashBadge.style.display = 'inline-block'; }
+        }
+        } catch (err) {
+        console.error('Menu badge error:', err);
+        }
+        })();
 
         // ── Init ─────────────────────────────────────────────────
         loadReferrals();
