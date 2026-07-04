@@ -28,591 +28,473 @@
     <title>Refer & Earn · QejaConnect</title>
 
     <style>
-        :root {
-            --brand: #1a1535;
-            --brand-light: #2a2354;
-            --bg: #f4f4f4;
-            --white: #ffffff;
-            --border: #e5e5e5;
-            --ink: #1a1a1a;
-            --muted: #777;
-            --gold: #b8860b;
-            --gold-tint: #fbf3e2;
-            --success: #1a8f5c;
-            --success-tint: #e7f6ee;
-            --warning: #b8720b;
-            --warning-tint: #fbf1e2;
-            --error: #c0392b;
-            --radius: 12px;
-        }
-
+        /* ============================================================
+           RESET
+           ============================================================ */
         * {
-            box-sizing: border-box;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
-        html, body {
-            width: 100%;
-            max-width: 100%;
+        html {
             overflow-x: hidden;
         }
 
         body {
             font-family: Arial, Helvetica, sans-serif;
-            background: var(--bg);
-            color: var(--ink);
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding-bottom: 64px;
-        }
-
-        img, input, button {
-            max-width: 100%;
-        }
-
-        /* ══════════════════════════════════════════════════════
-           HEADER
-           ══════════════════════════════════════════════════════ */
-        header {
+            background: #f2f2f2;
+            color: #1a1a1a;
             width: 100%;
-            background: var(--brand);
-            padding: 16px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: sticky;
-            top: 0;
-            z-index: 500;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            overflow-x: hidden;
+            padding-bottom: 60px;
         }
 
-        .logo-area {
+        img {
+            max-width: 100%;
+            display: block;
+        }
+
+        button {
+            font-family: Arial, Helvetica, sans-serif;
+            cursor: pointer;
+        }
+
+        a {
+            text-decoration: none;
+        }
+
+        /* ============================================================
+           HEADER
+           ============================================================ */
+        .topbar {
+            background: #1a1535;
+            padding: 14px 16px;
             display: flex;
             align-items: center;
             gap: 12px;
-            max-width: 100%;
+            position: sticky;
+            top: 0;
+            z-index: 50;
         }
 
-        #logo {
-            width: 48px;
-            height: 48px;
-            border-radius: 10px;
-            object-fit: cover;
-            flex-shrink: 0;
-        }
-
-        .brand-text h2 {
-            margin: 0;
-            font-size: 1.05rem;
-            color: var(--white);
-        }
-
-        .brand-text p {
-            margin: 0;
-            font-size: 12px;
-            color: rgba(255,255,255,0.75);
-        }
-
-        .menu-btn {
-            position: fixed;
-            top: 12px;
-            left: 10px;
-            width: 44px;
-            height: 44px;
-            border: none;
-            border-radius: 10px;
-            background: rgba(255,255,255,0.12);
-            color: var(--white);
-            font-size: 20px;
-            cursor: pointer;
-            z-index: 510;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-            .menu-btn:active {
-                background: rgba(255,255,255,0.22);
+            .topbar .menu-btn {
+                background: transparent;
+                border: none;
+                color: #ffffff;
+                font-size: 22px;
+                width: 36px;
+                flex-shrink: 0;
             }
 
-        /* ══════════════════════════════════════════════════════
-           OVERLAY + SIDE MENU
-           ══════════════════════════════════════════════════════ */
-        .overlay {
+            .topbar .logo-img {
+                width: 40px;
+                height: 40px;
+                border-radius: 8px;
+                object-fit: cover;
+                flex-shrink: 0;
+            }
+
+            .topbar .titles {
+                min-width: 0;
+            }
+
+                .topbar .titles h1 {
+                    color: #ffffff;
+                    font-size: 16px;
+                    font-weight: bold;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+                .topbar .titles p {
+                    color: #cfc9e6;
+                    font-size: 11px;
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                }
+
+        /* ============================================================
+           SIDE MENU
+           ============================================================ */
+        .menu-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            right: 0;
-            bottom: 0;
+            width: 100%;
+            height: 100%;
             background: rgba(0,0,0,0.5);
+            z-index: 60;
             display: none;
-            z-index: 400;
         }
 
-            .overlay.active {
+            .menu-overlay.open {
                 display: block;
             }
 
         .side-menu {
             position: fixed;
             top: 0;
-            left: -280px;
-            width: 78%;
-            max-width: 300px;
+            left: 0;
+            width: 260px;
+            max-width: 80%;
             height: 100%;
-            background: var(--brand);
-            z-index: 520;
-            transition: left 0.3s ease;
-            padding-bottom: 24px;
-            box-shadow: 4px 0 24px rgba(0,0,0,0.35);
+            background: #1a1535;
+            z-index: 70;
+            transform: translateX(-100%);
+            transition: transform 0.25s ease-out;
             overflow-y: auto;
-            display: flex;
-            flex-direction: column;
         }
 
-            .side-menu.active {
-                left: 0;
+            .side-menu.open {
+                transform: translateX(0);
             }
 
-        .side-menu-header {
+        .side-menu-top {
             display: flex;
             align-items: center;
-            gap: 12px;
-            padding: 18px 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.12);
-            margin-bottom: 8px;
+            gap: 10px;
+            padding: 16px;
+            border-bottom: 1px solid rgba(255,255,255,0.15);
         }
 
-            .side-menu-header img {
-                width: 40px;
-                height: 40px;
-                border-radius: 9px;
-                object-fit: cover;
+            .side-menu-top img {
+                width: 36px;
+                height: 36px;
+                border-radius: 8px;
             }
 
-            .side-menu-header span {
-                color: var(--white);
+            .side-menu-top span {
+                color: #ffffff;
                 font-weight: bold;
-                font-size: 1.05rem;
-            }
-
-        .side-menu-close {
-            margin-left: auto;
-            background: none;
-            border: none;
-            color: rgba(255,255,255,0.7);
-            font-size: 22px;
-            cursor: pointer;
-            padding: 4px 8px;
-            line-height: 1;
-        }
-
-        .side-menu a {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            color: var(--white);
-            text-decoration: none;
-            padding: 15px 22px;
-            font-size: 15px;
-            font-weight: 600;
-            transition: background 0.2s;
-        }
-
-            .side-menu a .icon {
-                font-size: 18px;
-                width: 22px;
-                text-align: center;
-                flex-shrink: 0;
-            }
-
-            .side-menu a .label {
                 flex: 1;
             }
 
-            .side-menu a:hover,
-            .side-menu a:active {
+            .side-menu-top button {
+                background: transparent;
+                border: none;
+                color: #ffffff;
+                font-size: 20px;
+            }
+
+        .side-menu ul {
+            list-style: none;
+        }
+
+        .side-menu li a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #ffffff;
+            padding: 14px 16px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.08);
+        }
+
+            .side-menu li a:active {
                 background: rgba(255,255,255,0.1);
             }
 
-            .side-menu a.active-link {
-                background: rgba(255,255,255,0.14);
-                border-left: 3px solid var(--white);
-                padding-left: 19px;
+            .side-menu li a.active-link {
+                border-left: 3px solid #ffffff;
+                background: rgba(255,255,255,0.1);
             }
 
-        .side-menu .logout-link {
-            margin-top: auto;
-            border-top: 1px solid rgba(255,255,255,0.12);
-        }
+            .side-menu li a .badge {
+                background: #ffffff;
+                color: #1a1535;
+                font-size: 10px;
+                font-weight: bold;
+                border-radius: 5px;
+                padding: 2px 6px;
+            }
 
-        .menu-badge {
-            background: var(--white);
-            color: var(--brand);
-            border-radius: 6px;
-            font-size: 11px;
-            font-weight: 700;
-            padding: 2px 8px;
-            min-width: 22px;
-            text-align: center;
-            flex-shrink: 0;
-        }
-
-        /* ══════════════════════════════════════════════════════
-           PAGE
-           ══════════════════════════════════════════════════════ */
-        .page {
+        /* ============================================================
+           PAGE CONTAINER
+           ============================================================ */
+        .wrap {
             width: 100%;
-            max-width: 560px;
-            padding: 24px 16px 0;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 18px 14px 0;
         }
 
-        .page-header {
-            margin-bottom: 22px;
+        .intro h2 {
+            color: #1a1535;
+            font-size: 20px;
+            margin-bottom: 6px;
         }
 
-            .page-header .eyebrow {
-                font-size: 0.72rem;
-                font-weight: 700;
-                letter-spacing: 0.08em;
+        .intro p {
+            color: #666;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        /* ============================================================
+           REFERRAL CODE BOX
+           ============================================================ */
+        .code-box {
+            background: #1a1535;
+            border-radius: 12px;
+            padding: 18px;
+            margin: 16px 0;
+        }
+
+            .code-box .label {
+                color: #cfc9e6;
+                font-size: 11px;
+                font-weight: bold;
                 text-transform: uppercase;
-                color: var(--brand);
-                margin-bottom: 8px;
+                margin-bottom: 10px;
             }
 
-            .page-header h1 {
-                font-size: clamp(1.4rem, 5vw, 1.8rem);
-                font-weight: 700;
-                line-height: 1.25;
-                color: var(--brand);
-                word-wrap: break-word;
-            }
-
-            .page-header p {
-                color: var(--muted);
-                font-size: 0.92rem;
-                margin-top: 8px;
-                line-height: 1.5;
-            }
-
-        /* ── Referral code card ── */
-        .code-card {
-            background: var(--brand);
-            border-radius: var(--radius);
-            padding: 22px;
-            margin-bottom: 16px;
-        }
-
-        .code-label {
-            font-size: 0.68rem;
-            font-weight: 700;
-            letter-spacing: 0.08em;
-            text-transform: uppercase;
-            color: rgba(255,255,255,0.7);
+        .code-row {
+            background: rgba(255,255,255,0.1);
+            border: 1px dashed rgba(255,255,255,0.4);
+            border-radius: 8px;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
             margin-bottom: 12px;
         }
 
-        .code-display {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            flex-wrap: wrap;
-            background: rgba(255,255,255,0.08);
-            border: 1px dashed rgba(255,255,255,0.35);
-            border-radius: 10px;
-            padding: 14px 16px;
-            margin-bottom: 14px;
-        }
-
-        .code-value {
-            font-size: clamp(1.2rem, 6vw, 1.5rem);
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            color: var(--white);
-            word-break: break-all;
-        }
-
-            .code-value.loading {
-                color: rgba(255,255,255,0.65);
-                font-size: 0.92rem;
-                font-weight: 400;
-                letter-spacing: normal;
-            }
-
-        .copy-btn {
-            flex-shrink: 0;
-            padding: 9px 14px;
-            border-radius: 8px;
-            border: none;
-            background: var(--white);
-            color: var(--brand);
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 0.82rem;
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-            .copy-btn:active {
-                opacity: 0.85;
-            }
-
-        .share-row {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .share-link-box {
-            flex: 1 1 100%;
-            min-width: 0;
-            background: rgba(255,255,255,0.08);
-            border: 1px solid rgba(255,255,255,0.25);
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 0.75rem;
-            color: rgba(255,255,255,0.8);
-            overflow-x: auto;
-            white-space: nowrap;
-            font-family: 'Courier New', monospace;
-        }
-
-        .share-btn {
-            flex: 1;
-            padding: 10px 14px;
-            border-radius: 8px;
-            border: 1px solid rgba(255,255,255,0.35);
-            background: transparent;
-            color: var(--white);
-            font-family: Arial, Helvetica, sans-serif;
-            font-size: 0.8rem;
-            font-weight: 600;
-            cursor: pointer;
-            white-space: nowrap;
-        }
-
-            .share-btn:active {
-                background: rgba(255,255,255,0.14);
-            }
-
-        /* ── How it works ── */
-        .how-it-works {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 18px;
-        }
-
-        .step {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 14px 10px;
-            text-align: center;
-            min-width: 0;
-        }
-
-            .step .step-icon {
-                font-size: 1.2rem;
-                margin-bottom: 6px;
-            }
-
-            .step .step-text {
-                font-size: 0.72rem;
-                color: var(--muted);
-                line-height: 1.35;
-            }
-
-        /* ── Earnings summary ── */
-        .earnings-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 8px;
-            margin-bottom: 22px;
-        }
-
-        .earning-stat {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            padding: 14px 8px;
-            text-align: center;
-            min-width: 0;
-        }
-
-            .earning-stat .stat-value {
-                font-size: clamp(0.95rem, 4.5vw, 1.2rem);
-                font-weight: 700;
-                color: var(--ink);
-                margin-bottom: 4px;
-                word-break: break-word;
-            }
-
-            .earning-stat.gold {
-                background: var(--gold-tint);
-                border-color: rgba(184,134,11,0.2);
-            }
-
-                .earning-stat.gold .stat-value {
-                    color: var(--gold);
-                }
-
-            .earning-stat.success {
-                background: var(--success-tint);
-                border-color: rgba(26,143,92,0.2);
-            }
-
-                .earning-stat.success .stat-value {
-                    color: var(--success);
-                }
-
-            .earning-stat .stat-label {
-                font-size: 0.62rem;
-                font-weight: 700;
-                letter-spacing: 0.05em;
-                text-transform: uppercase;
-                color: var(--muted);
-            }
-
-        /* ── Section label ── */
-        .section-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            letter-spacing: 0.06em;
-            text-transform: uppercase;
-            color: var(--muted);
-            margin: 0 0 12px;
-        }
-
-        /* ── Earnings list ── */
-        .earnings-card {
-            background: var(--white);
-            border: 1px solid var(--border);
-            border-radius: var(--radius);
-            overflow: hidden;
-        }
-
-        .earning-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 10px;
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border);
-        }
-
-            .earning-row:last-child {
-                border-bottom: none;
-            }
-
-        .earning-info {
-            min-width: 0;
-        }
-
-            .earning-info .earning-name {
-                font-weight: 700;
-                font-size: 0.9rem;
-                margin-bottom: 3px;
-                color: var(--ink);
+            .code-row .code-text {
+                color: #ffffff;
+                font-size: 18px;
+                font-weight: bold;
                 overflow: hidden;
                 text-overflow: ellipsis;
                 white-space: nowrap;
             }
 
-            .earning-info .earning-meta {
-                font-size: 0.74rem;
-                color: var(--muted);
+            .code-row button {
+                background: #ffffff;
+                color: #1a1535;
+                border: none;
+                border-radius: 6px;
+                padding: 8px 12px;
+                font-size: 12px;
+                font-weight: bold;
+                flex-shrink: 0;
             }
 
-        .earning-amount {
-            text-align: right;
-            flex-shrink: 0;
+        .link-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
         }
 
-            .earning-amount .amount-value {
-                font-weight: 700;
-                font-size: 0.92rem;
-                margin-bottom: 4px;
-                color: var(--ink);
-            }
-
-        .status-badge {
-            display: inline-block;
-            font-size: 0.64rem;
-            font-weight: 700;
-            letter-spacing: 0.03em;
-            text-transform: uppercase;
-            padding: 3px 10px;
-            border-radius: 20px;
+        .link-box {
+            flex: 1 1 100%;
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 6px;
+            padding: 8px 10px;
+            color: #ddd6f5;
+            font-size: 11px;
+            overflow-x: auto;
+            white-space: nowrap;
         }
 
-            .status-badge.pending {
-                background: var(--warning-tint);
-                color: var(--warning);
-            }
-
-            .status-badge.paid {
-                background: var(--success-tint);
-                color: var(--success);
-            }
-
-        .empty-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted);
+        .link-row button {
+            flex: 1;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.3);
+            color: #ffffff;
+            border-radius: 6px;
+            padding: 9px;
+            font-size: 12px;
+            font-weight: bold;
         }
 
-            .empty-state .empty-icon {
-                font-size: 1.8rem;
-                margin-bottom: 10px;
-                display: block;
-            }
-
-            .empty-state p {
-                font-size: 0.86rem;
-                line-height: 1.5;
-            }
-
-            .empty-state a {
-                color: var(--brand);
-                font-weight: 700;
-                text-decoration: none;
-            }
-
-        .loading-state {
-            text-align: center;
-            padding: 40px 20px;
-            color: var(--muted);
-            font-size: 0.88rem;
+        /* ============================================================
+           HOW IT WORKS
+           ============================================================ */
+        .steps {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 18px;
         }
 
-        /* ══════════════════════════════════════════════════════
-           TOAST
-           ══════════════════════════════════════════════════════ */
-        #toast {
-            position: fixed;
-            bottom: 24px;
-            left: 50%;
-            transform: translateX(-50%) translateY(100px);
-            background: var(--ink);
-            color: var(--white);
-            padding: 12px 18px;
+        .step-box {
+            background: #ffffff;
             border-radius: 10px;
-            font-size: 0.88rem;
+            padding: 12px 6px;
+            text-align: center;
+        }
+
+            .step-box .icon {
+                font-size: 18px;
+                margin-bottom: 6px;
+            }
+
+            .step-box p {
+                font-size: 11px;
+                color: #666;
+                line-height: 1.3;
+            }
+
+        /* ============================================================
+           EARNINGS SUMMARY
+           ============================================================ */
+        .summary {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .summary-box {
+            background: #ffffff;
+            border-radius: 10px;
+            padding: 12px 6px;
+            text-align: center;
+        }
+
+            .summary-box .amount {
+                font-size: 15px;
+                font-weight: bold;
+                color: #1a1a1a;
+                margin-bottom: 4px;
+                overflow: hidden;
+                text-overflow: ellipsis;
+            }
+
+            .summary-box .name {
+                font-size: 10px;
+                color: #888;
+                text-transform: uppercase;
+                font-weight: bold;
+            }
+
+            .summary-box.gold .amount {
+                color: #b8860b;
+            }
+
+            .summary-box.green .amount {
+                color: #1a8f5c;
+            }
+
+        /* ============================================================
+           EARNINGS HISTORY
+           ============================================================ */
+        .hist-label {
+            font-size: 12px;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #777;
+            margin-bottom: 10px;
+        }
+
+        .hist-box {
+            background: #ffffff;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .hist-item {
             display: flex;
             align-items: center;
+            justify-content: space-between;
             gap: 10px;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.25);
-            z-index: 900;
-            max-width: calc(100% - 32px);
-            width: max-content;
+            padding: 12px 14px;
+            border-bottom: 1px solid #eee;
+        }
+
+            .hist-item:last-child {
+                border-bottom: none;
+            }
+
+            .hist-item .who {
+                min-width: 0;
+            }
+
+                .hist-item .who .n {
+                    font-weight: bold;
+                    font-size: 13px;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+
+                .hist-item .who .m {
+                    font-size: 11px;
+                    color: #888;
+                }
+
+            .hist-item .pay {
+                text-align: right;
+                flex-shrink: 0;
+            }
+
+                .hist-item .pay .a {
+                    font-weight: bold;
+                    font-size: 13px;
+                    margin-bottom: 3px;
+                }
+
+        .tag {
+            font-size: 10px;
+            font-weight: bold;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+            .tag.pending {
+                background: #fbf1e2;
+                color: #b8720b;
+            }
+
+            .tag.paid {
+                background: #e7f6ee;
+                color: #1a8f5c;
+            }
+
+        .empty, .loading {
+            text-align: center;
+            padding: 34px 16px;
+            color: #888;
+            font-size: 13px;
+        }
+
+            .empty .e-icon {
+                font-size: 26px;
+                margin-bottom: 8px;
+            }
+
+            .empty a {
+                color: #1a1535;
+                font-weight: bold;
+            }
+
+        /* ============================================================
+           TOAST
+           ============================================================ */
+        #toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%) translateY(80px);
+            background: #1a1a1a;
+            color: #fff;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-size: 13px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            max-width: 90%;
+            z-index: 200;
             opacity: 0;
             pointer-events: none;
-            transition: transform 0.35s ease, opacity 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
 
             #toast.show {
@@ -621,278 +503,258 @@
             }
 
             #toast.success {
-                border-left: 4px solid var(--success);
+                border-left: 3px solid #1a8f5c;
             }
 
             #toast.error {
-                border-left: 4px solid var(--error);
+                border-left: 3px solid #c0392b;
             }
 
             #toast.info {
-                border-left: 4px solid var(--brand-light);
+                border-left: 3px solid #1a1535;
             }
 
-        /* ══════════════════════════════════════════════════════
-           SHARE POPUP — centered, firm on mobile
-           ══════════════════════════════════════════════════════ */
-        .share-popup-overlay {
+        /* ============================================================
+           SHARE POPUP (centered, fixed to viewport)
+           ============================================================ */
+        .popup-overlay {
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(20,20,20,0.6);
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0,0,0,0.6);
+            z-index: 300;
             display: none;
             align-items: center;
             justify-content: center;
-            z-index: 1000;
-            padding: 20px;
-            overflow-y: auto;
+            padding: 16px;
         }
 
-            .share-popup-overlay.active {
+            .popup-overlay.open {
                 display: flex;
             }
 
-        .share-popup {
-            background: var(--white);
-            border-radius: 16px;
+        .popup-box {
+            background: #ffffff;
+            border-radius: 14px;
             width: 100%;
-            max-width: 360px;
-            padding: 22px;
-            box-shadow: 0 24px 60px rgba(0,0,0,0.3);
-            margin: auto;
+            max-width: 320px;
+            padding: 20px;
         }
 
-        .share-popup-header {
+        .popup-top {
             display: flex;
-            justify-content: space-between;
             align-items: center;
-            margin-bottom: 16px;
+            justify-content: space-between;
+            margin-bottom: 14px;
         }
 
-            .share-popup-header h3 {
-                font-weight: 700;
-                font-size: 1.05rem;
-                color: var(--brand);
+            .popup-top h3 {
+                color: #1a1535;
+                font-size: 16px;
             }
 
-        .share-popup-close {
-            cursor: pointer;
-            font-size: 22px;
-            color: var(--muted);
-            line-height: 1;
-            background: none;
-            border: none;
-        }
+            .popup-top button {
+                background: none;
+                border: none;
+                font-size: 20px;
+                color: #888;
+            }
 
-        .share-popup-link {
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            padding: 10px 12px;
-            font-size: 0.74rem;
-            color: var(--muted);
-            font-family: 'Courier New', monospace;
+        .popup-link {
+            background: #f2f2f2;
+            border-radius: 6px;
+            padding: 8px 10px;
+            font-size: 11px;
+            color: #666;
             overflow-x: auto;
             white-space: nowrap;
-            margin-bottom: 16px;
+            margin-bottom: 14px;
         }
 
-        .share-options {
+        .popup-options {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 10px;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 8px;
         }
 
-        .share-option {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 6px;
-            background: var(--bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 12px 6px;
-            cursor: pointer;
+        .popup-opt {
+            background: #f2f2f2;
+            border-radius: 8px;
+            padding: 10px 4px;
+            text-align: center;
         }
 
-            .share-option:active {
-                background: #eeecf7;
+            .popup-opt .p-icon {
+                font-size: 20px;
+                margin-bottom: 4px;
             }
 
-            .share-option .share-icon {
-                font-size: 1.3rem;
+            .popup-opt .p-label {
+                font-size: 10px;
+                color: #666;
+                font-weight: bold;
             }
 
-            .share-option .share-label {
-                font-size: 0.68rem;
-                color: var(--muted);
-                font-weight: 600;
-                text-align: center;
-            }
-
-        /* ══════════════════════════════════════════════════════
-           SMALL SCREEN TWEAKS (still no horizontal scroll)
-           ══════════════════════════════════════════════════════ */
-        @media (max-width: 420px) {
-            .how-it-works {
+        /* ============================================================
+           SMALL SCREENS
+           ============================================================ */
+        @media (max-width: 380px) {
+            .steps {
                 grid-template-columns: 1fr;
             }
 
-            .earnings-grid {
+            .summary {
                 grid-template-columns: 1fr 1fr;
             }
 
-                .earnings-grid .earning-stat:first-child {
-                    grid-column: 1 / -1;
-                }
+            .summary-box:first-child {
+                grid-column: 1 / -1;
+            }
 
-            .share-row {
-                flex-direction: column;
+            .link-row button {
+                flex: 1 1 100%;
             }
         }
     </style>
 </head>
 <body>
 
-    <button class="menu-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
-
-    <header>
-        <div class="logo-area">
-            <img src="logo.jpg" id="logo" alt="logo">
-            <div class="brand-text">
-                <h2>Qeja Connect</h2>
-                <p>Quality accommodation providence</p>
-            </div>
+    <div class="topbar">
+        <button class="menu-btn" onclick="toggleMenu()" aria-label="Open menu">☰</button>
+        <img src="logo.jpg" class="logo-img" alt="logo">
+        <div class="titles">
+            <h1>Qeja Connect</h1>
+            <p>Quality accommodation providence</p>
         </div>
-    </header>
-
-    <div class="overlay" id="overlay" onclick="closeMenu()"></div>
-
-    <div class="side-menu" id="sideMenu">
-        <div class="side-menu-header">
-            <img src="logo.jpg" alt="logo">
-            <span>Qeja Connect</span>
-            <button class="side-menu-close" onclick="closeMenu()" aria-label="Close menu">&times;</button>
-        </div>
-
-        <a href="home.html"><span class="icon">🏠</span><span class="label">Home</span></a>
-        <a href="landlords.html"><span class="icon">🏘️</span><span class="label">Landlords</span></a>
-        <a href="contact.html"><span class="icon">📞</span><span class="label">Contact</span></a>
-        <a href="hostdashboard.html" id="menuDashboard">
-            <span class="icon">📊</span><span class="label">Dashboard</span>
-            <span id="menuDashboardBadge" class="menu-badge" style="display:none;"></span>
-        </a>
-        <a href="myprofile.html"><span class="icon">👤</span><span class="label">Profile</span></a>
-        <a href="mymessages.html" id="menuMessages">
-            <span class="icon">💬</span><span class="label">Messages</span>
-            <span id="navNotifBadge" class="menu-badge" style="display:none;">0</span>
-        </a>
-        <a href="bookings.html"><span class="icon">📌</span><span class="label">My Bookings</span></a>
-        <a href="mytenancy.html"><span class="icon">🔑</span><span class="label">My House</span></a>
-        <a href="refer-earn.html"><span class="icon">🎉</span><span class="label">Refer & earn</span></a>
-
-        <a class="logout-link" href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
-            <span class="icon">🚪</span><span class="label">Log out</span>
-        </a>
     </div>
 
-    <div class="page">
+    <div class="menu-overlay" id="overlay" onclick="closeMenu()"></div>
 
-        <div class="page-header">
-            <div class="eyebrow">Refer &amp; Earn</div>
-            <h1>Know someone looking for a place?</h1>
+    <div class="side-menu" id="sideMenu">
+        <div class="side-menu-top">
+            <img src="logo.jpg" alt="logo">
+            <span>Qeja Connect</span>
+            <button onclick="closeMenu()" aria-label="Close menu">&times;</button>
+        </div>
+        <ul>
+            <li><a href="home.html">🏠 <span>Home</span></a></li>
+            <li><a href="landlords.html">🏘️ <span>Landlords</span></a></li>
+            <li><a href="contact.html">📞 <span>Contact</span></a></li>
+            <li>
+                <a href="hostdashboard.html" id="menuDashboard">
+                    📊 <span>Dashboard</span>
+                    <span id="menuDashboardBadge" class="badge" style="display:none;"></span>
+                </a>
+            </li>
+            <li><a href="myprofile.html">👤 <span>Profile</span></a></li>
+            <li>
+                <a href="mymessages.html" id="menuMessages">
+                    💬 <span>Messages</span>
+                    <span id="navNotifBadge" class="badge" style="display:none;">0</span>
+                </a>
+            </li>
+            <li><a href="bookings.html">📌 <span>My Bookings</span></a></li>
+            <li><a href="mytenancy.html">🔑 <span>My House</span></a></li>
+            <li><a href="refer-earn.html">🎉 <span>Refer & earn</span></a></li>
+            <li>
+                <a href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
+                    🚪 <span>Log out</span>
+                </a>
+            </li>
+        </ul>
+    </div>
+
+    <div class="wrap">
+
+        <div class="intro">
+            <h2>Know someone looking for a place?</h2>
             <p>Share your code. When they move into a home through QejaConnect, you earn 1% of their monthly rent &mdash; every month they pay.</p>
         </div>
 
-        <!-- Referral code card -->
-        <div class="code-card">
-            <div class="code-label">Your referral code</div>
-            <div class="code-display">
-                <div class="code-value loading" id="codeValue">Loading&hellip;</div>
-                <button class="copy-btn" id="copyCodeBtn">Copy code</button>
+        <div class="code-box">
+            <div class="label">Your referral code</div>
+            <div class="code-row">
+                <div class="code-text" id="codeValue">Loading&hellip;</div>
+                <button id="copyCodeBtn">Copy code</button>
             </div>
-            <div class="share-row">
-                <div class="share-link-box" id="shareLink">Loading link&hellip;</div>
-                <button class="share-btn" id="copyLinkBtn">Copy link</button>
-                <button class="share-btn" id="shareBtn">Share</button>
-            </div>
-        </div>
-
-        <!-- How it works -->
-        <div class="how-it-works">
-            <div class="step">
-                <div class="step-icon">🔗</div>
-                <div class="step-text">Share your code or link with friends</div>
-            </div>
-            <div class="step">
-                <div class="step-icon">🏠</div>
-                <div class="step-text">They sign up & move into a home</div>
-            </div>
-            <div class="step">
-                <div class="step-icon">💰</div>
-                <div class="step-text">You earn 1% of their rent monthly</div>
+            <div class="link-row">
+                <div class="link-box" id="shareLink">Loading link&hellip;</div>
+                <button id="copyLinkBtn">Copy link</button>
+                <button id="shareBtn">Share</button>
             </div>
         </div>
 
-        <!-- Earnings summary -->
-        <div class="earnings-grid">
-            <div class="earning-stat gold">
-                <div class="stat-value" id="totalEarned">&mdash;</div>
-                <div class="stat-label">Total Earned</div>
+        <div class="steps">
+            <div class="step-box">
+                <div class="icon">🔗</div>
+                <p>Share your code or link with friends</p>
             </div>
-            <div class="earning-stat">
-                <div class="stat-value" id="totalPending">&mdash;</div>
-                <div class="stat-label">Pending</div>
+            <div class="step-box">
+                <div class="icon">🏠</div>
+                <p>They sign up & move into a home</p>
             </div>
-            <div class="earning-stat success">
-                <div class="stat-value" id="totalPaid">&mdash;</div>
-                <div class="stat-label">Paid Out</div>
+            <div class="step-box">
+                <div class="icon">💰</div>
+                <p>You earn 1% of their rent monthly</p>
             </div>
         </div>
 
-        <!-- Earnings history -->
-        <div class="section-label">Earnings History</div>
+        <div class="summary">
+            <div class="summary-box gold">
+                <div class="amount" id="totalEarned">&mdash;</div>
+                <div class="name">Total Earned</div>
+            </div>
+            <div class="summary-box">
+                <div class="amount" id="totalPending">&mdash;</div>
+                <div class="name">Pending</div>
+            </div>
+            <div class="summary-box green">
+                <div class="amount" id="totalPaid">&mdash;</div>
+                <div class="name">Paid Out</div>
+            </div>
+        </div>
 
-        <div class="earnings-card" id="earningsCard">
-            <div class="loading-state">Loading your earnings&hellip;</div>
+        <div class="hist-label">Earnings History</div>
+
+        <div class="hist-box" id="earningsCard">
+            <div class="loading">Loading your earnings&hellip;</div>
         </div>
 
     </div>
 
-    <!-- SHARE POPUP -->
-    <div class="share-popup-overlay" id="sharePopupOverlay">
-        <div class="share-popup">
-            <div class="share-popup-header">
+    <div class="popup-overlay" id="sharePopupOverlay">
+        <div class="popup-box">
+            <div class="popup-top">
                 <h3>Share your link</h3>
-                <button class="share-popup-close" id="sharePopupClose" aria-label="Close">&times;</button>
+                <button id="sharePopupClose" aria-label="Close">&times;</button>
             </div>
-            <div class="share-popup-link" id="sharePopupLink">&mdash;</div>
-            <div class="share-options">
-                <div class="share-option" data-platform="whatsapp">
-                    <span class="share-icon">🟢</span>
-                    <span class="share-label">WhatsApp</span>
+            <div class="popup-link" id="sharePopupLink">&mdash;</div>
+            <div class="popup-options">
+                <div class="popup-opt" data-platform="whatsapp">
+                    <div class="p-icon">🟢</div>
+                    <div class="p-label">WhatsApp</div>
                 </div>
-                <div class="share-option" data-platform="twitter">
-                    <span class="share-icon">✖️</span>
-                    <span class="share-label">X / Twitter</span>
+                <div class="popup-opt" data-platform="twitter">
+                    <div class="p-icon">✖️</div>
+                    <div class="p-label">X</div>
                 </div>
-                <div class="share-option" data-platform="facebook">
-                    <span class="share-icon">📘</span>
-                    <span class="share-label">Facebook</span>
+                <div class="popup-opt" data-platform="facebook">
+                    <div class="p-icon">📘</div>
+                    <div class="p-label">Facebook</div>
                 </div>
-                <div class="share-option" data-platform="telegram">
-                    <span class="share-icon">✈️</span>
-                    <span class="share-label">Telegram</span>
+                <div class="popup-opt" data-platform="telegram">
+                    <div class="p-icon">✈️</div>
+                    <div class="p-label">Telegram</div>
                 </div>
-                <div class="share-option" data-platform="email">
-                    <span class="share-icon">✉️</span>
-                    <span class="share-label">Email</span>
+                <div class="popup-opt" data-platform="email">
+                    <div class="p-icon">✉️</div>
+                    <div class="p-label">Email</div>
                 </div>
-                <div class="share-option" data-platform="copy">
-                    <span class="share-icon">📋</span>
-                    <span class="share-label">Copy Link</span>
+                <div class="popup-opt" data-platform="copy">
+                    <div class="p-icon">📋</div>
+                    <div class="p-label">Copy</div>
                 </div>
             </div>
         </div>
@@ -909,13 +771,13 @@
 
         // ── Side menu toggling ───────────────────────────────────────
         function toggleMenu() {
-        document.getElementById("sideMenu").classList.toggle("active");
-        document.getElementById("overlay").classList.toggle("active");
+        document.getElementById("sideMenu").classList.toggle("open");
+        document.getElementById("overlay").classList.toggle("open");
         }
 
         function closeMenu() {
-        document.getElementById("sideMenu").classList.remove("active");
-        document.getElementById("overlay").classList.remove("active");
+        document.getElementById("sideMenu").classList.remove("open");
+        document.getElementById("overlay").classList.remove("open");
         }
 
         // ── Toast ──────────────────────────────────────────────────
@@ -977,13 +839,12 @@
         if (!user || !token) {
         showToast('Please log in to view your referral details.', 'error');
         document.getElementById('codeValue').textContent = '—';
-        document.getElementById('codeValue').classList.remove('loading');
         document.getElementById('shareLink').textContent = '—';
         document.getElementById('totalEarned').textContent  = '—';
         document.getElementById('totalPending').textContent = '—';
         document.getElementById('totalPaid').textContent    = '—';
         document.getElementById('earningsCard').innerHTML =
-        `<div class="empty-state"><span class="empty-icon">🔒</span><p>Please <a href="login.html">log in</a> to view your referral code and earnings.</p></div>`;
+        `<div class="empty"><div class="e-icon">🔒</div><p>Please <a href="login.html">log in</a> to view your referral code and earnings.</p></div>`;
         return;
         }
 
@@ -1000,7 +861,6 @@
         // Code + share link
         const code = data.referral_code;
         document.getElementById('codeValue').textContent = code;
-        document.getElementById('codeValue').classList.remove('loading');
 
         const shareUrl = `${SIGNUP_URL}?ref=${code}`;
         document.getElementById('shareLink').textContent = shareUrl;
@@ -1016,9 +876,8 @@
         } catch (err) {
         console.error(err);
         document.getElementById('codeValue').textContent = '—';
-        document.getElementById('codeValue').classList.remove('loading');
         document.getElementById('earningsCard').innerHTML =
-        `<div class="empty-state"><span class="empty-icon">⚠️</span><p>Could not load your referral data. Please try again later.</p></div>`;
+        `<div class="empty"><div class="e-icon">⚠️</div><p>Could not load your referral data. Please try again later.</p></div>`;
         showToast('Could not load referral data.', 'error');
         }
         }
@@ -1028,8 +887,8 @@
 
         if (!earnings || earnings.length === 0) {
         card.innerHTML = `
-        <div class="empty-state">
-        <span class="empty-icon">🌱</span>
+        <div class="empty">
+        <div class="e-icon">🌱</div>
         <p>No referrals yet. Share your code &mdash; when someone you refer moves into a home and pays rent, your earnings will show up here.</p>
         </div>
         `;
@@ -1037,14 +896,14 @@
         }
 
         card.innerHTML = earnings.map(e => `
-        <div class="earning-row">
-        <div class="earning-info">
-        <div class="earning-name">${escapeHtml(e.referred_name || 'Tenant')}</div>
-        <div class="earning-meta">Rent ${formatKES(e.rent_amount)} · ${formatDate(e.created_at)}</div>
+        <div class="hist-item">
+        <div class="who">
+        <div class="n">${escapeHtml(e.referred_name || 'Tenant')}</div>
+        <div class="m">Rent ${formatKES(e.rent_amount)} · ${formatDate(e.created_at)}</div>
         </div>
-        <div class="earning-amount">
-        <div class="amount-value">${formatKES(e.reward_amount)}</div>
-        <span class="status-badge ${e.status}">${e.status === 'paid' ? 'Paid' : 'Pending'}</span>
+        <div class="pay">
+        <div class="a">${formatKES(e.reward_amount)}</div>
+        <span class="tag ${e.status}">${e.status === 'paid' ? 'Paid' : 'Pending'}</span>
         </div>
         </div>
         `).join('');
@@ -1084,11 +943,11 @@
         return;
         }
         document.getElementById('sharePopupLink').textContent = link;
-        document.getElementById('sharePopupOverlay').classList.add('active');
+        document.getElementById('sharePopupOverlay').classList.add('open');
         }
 
         function closeSharePopup() {
-        document.getElementById('sharePopupOverlay').classList.remove('active');
+        document.getElementById('sharePopupOverlay').classList.remove('open');
         }
 
         document.getElementById('shareBtn').addEventListener('click', openSharePopup);
@@ -1097,7 +956,7 @@
         if (e.target.id === 'sharePopupOverlay') closeSharePopup();
         });
 
-        document.querySelectorAll('.share-option').forEach(opt => {
+        document.querySelectorAll('.popup-opt').forEach(opt => {
         opt.addEventListener('click', () => {
         const link = document.getElementById('shareLink').textContent;
         if (!link || link.includes('Loading') || link === '—') return;
@@ -1134,8 +993,7 @@
         break;
         }
 
-        if (platform !== 'copy') closeSharePopup();
-        else closeSharePopup();
+        closeSharePopup();
         });
         });
 

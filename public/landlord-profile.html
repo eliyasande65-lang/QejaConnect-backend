@@ -183,10 +183,85 @@
             margin-top: 10px;
         }
 
+            .action-btn:hover {
+                background: darkviolet;
+            }
+
+            .action-btn.secondary {
+                background: white;
+                color: #1a1535;
+                border: 2px solid #1a1535;
+            }
+
+                .action-btn.secondary:hover {
+                    background: #f0f0ff;
+                }
+
         .error-state, .loader {
             text-align: center;
             padding: 60px 20px;
             color: gray;
+        }
+
+        /* ============================================================
+           Toast notifications
+           ============================================================ */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 20000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            padding: 0 16px;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            max-width: 380px;
+            width: 100%;
+            background: #1a1535;
+            color: white;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+            .toast.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .toast.error {
+                background: #7a1f2b;
+            }
+
+            .toast.success {
+                background: #1f6d3a;
+            }
+
+            .toast .toast-icon {
+                font-size: 18px;
+                flex-shrink: 0;
+            }
+
+        @media(max-width: 480px) {
+            .toast {
+                max-width: 100%;
+                font-size: 13.5px;
+            }
         }
     </style>
 </head>
@@ -218,7 +293,33 @@
         <div class="loader">Loading profile...</div>
     </div>
 
+    <!-- Toast container -->
+    <div id="toast-container"></div>
+
     <script>
+
+        // ============================================================
+        // Toast helper
+        // ============================================================
+        function showToast(message, type = "default", duration = 3200) {
+        const container = document.getElementById("toast-container");
+
+        const toast = document.createElement("div");
+        toast.className = "toast" + (type !== "default" ? " " + type : "");
+
+        const icon = type === "error" ? "⚠️" : (type === "success" ? "✅" : "ℹ️");
+        toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
+
+        container.appendChild(toast);
+
+        // trigger enter animation
+        requestAnimationFrame(() => toast.classList.add("show"));
+
+        setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+        }, duration);
+        }
 
         async function loadProfile() {
 
@@ -269,9 +370,11 @@
 
         ${l.description ? `<div class="info-card"><b>About:</b> ${l.description}</div>` : ""}
 
-        <button class="action-btn" onclick="startChat(${l.id})">
+        <button class="action-btn" onclick='startChat(${l.id}, ${JSON.stringify(l.fullname)})'>
         💬 Message This Landlord
         </button>
+
+        
 
         </div>
         </div>
@@ -282,14 +385,20 @@
         }
         }
 
-        async function startChat(landlord_id) {
+        async function startChat(landlord_id, landlord_name) {
 
         const token = localStorage.getItem("token");
         const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
 
         if (!token || !loggedUser) {
-        alert("Please log in to start a conversation.");
-        location.href = "welcome.html";
+        showToast("Please log in to start a conversation.", "error");
+        setTimeout(() => location.href = "welcome.html", 1200);
+        return;
+        }
+
+        // Prevent self-messaging
+        if (Number(loggedUser.id) === Number(landlord_id)) {
+        showToast("You can't message yourself on your own listing.", "error");
         return;
         }
 
@@ -315,13 +424,62 @@
 
         if (data.success) {
         localStorage.setItem("conversation_id", data.conversation_id);
+        localStorage.setItem("chat_partner_name", landlord_name || "Landlord");
         location.href = "chat-tenant.html";
         } else {
-        alert(data.message || "Could not start chat");
+        showToast(data.message || "Could not start chat", "error");
         }
 
         } catch (err) {
-        alert("Network error. Please try again.");
+        showToast("Network error. Please try again.", "error");
+        }
+        }
+
+        async function bookProperty(landlord_id, landlord_name, property_name) {
+
+        const token = localStorage.getItem("token");
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
+
+        if (!token || !loggedUser) {
+        showToast("Please log in to book a property.", "error");
+        setTimeout(() => location.href = "welcome.html", 1200);
+        return;
+        }
+
+        // Prevent self-booking
+        if (Number(loggedUser.id) === Number(landlord_id)) {
+        showToast("You can't book your own property.", "error");
+        return;
+        }
+
+        try {
+
+        const res = await fetch(
+        "https://qeja-backend-azkf.onrender.com/bookings",
+        {
+        method: "POST",
+        headers: {
+        "Content-Type": "application/json",
+        "Authorization": "Bearer " + token
+        },
+        body: JSON.stringify({
+        landlord_id,
+        tenant_id: loggedUser.id,
+        property_name
+        })
+        }
+        );
+
+        const data = await res.json();
+
+        if (data.success) {
+        showToast(`Booking request sent for ${property_name}!`, "success");
+        } else {
+        showToast(data.message || "Could not complete booking", "error");
+        }
+
+        } catch (err) {
+        showToast("Network error. Please try again.", "error");
         }
         }
 
@@ -339,6 +497,6 @@
 
     </script>
 
-    
+
 </body>
 </html>

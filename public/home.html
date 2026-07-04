@@ -816,6 +816,67 @@
         .dot {
             color: red;
         }
+
+        /* ============================================================
+           Toast notifications
+           ============================================================ */
+        #toast-container {
+            position: fixed;
+            bottom: 24px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 999999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+            width: 100%;
+            padding: 0 16px;
+            pointer-events: none;
+        }
+
+        .toast {
+            pointer-events: auto;
+            max-width: 380px;
+            width: 100%;
+            background: #1a1535;
+            color: white;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 14px;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.25);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            opacity: 0;
+            transform: translateY(20px);
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+
+            .toast.show {
+                opacity: 1;
+                transform: translateY(0);
+            }
+
+            .toast.error {
+                background: #7a1f2b;
+            }
+
+            .toast.success {
+                background: #1f6d3a;
+            }
+
+            .toast .toast-icon {
+                font-size: 18px;
+                flex-shrink: 0;
+            }
+
+        @media(max-width: 480px) {
+            .toast {
+                max-width: 100%;
+                font-size: 13.5px;
+            }
+        }
     </style>
 </head>
 <body>
@@ -887,7 +948,7 @@
 
     <section class="properties">
         <div class="section-title">
-            
+
         </div>
 
         <!-- Updates strip — injected by loadFeed() -->
@@ -927,6 +988,9 @@
         </div>
         <div class="copyright">© 2026 Qeja Connect Kenya Ltd. All Rights Reserved.</div>
     </footer>
+
+    <!-- Toast container -->
+    <div id="toast-container"></div>
 
     <!-- POPUP -->
 
@@ -970,8 +1034,13 @@
                 🗺️ View Map
             </a>
 
+            <!-- Note when this listing belongs to the logged-in user -->
+            <div id="own-listing-note" style="display:none;margin:0 15px 14px;padding:10px 14px;background:#fef3c7;color:#92400e;border-radius:10px;font-size:13px;font-weight:600;text-align:center;">
+                📌 This is your own listing
+            </div>
+
             <!-- Action buttons -->
-            <div style="display:flex;gap:10px;padding:0 15px 20px;flex-wrap:wrap;">
+            <div id="popup-actions" style="display:flex;gap:10px;padding:0 15px 20px;flex-wrap:wrap;">
                 <button id="interest-btn" onclick="handleInterestedClick()"
                         style="flex:1;padding:13px;border:none;border-radius:12px;background:#1a1535;color:white;font-size:14px;font-weight:bold;cursor:pointer;transition:0.3s;min-width:120px;">
                     💬 Message Landlord
@@ -984,9 +1053,46 @@
         </div>
     </div>
 
+    <!-- Toast helper -->
+    <script>
+        function showToast(message, type = "default", duration = 3200) {
+        const container = document.getElementById("toast-container");
+        if (!container) return;
+
+        const toast = document.createElement("div");
+        toast.className = "toast" + (type !== "default" ? " " + type : "");
+
+        const icon = type === "error" ? "⚠️" : (type === "success" ? "✅" : "ℹ️");
+        toast.innerHTML = `<span class="toast-icon">${icon}</span><span>${message}</span>`;
+
+        container.appendChild(toast);
+
+        requestAnimationFrame(() => toast.classList.add("show"));
+
+        setTimeout(() => {
+        toast.classList.remove("show");
+        setTimeout(() => toast.remove(), 300);
+        }, duration);
+        }
+    </script>
+
     <!-- POPUP SCRIPTS (replace existing openPopup / interested scripts) -->
     <script>
         let currentProperty = null;
+
+        function getLoggedInUserId() {
+        try {
+        const u = JSON.parse(localStorage.getItem("loggedUser") || "{}");
+        return u && u.id != null ? String(u.id) : null;
+        } catch (e) {
+        return null;
+        }
+        }
+
+        function isOwnListing(property) {
+        const myId = getLoggedInUserId();
+        return !!myId && property && property.landlord_id != null && String(property.landlord_id) === myId;
+        }
 
         function openPopup(property) {
         currentProperty = property;
@@ -1046,6 +1152,29 @@
         mapBtn.style.display = "none";
         }
 
+        // ── Prevent messaging/booking your own listing ──────────
+        const ownNote   = document.getElementById("own-listing-note");
+        const interestBtn = document.getElementById("interest-btn");
+        const bookBtn      = document.getElementById("book-btn");
+
+        if (isOwnListing(property)) {
+        ownNote.style.display = "block";
+        interestBtn.disabled = true;
+        interestBtn.style.opacity = "0.5";
+        interestBtn.style.cursor = "not-allowed";
+        bookBtn.disabled = true;
+        bookBtn.style.opacity = "0.5";
+        bookBtn.style.cursor = "not-allowed";
+        } else {
+        ownNote.style.display = "none";
+        interestBtn.disabled = false;
+        interestBtn.style.opacity = "1";
+        interestBtn.style.cursor = "pointer";
+        bookBtn.disabled = false;
+        bookBtn.style.opacity = "1";
+        bookBtn.style.cursor = "pointer";
+        }
+
         document.getElementById("popup").style.display = "flex";
         }
 
@@ -1054,17 +1183,25 @@
         }
 
         function handleInterestedClick() {
-        if (!currentProperty) { alert("No property selected"); return; }
+        if (!currentProperty) { showToast("No property selected", "error"); return; }
+        if (isOwnListing(currentProperty)) {
+        showToast("You can't message yourself about your own listing.", "error");
+        return;
+        }
         interested(currentProperty.landlord_id);
         }
 
         async function handleBookClick() {
-        if (!currentProperty) { alert("No property selected"); return; }
+        if (!currentProperty) { showToast("No property selected", "error"); return; }
+        if (isOwnListing(currentProperty)) {
+        showToast("You can't book your own property.", "error");
+        return;
+        }
         const btn        = document.getElementById("book-btn");
         const token      = localStorage.getItem("token");
         const loggedUser = JSON.parse(localStorage.getItem("loggedUser") || "{}");
 
-        if (!loggedUser || !token) { alert("Please login first"); return; }
+        if (!loggedUser || !token) { showToast("Please login first", "error"); return; }
 
         btn.disabled  = true;
         btn.innerText = "Booking…";
@@ -1082,15 +1219,15 @@
         });
         const data = await res.json();
         if (data.success) {
-        alert("📌 Booking request sent!\n\nYour request has been sent to the landlord. You'll be notified once they approve.\n\nTrack your booking under 'My Bookings'.");
+        showToast("📌 Booking request sent! You'll be notified once the landlord approves.", "success");
         closePopup();
-        window.location.href = "bookings.html";
+        setTimeout(() => { window.location.href = "bookings.html"; }, 1200);
         } else {
-        alert(data.message || "Booking failed. Please try again.");
+        showToast(data.message || "Booking failed. Please try again.", "error");
         }
         } catch (err) {
         console.error(err);
-        alert("Network error. Please try again.");
+        showToast("Network error. Please try again.", "error");
         }
 
         btn.disabled  = false;
@@ -1102,7 +1239,13 @@
         const token      = localStorage.getItem("token");
         const loggedUser = JSON.parse(localStorage.getItem("loggedUser") || "{}");
 
-        if (!loggedUser || !token) { alert("Please login first"); return; }
+        if (!loggedUser || !token) { showToast("Please login first", "error"); return; }
+
+        // ── Guard: never allow messaging yourself ──────────────
+        if (loggedUser.id != null && String(loggedUser.id) === String(landlord_id)) {
+        showToast("You can't message yourself.", "error");
+        return;
+        }
 
         btn.disabled  = true;
         btn.innerText = "Sending…";
@@ -1122,14 +1265,14 @@
         // Save conversation_id AND the landlord's real name from the API
         localStorage.setItem("conversation_id",   data.conversation_id);
         localStorage.setItem("chat_partner_name", data.landlord_name || "Landlord");
-        alert("Chat started successfully ✅");
-        window.location.href = "chat-tenant.html";
+        showToast("Chat started successfully ✅", "success");
+        setTimeout(() => { window.location.href = "chat-tenant.html"; }, 900);
         } else {
-        alert(data.message || "Failed");
+        showToast(data.message || "Failed to start chat", "error");
         }
         } catch (err) {
         console.error(err);
-        alert("Network error");
+        showToast("Network error", "error");
         }
 
         btn.disabled  = false;
@@ -1452,11 +1595,6 @@
         const location = document.querySelector('input').value.toLowerCase();
         renderProperties(location);
         }
-
-        function handleInterestedClick() {
-        if (!currentProperty) { alert("No property selected"); return; }
-        interested(currentProperty.landlord_id);
-        }
     </script>
 
     <!-- ── FILTER / SORT LOGIC ─────────────────────────── -->
@@ -1522,7 +1660,10 @@
         return;
         }
 
+        const myId = getLoggedInUserId();
+
         list.forEach(property => {
+        const own = myId && property.landlord_id != null && String(property.landlord_id) === myId;
         grid.innerHTML += `
         <div class="property-card">
         <img src="${property.image_url}" />
@@ -1532,6 +1673,7 @@
         <div class="location">${property.location}</div>
         <p>${property.description}</p>
         <small>Posted by: ${property.landlord_name || "Unknown"}</small>
+        ${own ? `<span class="booked-tag" style="color:#b8720b;">📌 This is your listing</span>` : ''}
         ${sortByBooked ? `<span class="booked-tag">🔥 ${property.booking_count || 0} booking${(property.booking_count || 0) === 1 ? '' : 's'}</span>` : ''}
         <button class="view-btn" onclick='openPopup(${JSON.stringify(property)})'>View Details</button>
         </div>

@@ -266,6 +266,8 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
         { expiresIn: "1d" }
       );
       const { password: _pw, ...safeUser } = user;
+      await touchPresence(user.id, "tenant", req);
+     await logActivity(user.id, "tenant", "login", null, req);
       return res.json({ success: true, role: "tenant", token, user: safeUser });
     }
 
@@ -290,6 +292,8 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
       { expiresIn: "1d" }
     );
     const { password: _pw, ...safeLandlord } = landlord;
+    await touchPresence(landlord.id, "landlord", req);
+     await logActivity(landlord.id, "landlord", "login", null, req);
     res.json({ success: true, role: "landlord", token, user: safeLandlord });
   } catch (err) {
     console.error("[LOGIN ERROR]", err.message);
@@ -505,7 +509,7 @@ app.patch("/renew-property/:id", auth, async (req, res) => {
       `UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`,
       [mpesa_transaction_id]
     );
-
+    await logActivity(req.user.id, "landlord", "renewed_listing", { property_id: req.params.id }, req);
     res.json({ success: true, message: "Listing renewed", listing_expires_at: newExpiry });
   } catch (err) {
     console.error("[RENEW PROPERTY]", err.message);
@@ -602,6 +606,7 @@ app.post("/interested", auth, validate(interestedSchema), async (req, res) => {
        VALUES (?, ?, ?, 'tenant', ?)`,
       [conversation_id, landlord_id, tenant_id, message]
     );
+    await logActivity(tenant_id, "tenant", "messaged_landlord", { landlord_id, landlord_name }, req);
     return res.json({ success: true, message: "Chat started", conversation_id, landlord_name });
   } catch (err) {
     console.error("[INTERESTED]", err.message);
@@ -679,6 +684,7 @@ app.post("/send-message", auth, validate(sendMessageSchema), (req, res) => {
       [conversation_id, landlord_id, tenant_id, sender_role, message],
       (err2) => {
         if (err2) return res.status(500).json({ success: false, message: "Server error" });
+        await logActivity(req.user.id, req.user.role, "sent_message", { conversation_id }, req);
         res.json({ success: true, message: "Message sent" });
       }
     );
@@ -856,6 +862,154 @@ app.post(
     }
   }
 );
+
+// Records a single action in the activity feed.
+// action examples: "login", "signup", "messaged_landlord", "booked_property",
+// "sent_message", "uploaded_property", "renewed_listing", "paid_rent",
+// "requested_extension", "updated_profile_pic"
+async function logActivity(userId, role, action, details = null, req = null) {
+  try {
+    const ip = req ? (req.headers["x-forwarded-for"] || req.socket.remoteAddress) : null;
+    const ua = req ? req.headers["user-agent"] : null;
+    await dbPromise.query(
+      `INSERT INTO activity_logs (user_id, role, action, details, ip_address, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, role, action, details ? JSON.stringify(details) : null, ip, ua]
+    );
+  } catch (err) {
+    console.error("[ACTIVITY LOG]", err.message);
+  }
+}
+ 
+// Marks a user as "seen right now" — called on login and on every heartbeat ping.
+async function touchPresence(userId, role, req) {
+  try {
+    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const ua = req.headers["user-agent"];
+    await dbPromise.query(
+      `INSERT INTO user_presence (user_id, role, last_seen_at, login_at, ip_address, user_agent)
+       VALUES (?, ?, NOW(), NOW(), ?, ?)
+       ON DUPLICATE KEY UPDATE
+         last_seen_at = NOW(),
+         ip_address   = VALUES(ip_address),
+         user_agent   = VALUES(user_agent)`,
+      [userId, role, ip, ua]
+    );
+  } catch (err) {
+    console.error("[PRESENCE]", err.message);
+  }
+}
+ 
+ 
+/* ------------------------------------------------------------
+   3. HEARTBEAT ENDPOINT — add near your other app.post(...) routes
+   ------------------------------------------------------------ */
+ 
+app.post("/activity/heartbeat", auth, async (req, res) => {
+  await touchPresence(req.user.id, req.user.role, req);
+  res.json({ success: true });
+});
+ 
+ 
+/* ------------------------------------------------------------
+   4. ADMIN ENDPOINTS — add near your other router.get("/admin/...") routes
+   ------------------------------------------------------------ */
+ 
+// Who is online RIGHT NOW (seen in the last 2 minutes)
+router.get("/admin/online-users", adminAuth, async (req, res) => {
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT up.user_id, up.role, up.last_seen_at, up.login_at, up.ip_address,
+              CASE WHEN up.role='tenant'   THEN u.fullname
+                   WHEN up.role='landlord' THEN l.fullname END AS fullname,
+              CASE WHEN up.role='tenant'   THEN u.email
+                   WHEN up.role='landlord' THEN l.email   END AS email
+       FROM user_presence up
+       LEFT JOIN users     u ON up.role='tenant'   AND up.user_id=u.id
+       LEFT JOIN landlords l ON up.role='landlord' AND up.user_id=l.id
+       WHERE up.last_seen_at > (NOW() - INTERVAL 2 MINUTE)
+       ORDER BY up.last_seen_at DESC`
+    );
+    res.json({ success: true, online: rows });
+  } catch (err) {
+    console.error("[ADMIN ONLINE USERS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+ 
+// Everyone's last-seen time, whether online now or not (for "last active" column)
+router.get("/admin/presence", adminAuth, async (req, res) => {
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT up.user_id, up.role, up.last_seen_at, up.login_at, up.ip_address,
+              CASE WHEN up.role='tenant'   THEN u.fullname
+                   WHEN up.role='landlord' THEN l.fullname END AS fullname,
+              CASE WHEN up.role='tenant'   THEN u.email
+                   WHEN up.role='landlord' THEN l.email   END AS email
+       FROM user_presence up
+       LEFT JOIN users     u ON up.role='tenant'   AND up.user_id=u.id
+       LEFT JOIN landlords l ON up.role='landlord' AND up.user_id=l.id
+       ORDER BY up.last_seen_at DESC`
+    );
+    res.json({ success: true, presence: rows });
+  } catch (err) {
+    console.error("[ADMIN PRESENCE]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+ 
+// Activity log with filters (user, role, action, date range, name search) + pagination
+router.get("/admin/activity-logs", adminAuth, async (req, res) => {
+  try {
+    const page   = Math.max(1, parseInt(req.query.page)  || 1);
+    const limit  = Math.min(100, parseInt(req.query.limit) || 30);
+    const offset = (page - 1) * limit;
+ 
+    const where  = [];
+    const params = [];
+ 
+    if (req.query.user_id) { where.push("al.user_id = ?");     params.push(req.query.user_id); }
+    if (req.query.role)    { where.push("al.role = ?");        params.push(req.query.role); }
+    if (req.query.action)  { where.push("al.action = ?");      params.push(req.query.action); }
+    if (req.query.from)    { where.push("al.created_at >= ?"); params.push(req.query.from); }
+    if (req.query.to)      { where.push("al.created_at <= ?"); params.push(req.query.to); }
+    if (req.query.search) {
+      where.push("(u.fullname LIKE ? OR l.fullname LIKE ?)");
+      params.push(`%${req.query.search}%`, `%${req.query.search}%`);
+    }
+ 
+    const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+ 
+    const [countRows] = await dbPromise.query(
+      `SELECT COUNT(*) AS total
+       FROM activity_logs al
+       LEFT JOIN users     u ON al.role='tenant'   AND al.user_id=u.id
+       LEFT JOIN landlords l ON al.role='landlord' AND al.user_id=l.id
+       ${whereSql}`,
+      params
+    );
+ 
+    const [rows] = await dbPromise.query(
+      `SELECT al.id, al.user_id, al.role, al.action, al.details, al.ip_address, al.created_at,
+              CASE WHEN al.role='tenant'   THEN u.fullname
+                   WHEN al.role='landlord' THEN l.fullname END AS fullname
+       FROM activity_logs al
+       LEFT JOIN users     u ON al.role='tenant'   AND al.user_id=u.id
+       LEFT JOIN landlords l ON al.role='landlord' AND al.user_id=l.id
+       ${whereSql}
+       ORDER BY al.created_at DESC
+       LIMIT ? OFFSET ?`,
+      [...params, limit, offset]
+    );
+ 
+    res.json({ success: true, total: countRows[0].total, page, limit, logs: rows });
+  } catch (err) {
+    console.error("[ADMIN ACTIVITY LOGS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+ 
+ 
 
 // =========================
 // ADMIN: LIST ALL LANDLORDS
@@ -1219,6 +1373,7 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
                 `UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`,
                 [mpesa_transaction_id]
               );
+              await logActivity(landlord_id, "landlord", "uploaded_property", { title }, req);
               res.json({ success: true, message: "Property uploaded", image_url: result.secure_url });
             }
           );
@@ -1266,6 +1421,7 @@ app.post("/tenancy/extension-request", auth, async (req, res) => {
        VALUES (?, ?, ?, ?, ?)`,
       [tenancy_id, landlord_id, tenant_id, extra_months, message || null]
     );
+    await logActivity(tenant_id, "tenant", "requested_extension", { tenancy_id, extra_months }, req);
     res.json({ success: true, request_id: result.insertId });
   } catch (err) {
     console.error(err);
@@ -1729,6 +1885,7 @@ router.post("/bookings", auth, async (req, res) => {
       `INSERT INTO bookings (tenant_id, landlord_id, property_id, message) VALUES (?, ?, ?, ?)`,
       [tenant_id, landlord_id, property_id, message || "I would like to book this property."]
     );
+    await logActivity(tenant_id, "tenant", "booked_property", { landlord_id, property_id }, req);
     res.json({ success: true, booking_id: result.insertId });
   } catch (err) {
     console.error(err);
@@ -2038,7 +2195,7 @@ router.post("/tenancy/payment-confirm", auth, async (req, res) => {
         );
       }
     }
-
+    await logActivity(tenant_id, "tenant", "paid_rent", { tenancy_id, month_index, amount }, req);
     res.json({ success: true });
   } catch (err) {
     console.error(err);
