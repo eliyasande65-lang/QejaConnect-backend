@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <link rel="manifest" href="/QejaConnect/manifest.json">
-    <meta name="theme-color" content="#4f46e5">
+    <meta name="theme-color" content="#1a1535">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="QejaConnect">
@@ -46,29 +46,9 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tenant Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/@simplewebauthn/browser/dist/bundle/index.umd.min.js"></script>
 
     <style>
-        :root {
-            --bg: #0d0a1a;
-            --surface: #13102a;
-            --card: #1a1535;
-            --border: rgba(139, 92, 246, 0.18);
-            --border-focus: #7c3aed;
-            --border-valid: #10b981;
-            --border-invalid: #ef4444;
-            --accent: #7c3aed;
-            --accent-light: #a78bfa;
-            --accent-glow: rgba(124, 58, 237, 0.25);
-            --text: #f1f0f7;
-            --muted: #8b84a8;
-            --dim: rgba(255,255,255,0.06);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-        }
-
         * {
             box-sizing: border-box;
             margin: 0;
@@ -76,52 +56,55 @@
         }
 
         body {
-            font-family: 'DM Sans', sans-serif;
-            background: var(--bg);
-            color: var(--text);
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            color: #222;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 48px 16px 64px;
         }
 
-            body::before, body::after {
-                content: '';
-                position: fixed;
-                border-radius: 50%;
-                filter: blur(120px);
-                pointer-events: none;
-                z-index: 0;
-            }
+        /* ── HEADER (matches landlords.html) ── */
+        header {
+            background: #1a1535;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            color: white;
+        }
 
-            body::before {
-                width: 500px;
-                height: 500px;
-                background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
-                top: -100px;
-                left: -150px;
-            }
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
 
-            body::after {
-                width: 400px;
-                height: 400px;
-                background: radial-gradient(circle, rgba(49,10,120,0.18) 0%, transparent 70%);
-                bottom: 0;
-                right: -120px;
-            }
+        #logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+        }
+
+        .logo-area h2 {
+            font-size: 1.2rem;
+        }
+
+        header a {
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+        }
 
         .page {
             width: 100%;
-            max-width: 480px;
-            position: relative;
-            z-index: 1;
+            max-width: 460px;
+            margin: 0 auto;
+            padding: 48px 16px 64px;
         }
 
-
-        .header {
+        .page-heading {
             text-align: center;
-            margin-bottom: 36px;
+            margin-bottom: 25px;
         }
 
         .logo-mark {
@@ -130,45 +113,37 @@
             justify-content: center;
             width: 56px;
             height: 56px;
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            border-radius: 16px;
+            background: #1a1535;
+            border-radius: 12px;
             font-size: 26px;
-            margin-bottom: 16px;
-            box-shadow: 0 8px 32px rgba(124,58,237,0.4);
+            margin-bottom: 14px;
         }
 
-        .header h1 {
-            font-family: Arial;
-            font-size: clamp(1.8rem, 5vw, 2.4rem);
-            font-weight: bold;
-            letter-spacing: -0.5px;
-            color: var(--text);
+        .page-heading h1 {
+            color: #1a1535;
+            font-size: 1.7rem;
+            margin: 0 0 6px;
         }
 
-        .header p {
-            color: var(--muted);
-            font-size: 0.95rem;
-            margin-top: 15px;
-            font-weight: 300;
-            font-style: italic;
+        .page-heading p {
+            color: #666;
+            font-size: 14px;
         }
-
 
         .card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 36px 32px;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.5), inset 0 1px 0 rgba(255,255,255,0.04);
+            background: white;
+            border-radius: 15px;
+            padding: 30px 28px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
         .section-label {
-            font-size: 0.7rem;
-            font-weight: 600;
-            letter-spacing: 0.12em;
+            font-size: 0.72rem;
+            font-weight: bold;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
-            color: var(--accent-light);
-            margin: 28px 0 12px;
+            color: #1a1535;
+            margin: 24px 0 12px;
             display: flex;
             align-items: center;
             gap: 8px;
@@ -182,107 +157,76 @@
                 content: '';
                 flex: 1;
                 height: 1px;
-                background: var(--border);
+                background: #eee;
             }
 
         .field {
-            position: relative;
             margin-top: 12px;
         }
 
             .field label {
                 display: block;
-                font-size: 0.75rem;
-                font-weight: 500;
-                color: var(--muted);
+                font-size: 0.78rem;
+                font-weight: bold;
+                color: #555;
                 margin-bottom: 6px;
-                letter-spacing: 0.02em;
             }
 
         input {
             width: 100%;
-            padding: 12px 16px;
-            background: var(--dim);
-            border: 1.5px solid var(--border);
+            padding: 12px 14px;
+            background: #f9f9fb;
+            border: 1px solid #ccc;
             border-radius: 10px;
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
+            color: #222;
+            font-family: Arial, sans-serif;
             font-size: 0.95rem;
             outline: none;
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
-            -webkit-appearance: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
         }
 
             input::placeholder {
-                color: var(--muted);
+                color: #999;
             }
 
             input:focus {
-                border-color: var(--border-focus);
-                background: rgba(124,58,237,0.06);
-                box-shadow: 0 0 0 3px var(--accent-glow);
+                border-color: #1a1535;
+                box-shadow: 0 0 0 3px rgba(26,21,53,0.12);
             }
 
-
-        .pw-wrap {
-            position: relative;
+        button {
+            width: auto;
+            margin-top: 0;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 10px;
+            background: #1a1535;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            transition: 0.2s;
         }
 
-            .pw-wrap input {
-                padding-right: 48px;
+            button:hover {
+                background: darkviolet;
             }
-
 
         .submit-btn {
             width: 100%;
-            margin-top: 24px;
-            padding: 15px;
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            border: none;
-            border-radius: 12px;
-            color: white;
-            font-family: 'DM Sans', sans-serif;
+            margin-top: 22px;
+            padding: 14px;
             font-size: 1rem;
-            font-weight: 600;
-            cursor: pointer;
-            letter-spacing: 0.02em;
-            transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
-            box-shadow: 0 8px 32px rgba(124,58,237,0.35);
-            position: relative;
-            overflow: hidden;
         }
-
-            .submit-btn::after {
-                content: '';
-                position: absolute;
-                inset: 0;
-                background: linear-gradient(135deg, rgba(255,255,255,0.12), transparent);
-                opacity: 0;
-                transition: opacity 0.2s;
-            }
-
-            .submit-btn:hover::after {
-                opacity: 1;
-            }
-
-            .submit-btn:hover {
-                transform: translateY(-1px);
-                box-shadow: 0 12px 40px rgba(124,58,237,0.45);
-            }
-
-            .submit-btn:active {
-                transform: translateY(0);
-            }
 
             .submit-btn.btn-loading {
                 opacity: 0.65;
                 pointer-events: none;
             }
 
-
         .divider {
             text-align: center;
-            color: var(--muted);
+            color: #999;
             font-size: 0.8rem;
             margin: 20px 0 0;
             position: relative;
@@ -294,7 +238,7 @@
                 top: 50%;
                 width: calc(50% - 20px);
                 height: 1px;
-                background: var(--border);
+                background: #eee;
             }
 
             .divider::before {
@@ -305,21 +249,18 @@
                 right: 0;
             }
 
-
         #fingerprint-btn {
-            display: none;
             width: 100%;
             margin-top: 14px;
             padding: 13px 16px;
-            background: rgba(124,58,237,0.08);
-            border: 1.5px solid rgba(139,92,246,0.35);
-            border-radius: 12px;
-            color: var(--accent-light);
-            font-family: 'DM Sans', sans-serif;
+            background: white;
+            border: 1.5px solid #1a1535;
+            border-radius: 10px;
+            color: #1a1535;
+            font-family: Arial, sans-serif;
             font-size: 0.95rem;
-            font-weight: 500;
+            font-weight: bold;
             cursor: pointer;
-            transition: background 0.2s, border-color 0.2s, color 0.2s, transform 0.15s;
             display: none;
             align-items: center;
             justify-content: center;
@@ -327,10 +268,7 @@
         }
 
             #fingerprint-btn:hover {
-                background: rgba(124,58,237,0.15);
-                border-color: var(--accent-light);
-                color: white;
-                transform: translateY(-1px);
+                background: #eef2ff;
             }
 
         #fprint {
@@ -339,34 +277,31 @@
             border-radius: 50%;
         }
 
-
         .signup-link {
             text-align: center;
             margin-top: 20px;
             font-size: 0.88rem;
-            color: var(--muted);
+            color: #666;
         }
 
             .signup-link a {
-                color: var(--accent-light);
+                color: #1a1535;
                 text-decoration: none;
-                font-weight: 500;
+                font-weight: bold;
             }
 
                 .signup-link a:hover {
-                    color: #c4b5fd;
+                    text-decoration: underline;
                 }
-
 
         #fp-modal-overlay {
             display: none;
             position: fixed;
             inset: 0;
-            background: rgba(0,0,0,0.7);
+            background: rgba(0,0,0,0.55);
             z-index: 100;
             justify-content: center;
             align-items: center;
-            backdrop-filter: blur(4px);
         }
 
             #fp-modal-overlay.active {
@@ -374,31 +309,30 @@
             }
 
         #fp-modal {
-            background: var(--card);
-            border: 1px solid rgba(139,92,246,0.35);
-            border-radius: 20px;
-            padding: 32px 28px;
-            max-width: 360px;
+            background: white;
+            border-radius: 15px;
+            padding: 30px 26px;
+            max-width: 340px;
             width: 90%;
             text-align: center;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.6);
+            box-shadow: 0 0 20px rgba(0,0,0,0.25);
         }
 
             #fp-modal .modal-icon {
-                font-size: 40px;
+                font-size: 38px;
                 margin-bottom: 12px;
             }
 
             #fp-modal p {
-                color: var(--text);
+                color: #1a1535;
                 font-size: 1rem;
-                font-weight: 500;
+                font-weight: bold;
                 margin-bottom: 8px;
                 line-height: 1.5;
             }
 
             #fp-modal small {
-                color: var(--muted);
+                color: #777;
                 font-size: 0.82rem;
                 line-height: 1.6;
                 display: block;
@@ -407,36 +341,23 @@
         .fp-modal-buttons {
             display: flex;
             gap: 10px;
-            margin-top: 24px;
+            margin-top: 22px;
         }
 
             .fp-modal-buttons button {
                 flex: 1;
                 padding: 12px;
-                border: none;
-                border-radius: 10px;
-                font-family: 'DM Sans', sans-serif;
-                font-size: 0.9rem;
-                font-weight: 600;
-                cursor: pointer;
-                transition: opacity 0.2s, transform 0.15s;
             }
 
-                .fp-modal-buttons button:hover {
-                    opacity: 0.88;
-                    transform: translateY(-1px);
-                }
-
-        #fp-yes-btn {
-            background: linear-gradient(135deg, #7c3aed, #4f46e5);
-            color: white;
-        }
-
         #fp-no-btn {
-            background: rgba(255,255,255,0.07);
-            color: var(--muted);
-            border: 1px solid var(--border);
+            background: white;
+            color: #666;
+            border: 1px solid #ccc;
         }
+
+            #fp-no-btn:hover {
+                background: #f2f2f2;
+            }
 
         /* Toast */
         #toast {
@@ -444,22 +365,22 @@
             bottom: 28px;
             left: 50%;
             transform: translateX(-50%) translateY(100px);
-            background: #1a1535;
-            border: 1px solid var(--border);
-            color: var(--text);
+            background: white;
+            border-left: 4px solid #1a1535;
+            color: #222;
             padding: 13px 20px;
-            border-radius: 14px;
+            border-radius: 10px;
             font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 10px;
-            box-shadow: 0 8px 40px rgba(0,0,0,0.5);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
             z-index: 999;
             max-width: 360px;
             width: 90%;
             opacity: 0;
             pointer-events: none;
-            transition: transform 0.4s cubic-bezier(0.34,1.56,0.64,1), opacity 0.3s ease;
+            transition: transform 0.3s ease, opacity 0.3s ease;
         }
 
             #toast.show {
@@ -468,19 +389,15 @@
             }
 
             #toast.success {
-                border-left: 4px solid var(--success);
+                border-left-color: #10b981;
             }
 
             #toast.error {
-                border-left: 4px solid var(--error);
+                border-left-color: #ef4444;
             }
 
             #toast.info {
-                border-left: 4px solid var(--accent-light);
-            }
-
-            #toast.warning {
-                border-left: 4px solid var(--warning);
+                border-left-color: #1a1535;
             }
 
         #toast-icon {
@@ -493,31 +410,44 @@
         }
 
         /* Footer */
-        .foot {
+        footer {
+            background: #1a1a1a;
+            color: white;
             text-align: center;
-            margin-top: 32px;
-            color: var(--muted);
-            font-size: 0.8rem;
-            line-height: 2;
+            padding: 30px;
         }
 
-            .foot strong {
-                color: var(--accent-light);
-                font-weight: 600;
+            footer p {
+                font-size: 0.85rem;
+                line-height: 1.9;
+                color: #ccc;
+            }
+
+            footer strong {
+                color: #b9a6ff;
             }
 
         @media (max-width: 480px) {
             .card {
-                padding: 24px 18px;
+                padding: 22px 18px;
             }
         }
     </style>
 </head>
 
 <body>
+
+    <header>
+        <div class="logo-area">
+            <img id="logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect logo">
+            <h2>Qeja Connect</h2>
+        </div>
+        <a href="welcome.html">🏠 Home</a>
+    </header>
+
     <div class="page">
 
-        <div class="header">
+        <div class="page-heading">
             <div class="logo-mark">🔑</div>
             <h1>Welcome back</h1>
             <p>Sign in to your QejaConnect account</p>
@@ -554,13 +484,15 @@
 
         </div>
 
-        <div class="foot">
-            <strong>QejaConnect Kenya Ltd.</strong><br>
+    </div>
+
+    <footer>
+        <strong>QejaConnect Kenya Ltd.</strong><br>
+        <p>
             qejaconnect@outlook.com &nbsp;·&nbsp; +254 714 104 737 &nbsp;·&nbsp; +254 712 034 43<br>
             <em>Regulated by the Communication Authority of Kenya</em>
-        </div>
-
-    </div>
+        </p>
+    </footer>
 
     <!-- Fingerprint modal -->
     <div id="fp-modal-overlay">

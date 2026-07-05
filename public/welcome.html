@@ -1,7 +1,7 @@
 ﻿<!DOCTYPE html>
-
 <html lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
+    <meta viewport="width=device-width, initial-scale=1.0">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- PWA Manifest -->
@@ -10,7 +10,7 @@
     <link rel="icon" type="image/png" sizes="192x192" href="/QejaConnect/logo-192.png">
     <link rel="icon" type="image/png" sizes="512x512" href="/QejaConnect/logo-512.png">
     <!-- Theme colour -->
-    <meta name="theme-color" content="#0d0a1a">
+    <meta name="theme-color" content="#1a1535">
 
     <!-- SEO & Search appearance -->
     <meta name="description" content="Qeja Connect links tenants with verified landlords in Kenya. Find accommodation easily — browse listings, chat with landlords, and secure your next home.">
@@ -61,34 +61,11 @@
     <meta charset="utf-8" />
     <title>welcome</title>
 
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
     <style>
-        *, *::before, *::after {
+        * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-        }
-
-        :root {
-            --bg: #070b14;
-            --surface: #0f172a;
-            --card: #111827;
-            --border: rgba(255,255,255,.08);
-            --border-focus: #4f8cff;
-            --accent: #4f8cff;
-            --accent-light: #7cb3ff;
-            --accent-glow: rgba(79,140,255,.35);
-            --text: #ffffff;
-            --muted: #9ca3af;
-            --dim: rgba(255,255,255,.05);
-            --success: #10b981;
-            --warning: #f59e0b;
-            --error: #ef4444;
-            --font-display: 'DM Serif Display',serif;
-            --font-body: 'DM Sans',sans-serif;
         }
 
         html {
@@ -96,139 +73,111 @@
         }
 
         body {
-            font-family: var(--font-body);
-            background: radial-gradient(circle at top left,#132247 0%,transparent 35%), radial-gradient(circle at bottom right,#0b2447 0%,transparent 30%), #070b14;
-            color: var(--text);
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            color: #222;
             min-height: 100vh;
-            overflow-x: hidden;
         }
 
-            body::before {
-                content: "";
-                position: fixed;
-                top: -200px;
-                left: -200px;
-                width: 600px;
-                height: 600px;
-                background: rgba(79,140,255,.08);
-                filter: blur(120px);
-                border-radius: 50%;
-                pointer-events: none;
-            }
-
-            body::after {
-                content: "";
-                position: fixed;
-                right: -150px;
-                bottom: -150px;
-                width: 500px;
-                height: 500px;
-                background: rgba(124,179,255,.05);
-                filter: blur(120px);
-                border-radius: 50%;
-                pointer-events: none;
-            }
-
-        /* ── NAV ── */
-        .nav {
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
+        /* ── HEADER (matches landlords.html) ── */
+        header {
+            background: #1a1535;
+            padding: 15px 30px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            padding: 16px 32px;
-            background: rgba(10,15,30,.75);
-            backdrop-filter: blur(20px);
-            border-bottom: 1px solid rgba(255,255,255,.08);
+            flex-wrap: wrap;
+            color: white;
+            position: sticky;
+            top: 0;
             z-index: 999;
         }
 
-        .nav-logo {
-            width: 44px;
-            height: 44px;
-            border-radius: 14px;
-            border: 2px solid rgba(79,140,255,.3);
-        }
-
-        .nav-name {
-            font-size: 1.1rem;
-            font-weight: 700;
-        }
-
-        .nav-brand {
+        .logo-area {
             display: flex;
             align-items: center;
-            gap: 10px;
-            text-decoration: none;
+            gap: 15px;
         }
 
-        .nav-logo {
-            width: 38px;
-            height: 38px;
-            border-radius: 10px;
-            object-fit: cover;
-            border: 1.5px solid var(--border);
+        #logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
         }
 
-       
+        .logo-area h2 {
+            font-size: 1.2rem;
+        }
 
-        .nav-actions {
+        nav {
             display: flex;
-            gap: 10px;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
         }
 
-        /* ── BUTTONS ── */
-        .btn {
+            nav a, .nav-btn {
+                color: white;
+                text-decoration: none;
+                font-weight: bold;
+            }
+
+        button {
+            width: auto;
+            padding: 12px 20px;
             border: none;
-            border-radius: 14px;
-            padding: 12px 24px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: .3s;
-        }
-
-        .btn-primary {
-            background: linear-gradient( 135deg, #4f8cff, #2563eb );
+            border-radius: 10px;
+            background: #1a1535;
             color: white;
-            box-shadow: 0 10px 30px rgba(79,140,255,.35);
+            font-weight: bold;
+            cursor: pointer;
+            font-family: Arial, sans-serif;
+            transition: 0.2s;
         }
 
-            .btn-primary:hover {
-                transform: translateY(-4px);
-                box-shadow: 0 15px 40px rgba(79,140,255,.45);
+            button:hover {
+                background: darkviolet;
             }
 
         .btn-ghost {
-            background: rgba(255,255,255,.05);
-            border: 1px solid rgba(255,255,255,.08);
-            color: white;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
         }
 
             .btn-ghost:hover {
-                background: rgba(255,255,255,.08);
+                background: rgba(255,255,255,0.12);
             }
 
         /* ── HERO ── */
         .hero {
-            background: linear-gradient( 135deg, #2563eb 0%, #3b82f6 50%, #60a5fa 100% );
-            min-height: 100vh;
-        }
-
-        .hero-title {
+            background: #1a1535;
             color: white;
-            font-size: clamp(3rem,7vw,5rem);
-        }
-
-        .hero-sub {
-            color: rgba(255,255,255,.9);
+            text-align: center;
+            padding: 70px 20px 60px;
         }
 
         .hero-eyebrow {
-            background: rgba(255,255,255,.15);
-            border: 1px solid rgba(255,255,255,.25);
-            color: white;
+            display: inline-block;
+            background: rgba(255,255,255,0.12);
+            border: 1px solid rgba(255,255,255,0.25);
+            border-radius: 20px;
+            padding: 6px 16px;
+            font-size: 13px;
+            font-weight: bold;
+            margin-bottom: 18px;
+        }
+
+        .hero-title {
+            font-size: clamp(1.9rem, 5vw, 3rem);
+            margin-bottom: 14px;
+        }
+
+        .hero-sub {
+            max-width: 560px;
+            margin: 0 auto 34px;
+            color: #d8d5e6;
+            font-size: 1rem;
+            line-height: 1.6;
         }
 
         .hero-cta {
@@ -236,17 +185,23 @@
             gap: 14px;
             justify-content: center;
             flex-wrap: wrap;
-            margin-bottom: 48px;
+            margin-bottom: 44px;
         }
 
-        /* Install btn inherits .btn .btn-outline-white */
+            .hero-cta button {
+                padding: 13px 28px;
+                font-size: 1rem;
+            }
+
         #install-btn {
-            display: none; /* JS controls this */
+            display: none;
+            background: transparent;
+            border: 1px solid rgba(255,255,255,0.5);
         }
 
         .hero-stats {
             display: flex;
-            gap: 32px;
+            gap: 30px;
             justify-content: center;
             flex-wrap: wrap;
         }
@@ -256,207 +211,146 @@
         }
 
         .hero-stat-num {
-            font-family: var(--font-display);
-            font-size: 1.8rem;
-            font-weight: 400;
-            color: var(--text);
+            font-size: 1.6rem;
+            font-weight: bold;
             line-height: 1;
         }
 
         .hero-stat-label {
             font-size: 0.72rem;
-            color: var(--muted);
-            letter-spacing: 0.1em;
+            color: #b9b4cf;
+            letter-spacing: 0.08em;
             text-transform: uppercase;
             margin-top: 6px;
         }
 
         .hero-divider {
             width: 1px;
-            height: 40px;
-            background: var(--border);
-            align-self: center;
+            background: rgba(255,255,255,0.2);
         }
 
-        /* ── SECTION WRAPPER ── */
-        .section {
-            padding: 80px 24px;
+        /* ── PAGE HEADING (matches landlords.html) ── */
+        .page-heading {
             max-width: 1100px;
-            margin: 0 auto;
-            position: relative;
-            z-index: 1;
+            margin: 45px auto 5px;
+            padding: 0 20px;
+            text-align: center;
         }
 
-        .section-label {
-            font-size: 0.72rem;
-            font-weight: 600;
-            letter-spacing: 0.16em;
-            text-transform: uppercase;
-            color: var(--accent-light);
-            margin-bottom: 10px;
-        }
+            .page-heading h1 {
+                color: #1a1535;
+                font-size: 1.8rem;
+                margin: 0 0 6px;
+            }
 
-        .section-title {
-            font-family: var(--font-display);
-            font-size: clamp(1.8rem, 4vw, 2.6rem);
-            color: var(--text);
-            font-weight: 400;
-            margin-bottom: 14px;
-            line-height: 1.2;
-            letter-spacing: -0.5px;
-        }
+            .page-heading p {
+                color: #666;
+                margin: 0 auto;
+                font-size: 14px;
+                max-width: 480px;
+            }
 
-        .section-sub {
-            font-size: 1rem;
-            color: var(--muted);
-            max-width: 520px;
-            line-height: 1.7;
-            font-weight: 300;
-        }
-
-        /* ── HOW IT WORKS ── */
+        /* ── HOW IT WORKS GRID (styled like landlord-grid / profile cards) ── */
         .how-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 16px;
-            margin-top: 48px;
+            grid-template-columns: repeat(auto-fit, minmax(220px,1fr));
+            gap: 25px;
+            padding: 25px 20px 10px;
+            max-width: 1200px;
+            margin: 0 auto;
         }
 
         .step-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 16px;
-            padding: 28px 24px;
-            position: relative;
-            transition: box-shadow 0.2s, transform 0.2s, border-color 0.2s;
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            text-align: center;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-            .step-card:hover {
-                box-shadow: 0 12px 40px rgba(124,58,237,0.18);
-                transform: translateY(-3px);
-                border-color: rgba(139,92,246,0.35);
-            }
-
         .step-num {
-            width: 36px;
-            height: 36px;
-            background: rgba(124,58,237,0.15);
-            color: var(--accent-light);
-            border: 1px solid rgba(139,92,246,0.3);
-            border-radius: 10px;
+            width: 40px;
+            height: 40px;
+            margin: 0 auto 14px;
+            background: #1a1535;
+            color: white;
+            border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-family: var(--font-display);
-            font-weight: 400;
+            font-weight: bold;
             font-size: 1rem;
-            margin-bottom: 16px;
         }
 
         .step-text {
-            font-size: 0.95rem;
-            color: var(--text);
+            font-size: 0.92rem;
+            color: #444;
             line-height: 1.6;
-            font-weight: 300;
         }
 
         /* ── ABOUT CARD ── */
         .about-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            padding: 52px 48px;
-            color: var(--text);
+            background: white;
+            border-radius: 15px;
+            padding: 35px;
+            max-width: 1200px;
+            margin: 30px auto 40px;
             display: flex;
-            gap: 48px;
+            gap: 35px;
             align-items: center;
             flex-wrap: wrap;
-            margin-top: 80px;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.04);
-            position: relative;
-            overflow: hidden;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
         }
 
-            .about-card::before {
-                content: '';
-                position: absolute;
-                top: -50%;
-                right: -20%;
-                width: 260px;
-                height: 260px;
-                background: radial-gradient(circle, rgba(124,58,237,0.25) 0%, transparent 70%);
-                pointer-events: none;
-            }
+        .about-img-wrap {
+            flex: 0 0 140px;
+            text-align: center;
+        }
+
+        .about-logo {
+            width: 110px;
+            height: 110px;
+            border-radius: 15px;
+            object-fit: cover;
+        }
+
+        .about-brand-name {
+            display: block;
+            font-weight: bold;
+            color: #1a1535;
+            margin-top: 10px;
+        }
+
+        .about-brand-tag {
+            display: block;
+            font-size: 0.8rem;
+            color: #777;
+            font-style: italic;
+        }
 
         .about-text {
             flex: 1;
             min-width: 260px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .about-card .section-label {
-            color: var(--accent-light);
         }
 
         .about-title {
-            font-family: var(--font-display);
-            font-size: clamp(1.6rem, 3.5vw, 2.2rem);
-            color: var(--text);
-            margin-bottom: 16px;
-            line-height: 1.25;
-            font-weight: 400;
+            color: #1a1535;
+            font-size: 1.5rem;
+            margin-bottom: 12px;
         }
 
         .about-body {
-            font-size: 1rem;
-            color: var(--muted);
-            line-height: 1.75;
-            font-weight: 300;
-            max-width: 480px;
-        }
-
-        .about-img-wrap {
-            flex: 0 0 180px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            gap: 12px;
-            position: relative;
-            z-index: 1;
-        }
-
-        .about-logo {
-            width: 120px;
-            height: 120px;
-            border-radius: 20px;
-            object-fit: cover;
-            border: 1.5px solid var(--border);
-        }
-
-        .about-brand-name {
-            font-weight: 600;
-            color: var(--text);
-            font-size: 0.9rem;
-            letter-spacing: 0.04em;
-        }
-
-        .about-brand-tag {
-            font-size: 0.78rem;
-            color: var(--muted);
-            font-style: italic;
-            font-family: var(--font-display);
+            color: #555;
+            line-height: 1.7;
+            font-size: 0.95rem;
         }
 
         /* ── SIGN-UP SECTION ── */
         .signup-section {
             text-align: center;
-            padding: 80px 24px;
-            background: var(--surface);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
-            position: relative;
-            z-index: 1;
+            padding: 50px 20px 60px;
+            background: white;
+            border-top: 1px solid #e6e6e6;
         }
 
         .signup-inner {
@@ -464,20 +358,45 @@
             margin: 0 auto;
         }
 
+            .signup-inner h2 {
+                color: #1a1535;
+                font-size: 1.6rem;
+                margin-bottom: 10px;
+            }
+
+            .signup-inner p {
+                color: #666;
+                font-size: 0.95rem;
+                line-height: 1.6;
+            }
+
         .signup-cta {
             display: flex;
             gap: 14px;
             justify-content: center;
             flex-wrap: wrap;
-            margin-top: 28px;
+            margin-top: 26px;
         }
+
+            .signup-cta button {
+                padding: 12px 28px;
+            }
+
+        .btn-outline {
+            background: white;
+            color: #1a1535;
+            border: 1.5px solid #1a1535;
+        }
+
+            .btn-outline:hover {
+                background: #eef2ff;
+            }
 
         /* ── POPUP ── */
         .popup-overlay {
             position: fixed;
             inset: 0;
-            background: rgba(13,10,26,0.7);
-            backdrop-filter: blur(4px);
+            background: rgba(0,0,0,0.55);
             display: none;
             align-items: center;
             justify-content: center;
@@ -489,48 +408,32 @@
             }
 
         .popup1 {
-            background: var(--card);
-            border: 1px solid var(--border);
-            padding: 36px 32px;
-            border-radius: 20px;
+            background: white;
+            padding: 32px 28px;
+            border-radius: 15px;
             text-align: center;
-            box-shadow: 0 24px 80px rgba(0,0,0,0.5);
+            box-shadow: 0 0 20px rgba(0,0,0,0.25);
             max-width: 360px;
             width: 90%;
-            animation: pop-in 0.22s ease;
         }
 
-        @keyframes pop-in {
-            from {
-                transform: scale(0.92);
-                opacity: 0;
+            .popup1 h2 {
+                color: #1a1535;
+                font-size: 1.4rem;
+                margin-bottom: 6px;
             }
-
-            to {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-
-        .popup1 h2 {
-            font-family: var(--font-display);
-            font-weight: 400;
-            font-size: 1.5rem;
-            color: var(--text);
-            margin-bottom: 8px;
-        }
 
         .popup-sub {
-            font-size: 0.88rem;
-            color: var(--muted);
-            margin-bottom: 24px;
+            font-size: 0.85rem;
+            color: #777;
+            margin-bottom: 22px;
         }
 
         .popup-choices {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 12px;
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
         .popup-choice {
@@ -538,205 +441,87 @@
             flex-direction: column;
             align-items: center;
             gap: 8px;
-            padding: 18px 12px;
-            border: 1.5px solid var(--border);
-            border-radius: 14px;
+            padding: 18px 10px;
+            border: 1.5px solid #ddd;
+            border-radius: 12px;
             cursor: pointer;
-            background: var(--dim);
-            transition: border-color 0.15s, background 0.15s;
-            font-family: var(--font-body);
+            background: #f9f9fb;
+            font-family: Arial, sans-serif;
+            width: 100%;
         }
 
             .popup-choice:hover {
-                border-color: var(--accent);
-                background: rgba(124,58,237,0.1);
+                border-color: #1a1535;
+                background: #eef2ff;
             }
 
         .popup-choice-icon {
-            font-size: 2rem;
+            font-size: 1.9rem;
             line-height: 1;
         }
 
         .popup-choice-label {
             font-size: 0.9rem;
-            font-weight: 600;
-            color: var(--text);
+            font-weight: bold;
+            color: #1a1535;
         }
 
         .popup-choice-desc {
-            font-size: 0.75rem;
-            color: var(--muted);
+            font-size: 0.72rem;
+            color: #777;
             text-align: center;
         }
 
         .popup-close-btn {
             background: none;
             border: none;
-            font-size: 0.88rem;
-            color: var(--muted);
+            font-size: 0.85rem;
+            color: #888;
             cursor: pointer;
             text-decoration: underline;
-            font-family: var(--font-body);
-            transition: color 0.15s;
+            padding: 0;
+            width: auto;
         }
 
             .popup-close-btn:hover {
-                color: var(--accent-light);
+                background: none;
+                color: #1a1535;
             }
 
         /* ── BANNER ── */
         .bar-fill {
             width: 100%;
-            position: relative;
-            overflow: hidden;
-            padding: 28px 20px;
-            background: linear-gradient(135deg, #13102a 0%, #241b4a 50%, #13102a 100%);
-            border-top: 1px solid var(--border);
-            border-bottom: 1px solid var(--border);
+            padding: 14px 20px;
+            background: #1a1a1a;
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 16px;
-            z-index: 1;
-        }
-
-            .bar-fill::before {
-                content: '';
-                position: absolute;
-                inset: 0;
-                background: linear-gradient( 105deg, transparent 30%, rgba(167,139,250,0.15) 50%, transparent 70% );
-                animation: shimmer 2.8s ease-in-out infinite;
-                pointer-events: none;
-            }
-
-        @keyframes shimmer {
-            0% {
-                transform: translateX(-100%);
-            }
-
-            100% {
-                transform: translateX(100%);
-            }
-        }
-
-        .bar-fill::after {
-            content: '';
-            position: absolute;
-            width: 200px;
-            height: 200px;
-            background: radial-gradient(circle, rgba(139,92,246,0.35) 0%, transparent 70%);
-            border-radius: 50%;
-            left: -60px;
-            top: 50%;
-            transform: translateY(-50%);
-            animation: pulse-orb 3s ease-in-out infinite alternate;
-            pointer-events: none;
-        }
-
-        @keyframes pulse-orb {
-            from {
-                opacity: 0.4;
-                transform: translateY(-50%) scale(1);
-            }
-
-            to {
-                opacity: 0.8;
-                transform: translateY(-50%) scale(1.2);
-            }
-        }
-
-        .bar-dots {
-            display: flex;
-            gap: 6px;
-            position: relative;
-            z-index: 1;
-        }
-
-            .bar-dots span {
-                width: 6px;
-                height: 6px;
-                border-radius: 50%;
-                background: rgba(196,181,253,0.7);
-                animation: dot-bounce 1.4s ease-in-out infinite;
-            }
-
-                .bar-dots span:nth-child(2) {
-                    animation-delay: 0.2s;
-                }
-
-                .bar-dots span:nth-child(3) {
-                    animation-delay: 0.4s;
-                }
-
-        @keyframes dot-bounce {
-            0%, 100% {
-                transform: translateY(0);
-                opacity: 0.5;
-            }
-
-            50% {
-                transform: translateY(-6px);
-                opacity: 1;
-            }
+            gap: 12px;
         }
 
         .bar-text {
-            position: relative;
-            z-index: 1;
-            font-size: 0.8rem;
-            font-weight: 700;
-            letter-spacing: 0.18em;
+            font-size: 0.75rem;
+            font-weight: bold;
+            letter-spacing: 0.14em;
             text-transform: uppercase;
-            color: transparent;
-            background: linear-gradient(90deg, #c4b5fd, #ffffff, #a78bfa, #ffffff, #c4b5fd);
-            background-size: 300% auto;
-            -webkit-background-clip: text;
-            background-clip: text;
-            animation: text-shine 3s linear infinite;
-        }
-
-        @keyframes text-shine {
-            0% {
-                background-position: 0% center;
-            }
-
-            100% {
-                background-position: 300% center;
-            }
+            color: #bbb;
         }
 
         .bar-badge {
-            position: relative;
-            z-index: 1;
-            background: rgba(139,92,246,0.25);
-            border: 1px solid rgba(167,139,250,0.4);
+            background: #1a1535;
             border-radius: 20px;
-            padding: 4px 14px;
-            font-size: 0.75rem;
-            font-weight: 800;
-            letter-spacing: 0.12em;
-            color: #ddd6fe;
-            animation: badge-glow 2s ease-in-out infinite alternate;
+            padding: 4px 12px;
+            font-size: 0.72rem;
+            font-weight: bold;
+            color: white;
         }
 
-        @keyframes badge-glow {
-            from {
-                box-shadow: 0 0 6px rgba(139,92,246,0.3);
-            }
-
-            to {
-                box-shadow: 0 0 18px rgba(139,92,246,0.7);
-            }
-        }
-
-        /* ── FOOTER ── */
-        .foot {
+        /* ── FOOTER (matches landlords.html) ── */
+        footer {
+            background: #1a1a1a;
+            color: white;
             text-align: center;
-            padding: 40px 24px 50px;
-            background: var(--surface);
-            color: var(--muted);
-            position: relative;
-            z-index: 1;
+            padding: 30px;
         }
 
         .foot-logo {
@@ -744,54 +529,42 @@
             height: 52px;
             border-radius: 12px;
             object-fit: cover;
-            margin: 0 auto 14px;
+            margin: 0 auto 12px;
             display: block;
-            border: 1.5px solid var(--border);
-            opacity: 0.9;
         }
 
-        .foot h3 {
-            color: var(--text);
-            font-family: var(--font-display);
-            font-size: 1.2rem;
-            font-weight: 400;
-            margin-bottom: 12px;
+        footer h3 {
+            font-size: 1.1rem;
+            margin-bottom: 10px;
         }
 
-        .foot p {
-            font-size: 0.88rem;
-            line-height: 2;
-            font-weight: 300;
+        footer p {
+            font-size: 0.85rem;
+            line-height: 1.9;
+            color: #ccc;
         }
 
-        .foot a {
-            color: var(--accent-light);
+        footer a {
+            color: #b9a6ff;
             text-decoration: none;
         }
 
-            .foot a:hover {
+            footer a:hover {
                 text-decoration: underline;
-                color: #c4b5fd;
             }
 
-        /* ── RESPONSIVE ── */
         @media (max-width: 640px) {
-            .nav {
-                padding: 10px 16px;
+            header {
+                padding: 12px 16px;
             }
 
             .about-card {
-                padding: 36px 24px;
+                padding: 24px;
             }
 
             .about-img-wrap {
                 flex: 0 0 auto;
                 width: 100%;
-                flex-direction: row;
-            }
-
-            .section {
-                padding: 60px 16px;
             }
         }
     </style>
@@ -799,102 +572,95 @@
 
 <body>
 
-    <!-- NAV -->
-    <nav class="nav">
-        <a class="nav-brand" href="#">
-            <img class="nav-logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect logo">
-            <span class="nav-name">QejaConnect</span>
-        </a>
-        <div class="nav-actions">
-            <button id="login" class="btn btn-ghost">Sign in</button>
-            <button id="signup" class="btn btn-primary" onclick="openPopup()">Get started</button>
+    <!-- HEADER -->
+    <header>
+        <div class="logo-area">
+            <img id="logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect logo">
+            <h2>Qeja Connect</h2>
         </div>
-    </nav>
+        <nav>
+            <button id="login" class="btn-ghost">Sign in</button>
+            <button id="signup" onclick="openPopup()">Get started</button>
+        </nav>
+    </header>
 
     <!-- HERO -->
     <section class="hero">
-        <div class="hero-inner">
-            <span class="hero-eyebrow">Kenya's Rental Platform</span>
-            <h1 class="hero-title">Find your home,<br><em>effortlessly</em>.</h1>
-            <p class="hero-sub">Qeja Connect links tenants with verified landlords — making it simple to search, connect, and secure accommodation with clarity and trust.</p>
-            <div class="hero-cta">
-                <button class="btn btn-primary" style="padding:13px 30px;font-size:1rem;" onclick="openPopup()">Create account</button>
-                <button id="install-btn" class="btn btn-outline-white" style="padding:13px 30px;font-size:1rem;">
-                    ⤓ Install App
-                </button>
+        <span class="hero-eyebrow">Kenya's Rental Platform</span>
+        <h1 class="hero-title">Find your home, effortlessly.</h1>
+        <p class="hero-sub">Qeja Connect links tenants with verified landlords — making it simple to search, connect, and secure accommodation with clarity and trust.</p>
+        <div class="hero-cta">
+            <button onclick="openPopup()" style="background:white;color:#1a1535;">Create account</button>
+            <button id="install-btn">⤓ Install App</button>
+        </div>
+        <div class="hero-stats">
+            <div class="hero-stat">
+                <div class="hero-stat-num">100%</div>
+                <div class="hero-stat-label">Verified listings</div>
             </div>
-            <div class="hero-stats">
-                <div class="hero-stat">
-                    <div class="hero-stat-num">100%</div>
-                    <div class="hero-stat-label">Verified listings</div>
-                </div>
-                <div class="hero-divider"></div>
-                <div class="hero-stat">
-                    <div class="hero-stat-num">Free</div>
-                    <div class="hero-stat-label">To join</div>
-                </div>
-                <div class="hero-divider"></div>
-                <div class="hero-stat">
-                    <div class="hero-stat-num">24/7</div>
-                    <div class="hero-stat-label">Chat support</div>
-                </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat">
+                <div class="hero-stat-num">Free</div>
+                <div class="hero-stat-label">To join</div>
+            </div>
+            <div class="hero-divider"></div>
+            <div class="hero-stat">
+                <div class="hero-stat-num">24/7</div>
+                <div class="hero-stat-label">Chat support</div>
             </div>
         </div>
     </section>
 
     <!-- HOW IT WORKS -->
-    <div class="section">
-        <p class="section-label">How it works</p>
-        <h2 class="section-title">Up and running in minutes</h2>
-        <p class="section-sub">Whether you're looking for a place or listing one, the process is simple and straightforward.</p>
+    <div class="page-heading">
+        <h1>Up and running in minutes</h1>
+        <p>Whether you're looking for a place or listing one, the process is simple and straightforward.</p>
+    </div>
 
-        <div class="how-grid">
-            <div class="step-card">
-                <div class="step-num">1</div>
-                <p class="step-text">Tenants create an account and browse verified listings near their preferred location.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-num">2</div>
-                <p class="step-text">Landlords or property owners register as a host and list their available properties.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-num">3</div>
-                <p class="step-text">Fill in your geographical details accurately so we can match you with the right people.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-num">4</div>
-                <p class="step-text">Hosts track their dashboard for booking requests and respond to tenant inquiries via chat.</p>
-            </div>
-            <div class="step-card">
-                <div class="step-num">5</div>
-                <p class="step-text">Communicate politely and promptly — hosts should check their dashboard regularly.</p>
-            </div>
+    <div class="how-grid">
+        <div class="step-card">
+            <div class="step-num">1</div>
+            <p class="step-text">Tenants create an account and browse verified listings near their preferred location.</p>
         </div>
+        <div class="step-card">
+            <div class="step-num">2</div>
+            <p class="step-text">Landlords or property owners register as a host and list their available properties.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">3</div>
+            <p class="step-text">Fill in your geographical details accurately so we can match you with the right people.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">4</div>
+            <p class="step-text">Hosts track their dashboard for booking requests and respond to tenant inquiries via chat.</p>
+        </div>
+        <div class="step-card">
+            <div class="step-num">5</div>
+            <p class="step-text">Communicate politely and promptly — hosts should check their dashboard regularly.</p>
+        </div>
+    </div>
 
-        <!-- ABOUT -->
-        <div class="about-card">
-            <div class="about-img-wrap">
-                <img class="about-logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect">
-                <span class="about-brand-name">QejaConnect</span>
-                <span class="about-brand-tag">Secure your house easily</span>
-            </div>
-            <div class="about-text">
-                <p class="section-label">About us</p>
-                <h3 class="about-title">What is Qeja Connect?</h3>
-                <p class="about-body">Qeja Connect is an online platform created to link tenants with property owners, making it easier to find accommodation with clarity, trust, and convenience. We believe everyone deserves a safe, straightforward path to finding their next home.</p>
-            </div>
+    <!-- ABOUT -->
+    <div class="about-card">
+        <div class="about-img-wrap">
+            <img class="about-logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect">
+            <span class="about-brand-name">QejaConnect</span>
+            <span class="about-brand-tag">Secure your house easily</span>
+        </div>
+        <div class="about-text">
+            <h3 class="about-title">What is Qeja Connect?</h3>
+            <p class="about-body">Qeja Connect is an online platform created to link tenants with property owners, making it easier to find accommodation with clarity, trust, and convenience. We believe everyone deserves a safe, straightforward path to finding their next home.</p>
         </div>
     </div>
 
     <!-- SIGN UP CTA -->
     <div class="signup-section">
         <div class="signup-inner">
-            <p class="section-label" style="justify-content:center;display:flex;">Ready to start?</p>
-            <h2 class="section-title" style="font-size:clamp(1.6rem,4vw,2.2rem);">Seems cool? Join today.</h2>
-            <p class="section-sub" style="margin:0 auto;">Create your free account in under two minutes and start browsing or listing properties right away.</p>
+            <h2>Seems cool? Join today.</h2>
+            <p>Create your free account in under two minutes and start browsing or listing properties right away.</p>
             <div class="signup-cta">
-                <button id="login2" class="btn btn-ghost" style="padding:12px 28px;">Sign in</button>
-                <button class="btn btn-primary" style="padding:12px 28px;" onclick="openPopup()">Create account</button>
+                <button id="login2" class="btn-outline">Sign in</button>
+                <button onclick="openPopup()">Create account</button>
             </div>
         </div>
     </div>
@@ -922,14 +688,12 @@
 
     <!-- BANNER -->
     <div class="bar-fill">
-        <div class="bar-dots"><span></span><span></span><span></span></div>
         <span class="bar-text">Powered by</span>
         <span class="bar-badge">QC</span>
-        <div class="bar-dots"><span></span><span></span><span></span></div>
     </div>
 
     <!-- FOOTER -->
-    <div class="foot">
+    <footer>
         <img class="foot-logo" src="https://eliyasande65-lang.github.io/QejaConnect/logo.jpg" alt="QejaConnect">
         <h3>Qeja Connect</h3>
         <p>Developed by QejaConnect_Kenya ltd.</p>
@@ -937,14 +701,14 @@
         <p style="margin-top:12px;"><a href="https://eliyasande65-lang.github.io/QejaConnect/privacy_policy.html">Privacy Policy</a></p>
         <p style="margin-top:16px;">
             <a href="https://www.facebook.com/profile.php?id=61590181066724" target="_blank" rel="noopener"
-               style="display:inline-flex;align-items:center;gap:8px;color:#a78bfa;font-size:0.92rem;font-weight:600;text-decoration:none;">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#a78bfa">
+               style="display:inline-flex;align-items:center;gap:8px;color:#b9a6ff;font-size:0.92rem;font-weight:bold;text-decoration:none;">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="#b9a6ff">
                     <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.413c0-3.025 1.791-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.884v2.25h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" />
                 </svg>
                 Follow us on Facebook @qejaconnect
             </a>
         </p>
-    </div>
+    </footer>
 
     <script>
         function openPopup() {
@@ -972,7 +736,7 @@
         window.addEventListener('beforeinstallprompt', (e) => {
         e.preventDefault();
         deferredPrompt = e;
-        document.getElementById('install-btn').style.display = 'block';
+        document.getElementById('install-btn').style.display = 'inline-block';
         });
 
         document.getElementById('install-btn').addEventListener('click', async () => {

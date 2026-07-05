@@ -431,6 +431,7 @@
             💬 Messages from QejaConnect
             <span id="navNotifBadge" style="display:none;background:indigo;color:white;border-radius:6px;font-size:11px;font-weight:700;padding:2px 8px;min-width:20px;text-align:center;">0</span>
         </a>
+        <a href="#" onclick="goToMyGroup(); return false;">💬 Chat with housemates</a>
         <a href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
             🚪 Log out
         </a>
@@ -456,7 +457,7 @@
     <div class="section-title">Your Properties</div>
     <div class="dashboard" id="myProperties"></div>
 
-    <div class="dashboard" id="dashboard"></div>
+    <div class="dashboard" id="dashboard"<a href="#" onclick="goToMyGroup(); return false;">💬 Chat with housemates</a>></div>
 
     <div class="section-title">Your Chats</div>
 
@@ -908,6 +909,37 @@
         }
         })();
     </script>
+    <script>
+        async function goToMyGroup() {
+        if (!token || !userId) {
+        alert("Please login first");
+        return;
+        }
 
+        if (userRole === "landlord") {
+        location.href = "my-groups.html";
+        return;
+        }
+
+        // Tenant: find their active tenancy's property and jump straight there
+        try {
+        const res = await fetch(
+        `https://qeja-backend-azkf.onrender.com/tenancy/tenant/${userId}`,
+        { headers: { "Authorization": "Bearer " + token } }
+        );
+        const data = await res.json();
+
+        if (!data.success || !data.tenancy) {
+        alert("You don't have an active tenancy yet, so there's no group chat to join.");
+        return;
+        }
+
+        location.href = `property-group.html?property_id=${data.tenancy.property_id}`;
+        } catch (err) {
+        console.error(err);
+        alert("Couldn't open your group chat. Please try again.");
+        }
+        }
+    </script>
 </body>
 </html>

@@ -1,0 +1,352 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#1a1535">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+
+    <script>
+        (function () {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        function ping() {
+        fetch("https://qeja-backend-azkf.onrender.com/activity/heartbeat", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+        }).catch(() => {});
+        }
+        ping();
+        setInterval(ping, 30000);
+        })();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Groups | Qeja Connect</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        header {
+            background: #1a1535;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            color: white;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+        }
+
+        nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+            nav a {
+                color: white;
+                text-decoration: none;
+                font-weight: bold;
+            }
+
+        .page-heading {
+            max-width: 900px;
+            margin: 25px auto 5px;
+            padding: 0 20px;
+        }
+
+            .page-heading h1 {
+                color: #1a1535;
+                font-size: 1.8rem;
+                margin: 0 0 4px;
+            }
+
+            .page-heading p {
+                color: #666;
+                margin: 0;
+                font-size: 14px;
+            }
+
+        .group-list {
+            max-width: 900px;
+            margin: 20px auto;
+            padding: 0 20px 60px;
+        }
+
+        .group-card {
+            background: white;
+            border-radius: 15px;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+        }
+
+        .group-info {
+            flex: 1;
+            min-width: 220px;
+        }
+
+        .group-name {
+            font-weight: bold;
+            color: #1a1535;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .group-meta {
+            font-size: 13px;
+            color: #777;
+        }
+
+        .group-actions {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+            .group-actions button {
+                width: auto;
+                margin: 0;
+                padding: 10px 16px;
+                border-radius: 10px;
+                font-size: 13px;
+            }
+
+        .open-btn {
+            background: #1a1535;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .rename-btn {
+            background: white;
+            color: #1a1535;
+            border: 1px solid #1a1535;
+            cursor: pointer;
+        }
+
+        .rename-row {
+            display: none;
+            gap: 8px;
+            align-items: center;
+            width: 100%;
+            margin-top: 10px;
+        }
+
+            .rename-row input {
+                flex: 1;
+                min-width: 180px;
+                padding: 8px 10px;
+                border: 1px solid #ccc;
+                border-radius: 8px;
+                font-size: 14px;
+            }
+
+            .rename-row button {
+                width: auto;
+                margin: 0;
+                padding: 8px 14px;
+                border-radius: 8px;
+                font-size: 13px;
+            }
+
+        .save-btn {
+            background: #1a1535;
+            color: white;
+            border: none;
+        }
+
+        .cancel-btn {
+            background: #999;
+            color: white;
+            border: none;
+        }
+
+        .state-msg {
+            text-align: center;
+            color: #999;
+            padding: 40px;
+        }
+
+        footer {
+            background: #1a1a1a;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo">
+            <h2>Qeja Connect</h2>
+        </div>
+        <nav>
+            <a href="home.html">Home</a>
+            <a href="mymessages.html">Notifications</a>
+            <a href="landlords.html">Landlords</a>
+            <a href="contact.html">Contact</a>
+            <a href="hostdashboard.html">Dashboard</a>
+            <a href="myprofile.html">Profile</a>
+        </nav>
+    </header>
+
+    <div class="page-heading">
+        <h1>My Groups</h1>
+        <p>Every property you list gets its own tenant group chat. Rename or open any of them below.</p>
+    </div>
+
+    <div class="group-list" id="groupList">
+        <p class="state-msg">Loading your groups...</p>
+    </div>
+
+    <footer>
+        <p>© 2026 Qeja Connect Kenya Ltd. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        const API_BASE = "https://qeja-backend-azkf.onrender.com";
+        const token = localStorage.getItem("token");
+        const role  = localStorage.getItem("role");
+
+        let landlordId = null;
+        try {
+        const stored = JSON.parse(localStorage.getItem("loggedUser") || "{}");
+        landlordId = stored.id;
+        } catch (e) { /* ignore */ }
+
+        if (!token || role !== "landlord" || !landlordId) {
+        document.getElementById("groupList").innerHTML =
+        '<p class="state-msg">Only landlords can view this page. Please sign in as a landlord.</p>';
+        } else {
+        loadGroups();
+        }
+
+        function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+        }
+
+        function timeAgo(dateStr) {
+        if (!dateStr) return "No activity yet";
+        const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+        if (diff < 60) return "Active just now";
+        if (diff < 3600) return `Active ${Math.floor(diff / 60)}m ago`;
+        if (diff < 86400) return `Active ${Math.floor(diff / 3600)}h ago`;
+        return `Active ${Math.floor(diff / 86400)}d ago`;
+        }
+
+        async function loadGroups() {
+        const listEl = document.getElementById("groupList");
+        try {
+        const res = await fetch(`${API_BASE}/property-chat/landlord/${landlordId}/groups`, {
+        headers: { "Authorization": "Bearer " + token },
+        });
+        const data = await res.json();
+        if (!data.success) {
+        listEl.innerHTML = `<p class="state-msg">${escapeHtml(data.message || "Couldn't load your groups.")}</p>`;
+        return;
+        }
+        if (!data.groups.length) {
+        listEl.innerHTML = '<p class="state-msg">You don\'t have any properties listed yet, so no groups to show.</p>';
+        return;
+        }
+
+        listEl.innerHTML = data.groups.map(renderGroupCard).join("");
+        } catch (err) {
+        console.error(err);
+        listEl.innerHTML = '<p class="state-msg">Something went wrong loading your groups.</p>';
+        }
+        }
+
+        function renderGroupCard(g) {
+        return `
+        <div class="group-card" data-property-id="${g.property_id}">
+        <div class="group-info">
+        <div class="group-name" id="name-${g.property_id}">${escapeHtml(g.group_name)}</div>
+        <div class="group-meta">${g.member_count} tenant${g.member_count === 1 ? "" : "s"} · ${g.post_count} message${g.post_count === 1 ? "" : "s"} · ${timeAgo(g.last_activity)}</div>
+        </div>
+        <div class="group-actions">
+        <button class="rename-btn" onclick="toggleRename(${g.property_id})">✏️ Rename</button>
+        <button class="open-btn" onclick="window.location.href='property-group.html?property_id=${g.property_id}'">Open Chat</button>
+        </div>
+        <div class="rename-row" id="rename-${g.property_id}">
+        <input type="text" id="input-${g.property_id}" maxlength="150" value="${escapeHtml(g.group_name)}" placeholder="Leave blank to reset to property name">
+        <button class="save-btn" onclick="saveRename(${g.property_id})">Save</button>
+        <button class="cancel-btn" onclick="toggleRename(${g.property_id})">Cancel</button>
+        </div>
+        </div>`;
+        }
+
+        function toggleRename(propertyId) {
+        const row = document.getElementById(`rename-${propertyId}`);
+        row.style.display = row.style.display === "flex" ? "none" : "flex";
+        }
+
+        async function saveRename(propertyId) {
+        const newName = document.getElementById(`input-${propertyId}`).value.trim();
+        try {
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/group-name`, {
+        method: "PATCH",
+        headers: {
+        "Authorization": "Bearer " + token,
+        "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ group_name: newName }),
+        });
+        const data = await res.json();
+        if (!data.success) return alert(data.message || "Couldn't rename group.");
+        document.getElementById(`name-${propertyId}`).textContent = data.group_name;
+        document.getElementById(`input-${propertyId}`).value = data.group_name;
+        toggleRename(propertyId);
+        } catch (err) {
+        console.error(err);
+        alert("Couldn't rename group.");
+        }
+        }
+    </script>
+
+</body>
+</html>

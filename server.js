@@ -2384,6 +2384,76 @@ router.get("/admin/referrals/leaderboard", adminAuth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+
+// ---------------------------------------------------------
+// GET /property-chat/landlord/:landlordId/groups
+// Lists every property this landlord owns as a "group", with
+// live member/post counts and last-activity timestamp — powers
+// my-groups.html.
+// ---------------------------------------------------------
+router.get("/property-chat/landlord/:landlordId/groups", auth, async (req, res) => {
+  try {
+    if (req.user.role !== "landlord" || req.user.id !== parseInt(req.params.landlordId)) {
+      return res.status(403).json({ success: false, message: "Forbidden." });
+    }
+
+    const [rows] = await dbPromise.query(
+      `SELECT
+         p.id AS property_id,
+         COALESCE(p.group_name, p.title) AS group_name,
+         (SELECT COUNT(*) FROM tenancies t
+            WHERE t.property_id = p.id AND t.status = 'active') AS member_count,
+         (SELECT COUNT(*) FROM property_chat_posts pcp
+            WHERE pcp.property_id = p.id AND pcp.deleted_at IS NULL) AS post_count,
+         (SELECT MAX(pcp.created_at) FROM property_chat_posts pcp
+            WHERE pcp.property_id = p.id AND pcp.deleted_at IS NULL) AS last_activity
+       FROM properties p
+       WHERE p.landlord_id = ?
+       ORDER BY p.id DESC`,
+      [req.params.landlordId]
+    );
+
+    res.json({ success: true, groups: rows });
+  } catch (err) {
+    console.error("[LANDLORD GROUPS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// PATCH /property-chat/:propertyId/group-name
+// Landlord renames their own group chat. Blank value resets
+// to the property's title.
+// ---------------------------------------------------------
+router.patch("/property-chat/:propertyId/group-name", auth, async (req, res) => {
+  try {
+    if (req.user.role !== "landlord") {
+      return res.status(403).json({ success: false, message: "Only landlords can rename groups." });
+    }
+
+    const [rows] = await dbPromise.query(
+      `SELECT id, title, landlord_id FROM properties WHERE id = ?`,
+      [req.params.propertyId]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Property not found." });
+    if (rows[0].landlord_id !== req.user.id) {
+      return res.status(403).json({ success: false, message: "Not your property." });
+    }
+
+    const trimmed = (req.body.group_name || "").trim();
+    const newName = trimmed || null; // null falls back to COALESCE(title) on read
+
+    await dbPromise.query(
+      `UPDATE properties SET group_name = ? WHERE id = ?`,
+      [newName, req.params.propertyId]
+    );
+
+    res.json({ success: true, group_name: newName || rows[0].title });
+  } catch (err) {
+    console.error("[GROUP RENAME]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 //PROPERTIES GROUP CHAT
 // ---------------------------------------------------------
 async function getPropertyChatAccess(propertyId, user) {
