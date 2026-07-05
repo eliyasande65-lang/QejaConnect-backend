@@ -2384,7 +2384,425 @@ router.get("/admin/referrals/leaderboard", adminAuth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
+//PROPERTIES GROUP CHAT
+// ---------------------------------------------------------
+async function getPropertyChatAccess(propertyId, user) {
+  const [propRows] = await dbPromise.query(
+    `SELECT id, title, landlord_id FROM properties WHERE id = ?`,
+    [propertyId]
+  );
+  if (!propRows.length) return { property: null, isMember: false, isOwner: false };
 
+  const property = propRows[0];
+
+  if (user.role === "landlord") {
+    const isOwner = property.landlord_id === user.id;
+    return { property, isMember: isOwner, isOwner };
+  }
+
+  // tenant: must have an active tenancy on this property
+  const [tenRows] = await dbPromise.query(
+    `SELECT id FROM tenancies WHERE property_id = ? AND tenant_id = ? AND status = 'active' LIMIT 1`,
+    [propertyId, user.id]
+  );
+  return { property, isMember: tenRows.length > 0, isOwner: false };
+}
+
+// Reusable middleware: attaches req.propertyChat = { property, isOwner }
+// and blocks anyone who isn't a member.
+function requirePropertyChatMember(req, res, next) {
+  const propertyId = req.params.propertyId;
+  getPropertyChatAccess(propertyId, req.user)
+    .then(({ property, isMember, isOwner }) => {
+      if (!property) {
+        return res.status(404).json({ success: false, message: "Property not found." });
+      }
+      if (!isMember) {
+        return res.status(403).json({ success: false, message: "You're not part of this group." });
+      }
+      req.propertyChat = { property, isOwner };
+      next();
+    })
+    .catch((err) => {
+      console.error("[PROPERTY CHAT ACCESS]", err.message);
+      res.status(500).json({ success: false, message: "Server error" });
+    });
+}
+
+// Turn a flat list of rows into top-level posts with nested `replies`.
+function buildThread(rows) {
+  const byId = new Map();
+  rows.forEach((r) => byId.set(r.id, { ...r, replies: [] }));
+
+  const top = [];
+  rows.forEach((r) => {
+    const node = byId.get(r.id);
+    if (r.parent_id && byId.has(r.parent_id)) {
+      byId.get(r.parent_id).replies.push(node);
+    } else {
+      top.push(node);
+    }
+  });
+
+  // Announcements first, then newest-first for everything else.
+  top.sort((a, b) => {
+    if (a.is_announcement !== b.is_announcement) return b.is_announcement - a.is_announcement;
+    return new Date(b.created_at) - new Date(a.created_at);
+  });
+  top.forEach((p) => p.replies.sort((a, b) => new Date(a.created_at) - new Date(b.created_at)));
+
+  return top;
+}
+
+// ---------------------------------------------------------
+// GET meta — who am I in this group, and basic property info
+// ---------------------------------------------------------
+router.get("/property-chat/:propertyId/meta", auth, async (req, res) => {
+  try {
+    const { property, isMember, isOwner } = await getPropertyChatAccess(req.params.propertyId, req.user);
+    if (!property) return res.status(404).json({ success: false, message: "Property not found." });
+    if (!isMember) return res.status(403).json({ success: false, message: "You're not part of this group." });
+    res.json({ success: true, property, isOwner });
+  } catch (err) {
+    console.error("[PROPERTY CHAT META]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// GET posts (threaded, with reaction counts + my reaction)
+// ---------------------------------------------------------
+router.get("/property-chat/:propertyId/posts", auth, requirePropertyChatMember, async (req, res) => {
+  try {
+    const propertyId = req.params.propertyId;
+
+    const [rows] = await dbPromise.query(
+      `SELECT
+         pcp.id, pcp.parent_id, pcp.user_id, pcp.user_role,
+         pcp.content, pcp.is_announcement,
+         pcp.created_at, pcp.updated_at, pcp.deleted_at,
+         CASE WHEN pcp.user_role='tenant' THEN u.fullname ELSE l.fullname END AS author_name,
+         CASE WHEN pcp.user_role='tenant' THEN u.profile_pic ELSE l.profile_pic END AS author_pic
+       FROM property_chat_posts pcp
+       LEFT JOIN users     u ON pcp.user_role='tenant'   AND pcp.user_id=u.id
+       LEFT JOIN landlords l ON pcp.user_role='landlord' AND pcp.user_id=l.id
+       WHERE pcp.property_id = ?
+       ORDER BY pcp.created_at ASC`,
+      [propertyId]
+    );
+
+    const postIds = rows.map((r) => r.id);
+    let reactionsByPost = {};
+    let myReactionByPost = {};
+
+    if (postIds.length) {
+      const placeholders = postIds.map(() => "?").join(",");
+
+      const [reactionRows] = await dbPromise.query(
+        `SELECT post_id, reaction, COUNT(*) AS count
+         FROM property_chat_reactions
+         WHERE post_id IN (${placeholders})
+         GROUP BY post_id, reaction`,
+        postIds
+      );
+      reactionRows.forEach((r) => {
+        if (!reactionsByPost[r.post_id]) reactionsByPost[r.post_id] = {};
+        reactionsByPost[r.post_id][r.reaction] = r.count;
+      });
+
+      const [mine] = await dbPromise.query(
+        `SELECT post_id, reaction FROM property_chat_reactions
+         WHERE post_id IN (${placeholders}) AND user_id = ? AND user_role = ?`,
+        [...postIds, req.user.id, req.user.role]
+      );
+      mine.forEach((r) => { myReactionByPost[r.post_id] = r.reaction; });
+    }
+
+    // Soft-deleted posts still occupy their spot in the thread (so replies
+    // aren't orphaned) but their content is replaced client-side too;
+    // we scrub it here as a backend guarantee.
+    const shaped = rows.map((r) => ({
+      id: r.id,
+      parent_id: r.parent_id,
+      user_id: r.user_id,
+      user_role: r.user_role,
+      author_name: r.author_name || "Unknown",
+      author_pic: r.author_pic || null,
+      content: r.deleted_at ? null : r.content,
+      is_deleted: !!r.deleted_at,
+      is_announcement: !!r.is_announcement,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+      is_mine: r.user_id === req.user.id && r.user_role === req.user.role,
+      reactions: reactionsByPost[r.id] || {},
+      my_reaction: myReactionByPost[r.id] || null,
+    }));
+
+    res.json({ success: true, isOwner: req.propertyChat.isOwner, posts: buildThread(shaped) });
+  } catch (err) {
+    console.error("[PROPERTY CHAT POSTS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// POST a new post / reply / announcement
+// ---------------------------------------------------------
+router.post("/property-chat/:propertyId/posts", auth, requirePropertyChatMember, async (req, res) => {
+  try {
+    const { content, parent_id, is_announcement } = req.body;
+    const propertyId = req.params.propertyId;
+
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Message can't be empty." });
+    }
+    if (content.length > 2000) {
+      return res.status(400).json({ success: false, message: "Message is too long." });
+    }
+
+    const wantsAnnouncement = !!is_announcement && req.propertyChat.isOwner;
+
+    if (parent_id) {
+      const [parentRows] = await dbPromise.query(
+        `SELECT id FROM property_chat_posts WHERE id = ? AND property_id = ?`,
+        [parent_id, propertyId]
+      );
+      if (!parentRows.length) {
+        return res.status(400).json({ success: false, message: "Original post not found." });
+      }
+    }
+
+    const [result] = await dbPromise.query(
+      `INSERT INTO property_chat_posts
+         (property_id, user_id, user_role, parent_id, content, is_announcement)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [propertyId, req.user.id, req.user.role, parent_id || null, content.trim(), wantsAnnouncement ? 1 : 0]
+    );
+
+    if (typeof logActivity === "function") {
+      await logActivity(
+        req.user.id, req.user.role,
+        wantsAnnouncement ? "posted_group_announcement" : "posted_group_message",
+        { property_id: propertyId, post_id: result.insertId },
+        req
+      );
+    }
+
+    res.json({ success: true, post_id: result.insertId });
+  } catch (err) {
+    console.error("[PROPERTY CHAT POST]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// PATCH — edit your own post/reply
+// ---------------------------------------------------------
+router.patch("/property-chat/:propertyId/posts/:postId", auth, requirePropertyChatMember, async (req, res) => {
+  try {
+    const { content } = req.body;
+    if (!content || !content.trim()) {
+      return res.status(400).json({ success: false, message: "Message can't be empty." });
+    }
+
+    const [rows] = await dbPromise.query(
+      `SELECT * FROM property_chat_posts WHERE id = ? AND property_id = ?`,
+      [req.params.postId, req.params.propertyId]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Post not found." });
+    const post = rows[0];
+
+    if (post.deleted_at) {
+      return res.status(400).json({ success: false, message: "Can't edit a deleted post." });
+    }
+    if (post.user_id !== req.user.id || post.user_role !== req.user.role) {
+      return res.status(403).json({ success: false, message: "You can only edit your own posts." });
+    }
+
+    await dbPromise.query(
+      `UPDATE property_chat_posts SET content = ?, updated_at = NOW() WHERE id = ?`,
+      [content.trim(), post.id]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[PROPERTY CHAT EDIT]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// DELETE — remove your own post, OR (if you're the landlord
+// who owns this property) remove anyone's post in your group.
+// ---------------------------------------------------------
+router.delete("/property-chat/:propertyId/posts/:postId", auth, requirePropertyChatMember, async (req, res) => {
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT * FROM property_chat_posts WHERE id = ? AND property_id = ?`,
+      [req.params.postId, req.params.propertyId]
+    );
+    if (!rows.length) return res.status(404).json({ success: false, message: "Post not found." });
+    const post = rows[0];
+
+    const isAuthor = post.user_id === req.user.id && post.user_role === req.user.role;
+    const canModerate = req.propertyChat.isOwner;
+
+    if (!isAuthor && !canModerate) {
+      return res.status(403).json({ success: false, message: "You can't delete this post." });
+    }
+
+    await dbPromise.query(
+      `UPDATE property_chat_posts SET deleted_at = NOW(), deleted_by_role = ? WHERE id = ?`,
+      [req.user.role, post.id]
+    );
+
+    if (typeof logActivity === "function" && canModerate && !isAuthor) {
+      await logActivity(
+        req.user.id, req.user.role, "removed_group_post",
+        { property_id: req.params.propertyId, post_id: post.id },
+        req
+      );
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error("[PROPERTY CHAT DELETE]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// POST react — tap an emoji; same emoji again removes it,
+// a different emoji swaps your previous reaction for it.
+// ---------------------------------------------------------
+router.post("/property-chat/:propertyId/posts/:postId/react", auth, requirePropertyChatMember, async (req, res) => {
+  try {
+    const { reaction } = req.body;
+    const allowed = ["👍", "❤️", "😂", "😮", "😢"];
+    if (!allowed.includes(reaction)) {
+      return res.status(400).json({ success: false, message: "Unsupported reaction." });
+    }
+
+    const [postRows] = await dbPromise.query(
+      `SELECT id FROM property_chat_posts WHERE id = ? AND property_id = ? AND deleted_at IS NULL`,
+      [req.params.postId, req.params.propertyId]
+    );
+    if (!postRows.length) return res.status(404).json({ success: false, message: "Post not found." });
+
+    const [existing] = await dbPromise.query(
+      `SELECT reaction FROM property_chat_reactions WHERE post_id = ? AND user_id = ? AND user_role = ?`,
+      [req.params.postId, req.user.id, req.user.role]
+    );
+
+    if (existing.length && existing[0].reaction === reaction) {
+      await dbPromise.query(
+        `DELETE FROM property_chat_reactions WHERE post_id = ? AND user_id = ? AND user_role = ?`,
+        [req.params.postId, req.user.id, req.user.role]
+      );
+      return res.json({ success: true, my_reaction: null });
+    }
+
+    await dbPromise.query(
+      `INSERT INTO property_chat_reactions (post_id, user_id, user_role, reaction)
+       VALUES (?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE reaction = VALUES(reaction)`,
+      [req.params.postId, req.user.id, req.user.role, reaction]
+    );
+    res.json({ success: true, my_reaction: reaction });
+  } catch (err) {
+    console.error("[PROPERTY CHAT REACT]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+/* =========================================================
+   ADMIN — search/browse any group by id or name, read-only.
+   Admin never appears as a group member and can't post here;
+   this is strictly an oversight/support view.
+   ========================================================= */
+
+// GET /admin/property-chat/groups?search=... — list groups (properties)
+router.get("/admin/property-chat/groups", adminAuth, async (req, res) => {
+  try {
+    const search = (req.query.search || "").trim();
+    let where  = "";
+    let params = [];
+
+    if (search) {
+      if (/^\d+$/.test(search)) {
+        where  = "WHERE p.id = ?";
+        params = [search];
+      } else {
+        where  = "WHERE p.title LIKE ? OR l.fullname LIKE ? OR p.location LIKE ?";
+        params = [`%${search}%`, `%${search}%`, `%${search}%`];
+      }
+    }
+
+    const [rows] = await dbPromise.query(
+      `SELECT p.id AS property_id, p.title, p.location, l.id AS landlord_id, l.fullname AS landlord_name,
+              (SELECT COUNT(*) FROM tenancies t WHERE t.property_id = p.id AND t.status='active') AS member_count,
+              (SELECT COUNT(*) FROM property_chat_posts pcp WHERE pcp.property_id = p.id AND pcp.deleted_at IS NULL) AS post_count
+       FROM properties p
+       LEFT JOIN landlords l ON p.landlord_id = l.id
+       ${where}
+       ORDER BY p.id DESC
+       LIMIT 50`,
+      params
+    );
+
+    res.json({ success: true, groups: rows });
+  } catch (err) {
+    console.error("[ADMIN PROPERTY CHAT GROUPS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// GET /admin/property-chat/:propertyId/posts — read the full thread,
+// including soft-deleted posts (marked accordingly) for moderation review.
+router.get("/admin/property-chat/:propertyId/posts", adminAuth, async (req, res) => {
+  try {
+    const propertyId = req.params.propertyId;
+
+    const [propRows] = await dbPromise.query(
+      `SELECT p.id, p.title, p.location, l.fullname AS landlord_name
+       FROM properties p LEFT JOIN landlords l ON p.landlord_id = l.id
+       WHERE p.id = ?`,
+      [propertyId]
+    );
+    if (!propRows.length) return res.status(404).json({ success: false, message: "Property not found." });
+
+    const [rows] = await dbPromise.query(
+      `SELECT
+         pcp.id, pcp.parent_id, pcp.user_id, pcp.user_role,
+         pcp.content, pcp.is_announcement,
+         pcp.created_at, pcp.updated_at, pcp.deleted_at, pcp.deleted_by_role,
+         CASE WHEN pcp.user_role='tenant' THEN u.fullname ELSE l.fullname END AS author_name
+       FROM property_chat_posts pcp
+       LEFT JOIN users     u ON pcp.user_role='tenant'   AND pcp.user_id=u.id
+       LEFT JOIN landlords l ON pcp.user_role='landlord' AND pcp.user_id=l.id
+       WHERE pcp.property_id = ?
+       ORDER BY pcp.created_at ASC`,
+      [propertyId]
+    );
+
+    const shaped = rows.map((r) => ({
+      id: r.id,
+      parent_id: r.parent_id,
+      author_name: r.author_name || "Unknown",
+      user_role: r.user_role,
+      content: r.content,               // admin sees real content even if deleted, for moderation
+      is_deleted: !!r.deleted_at,
+      deleted_by_role: r.deleted_by_role,
+      is_announcement: !!r.is_announcement,
+      created_at: r.created_at,
+      updated_at: r.updated_at,
+    }));
+
+    res.json({ success: true, property: propRows[0], posts: buildThread(shaped) });
+  } catch (err) {
+    console.error("[ADMIN PROPERTY CHAT POSTS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 // =========================
 // MOUNT ROUTER & ERROR HANDLER
 // =========================

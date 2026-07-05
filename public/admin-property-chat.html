@@ -1,0 +1,335 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chats | Qeja Connect Admin</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        header {
+            background: #1a1535;
+            padding: 15px 30px;
+            color: white;
+        }
+
+            header h2 {
+                margin: 0;
+            }
+
+        .wrap {
+            max-width: 1000px;
+            margin: 25px auto;
+            padding: 0 20px 60px;
+        }
+
+        .search-wrap {
+            display: flex;
+            gap: 10px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+
+            .search-wrap input {
+                flex: 1;
+                padding: 12px 14px;
+                border: 1px solid #ccc;
+                border-radius: 10px;
+                font-size: 15px;
+            }
+
+            .search-wrap button {
+                width: auto;
+                padding: 12px 20px;
+                border-radius: 10px;
+                background: #1a1535;
+                color: white;
+                border: none;
+                font-weight: bold;
+                cursor: pointer;
+            }
+
+        .layout {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 20px;
+        }
+
+        @media (max-width: 800px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .group-list {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+            padding: 10px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .group-item {
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            border: 1px solid transparent;
+        }
+
+            .group-item:hover {
+                background: #f2f0fa;
+            }
+
+            .group-item.active {
+                background: #1a1535;
+                color: white;
+            }
+
+            .group-item .g-title {
+                font-weight: bold;
+                font-size: 14px;
+            }
+
+            .group-item .g-meta {
+                font-size: 12px;
+                color: #999;
+            }
+
+            .group-item.active .g-meta {
+                color: #ddd;
+            }
+
+        .thread-panel {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+            padding: 20px;
+            max-height: 70vh;
+            overflow-y: auto;
+        }
+
+        .thread-title {
+            color: #1a1535;
+            margin: 0 0 4px;
+        }
+
+        .thread-sub {
+            color: #666;
+            font-size: 13px;
+            margin: 0 0 16px;
+        }
+
+        .post {
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 10px;
+            background: #fafafa;
+        }
+
+            .post.announcement {
+                border: 2px solid #1a1535;
+                background: #f2f0fa;
+            }
+
+            .post.removed {
+                opacity: 0.6;
+            }
+
+        .post-author {
+            font-weight: bold;
+            color: #1a1535;
+            font-size: 13px;
+        }
+
+        .post-meta {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 6px;
+        }
+
+        .post-content {
+            font-size: 14px;
+            color: #333;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .replies {
+            margin-top: 8px;
+            padding-left: 16px;
+            border-left: 3px solid #eee;
+        }
+
+        .state-msg {
+            color: #999;
+            text-align: center;
+            padding: 30px;
+        }
+
+        .tag {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 8px;
+            margin-left: 6px;
+        }
+
+            .tag.removed-tag {
+                background: #b91c1c;
+                color: white;
+            }
+
+            .tag.announce-tag {
+                background: #1a1535;
+                color: white;
+            }
+    </style>
+</head>
+
+<body>
+
+    <header><h2>Qeja Connect — Group Chat Oversight</h2></header>
+
+    <div class="wrap">
+        <div class="search-wrap">
+            <input type="text" id="searchInput" placeholder="Search by group ID, property name, or landlord..." onkeydown="if(event.key==='Enter') searchGroups()">
+            <button onclick="searchGroups()">Search</button>
+        </div>
+
+        <div class="layout">
+            <div class="group-list" id="groupList">
+                <p class="state-msg">Search for a group to begin.</p>
+            </div>
+            <div class="thread-panel" id="threadPanel">
+                <p class="state-msg">Select a group on the left to view its chat.</p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = "https://qeja-backend-azkf.onrender.com";
+        const adminSecret = localStorage.getItem("admin_secret");
+
+        if (!adminSecret) {
+        window.location.href = "admin-login.html";
+        }
+
+        function adminHeaders() {
+        return { "x-admin-secret": adminSecret };
+        }
+
+        function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+        }
+
+        function timeAgo(dateStr) {
+        const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+        if (diff < 60) return "just now";
+        if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+        if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+        return Math.floor(diff / 86400) + "d ago";
+        }
+
+        async function searchGroups() {
+        const search = document.getElementById("searchInput").value.trim();
+        const listEl = document.getElementById("groupList");
+        listEl.innerHTML = '<p class="state-msg">Searching...</p>';
+
+        try {
+        const res = await fetch(`${API_BASE}/admin/property-chat/groups?search=${encodeURIComponent(search)}`, {
+        headers: adminHeaders(),
+        });
+        const data = await res.json();
+        if (!data.success || !data.groups.length) {
+        listEl.innerHTML = '<p class="state-msg">No matching groups found.</p>';
+        return;
+        }
+
+        listEl.innerHTML = data.groups.map((g) => `
+        <div class="group-item" data-id="${g.property_id}" onclick="openGroup(${g.property_id}, this)">
+        <div class="g-title">#${g.property_id} — ${escapeHtml(g.title)}</div>
+        <div class="g-meta">${escapeHtml(g.landlord_name || "Unknown landlord")} · ${g.member_count} member(s) · ${g.post_count} post(s)</div>
+        </div>
+        `).join("");
+        } catch (err) {
+        console.error(err);
+        listEl.innerHTML = '<p class="state-msg">Something went wrong.</p>';
+        }
+        }
+
+        function renderPost(post) {
+        const removedTag = post.is_deleted ? `<span class="tag removed-tag">REMOVED by ${post.deleted_by_role || "?"}</span>` : "";
+        const announceTag = post.is_announcement ? `<span class="tag announce-tag">ANNOUNCEMENT</span>` : "";
+        const repliesHtml = post.replies && post.replies.length
+        ? `<div class="replies">${post.replies.map(renderPost).join("")}</div>`
+        : "";
+
+        return `
+        <div class="post ${post.is_announcement ? "announcement" : ""} ${post.is_deleted ? "removed" : ""}">
+        <div class="post-author">${escapeHtml(post.author_name)}${announceTag}${removedTag}</div>
+        <div class="post-meta">${timeAgo(post.created_at)}${post.updated_at ? " · edited" : ""}</div>
+        <div class="post-content">${escapeHtml(post.content || "")}</div>
+        ${repliesHtml}
+        </div>`;
+        }
+
+        async function openGroup(propertyId, el) {
+        document.querySelectorAll(".group-item").forEach((i) => i.classList.remove("active"));
+        if (el) el.classList.add("active");
+
+        const panel = document.getElementById("threadPanel");
+        panel.innerHTML = '<p class="state-msg">Loading chat...</p>';
+
+        try {
+        const res = await fetch(`${API_BASE}/admin/property-chat/${propertyId}/posts`, {
+        headers: adminHeaders(),
+        });
+        const data = await res.json();
+        if (!data.success) {
+        panel.innerHTML = `<p class="state-msg">${escapeHtml(data.message || "Couldn't load this group.")}</p>`;
+        return;
+        }
+
+        const header = `
+        <h3 class="thread-title">${escapeHtml(data.property.title)}</h3>
+        <p class="thread-sub">Group #${propertyId} · ${escapeHtml(data.property.landlord_name || "Unknown landlord")} · ${escapeHtml(data.property.location || "")}</p>
+        `;
+
+        panel.innerHTML = header + (data.posts.length
+        ? data.posts.map(renderPost).join("")
+        : '<p class="state-msg">No messages yet in this group.</p>');
+        } catch (err) {
+        console.error(err);
+        panel.innerHTML = '<p class="state-msg">Something went wrong.</p>';
+        }
+        }
+
+        // Support opening a group directly via ?property_id=123
+        (function initFromQuery() {
+        const params = new URLSearchParams(window.location.search);
+        const id = params.get("property_id");
+        if (id) {
+        document.getElementById("searchInput").value = id;
+        searchGroups().then(() => openGroup(id));
+        }
+        })();
+    </script>
+
+</body>
+</html>

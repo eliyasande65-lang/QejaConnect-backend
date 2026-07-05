@@ -1,0 +1,725 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#1a1535">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+
+    <script>
+        (function () {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        function ping() {
+        fetch("https://qeja-backend-azkf.onrender.com/activity/heartbeat", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+        }).catch(() => {});
+        }
+        ping();
+        setInterval(ping, 30000);
+        })();
+    </script>
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Chat | Qeja Connect</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        header {
+            background: #1a1535;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            color: white;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        #logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+        }
+
+        nav {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+            nav a {
+                color: white;
+                text-decoration: none;
+                font-weight: bold;
+            }
+
+        .page-heading {
+            max-width: 800px;
+            margin: 25px auto 5px;
+            padding: 0 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+            .page-heading h1 {
+                color: #1a1535;
+                font-size: 1.6rem;
+                margin: 0 0 4px;
+            }
+
+            .page-heading p {
+                color: #666;
+                margin: 0;
+                font-size: 14px;
+            }
+
+        .owner-badge {
+            background: #1a1535;
+            color: white;
+            font-size: 12px;
+            font-weight: bold;
+            padding: 6px 12px;
+            border-radius: 20px;
+            white-space: nowrap;
+        }
+
+        .chat-wrap {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 15px 20px 120px;
+        }
+
+        .state-msg {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+        }
+
+        .composer {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            padding: 14px;
+            margin-bottom: 20px;
+        }
+
+            .composer textarea {
+                width: 100%;
+                min-height: 60px;
+                resize: vertical;
+                border: 1px solid #ccc;
+                border-radius: 10px;
+                padding: 10px 12px;
+                font-family: inherit;
+                font-size: 14px;
+            }
+
+        .composer-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 10px;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .announce-toggle {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            color: #1a1535;
+            font-weight: bold;
+        }
+
+        .composer button.send-btn {
+            width: auto;
+            margin: 0;
+            padding: 10px 22px;
+            border-radius: 10px;
+            background: #1a1535;
+        }
+
+        .post {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+            padding: 16px;
+            margin-bottom: 14px;
+            position: relative;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+            .post.announcement {
+                border: 2px solid #1a1535;
+                background: #f2f0fa;
+            }
+
+        .post-head {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 8px;
+        }
+
+        .post-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: #ddd;
+        }
+
+        .post-author {
+            font-weight: bold;
+            color: #1a1535;
+            font-size: 14px;
+        }
+
+        .post-meta {
+            font-size: 11px;
+            color: #999;
+        }
+
+        .announce-tag {
+            background: #1a1535;
+            color: white;
+            font-size: 10px;
+            font-weight: bold;
+            padding: 3px 8px;
+            border-radius: 10px;
+            margin-left: 6px;
+            vertical-align: middle;
+        }
+
+        .post-content {
+            font-size: 14px;
+            color: #333;
+            line-height: 1.4;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+            .post-content.deleted {
+                color: #aaa;
+                font-style: italic;
+            }
+
+        .post-actions {
+            display: flex;
+            gap: 14px;
+            margin-top: 10px;
+        }
+
+            .post-actions button {
+                width: auto;
+                margin: 0;
+                padding: 0;
+                background: none;
+                border: none;
+                color: #666;
+                font-size: 12px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+
+                .post-actions button:hover {
+                    color: #1a1535;
+                }
+
+        .reactions {
+            display: flex;
+            gap: 6px;
+            margin-top: 10px;
+            flex-wrap: wrap;
+        }
+
+        .reaction-chip {
+            width: auto;
+            margin: 0;
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid #ddd;
+            background: #fafafa;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+            .reaction-chip.mine {
+                background: #1a1535;
+                color: white;
+                border-color: #1a1535;
+            }
+
+        .replies {
+            margin-top: 12px;
+            padding-left: 18px;
+            border-left: 3px solid #eee;
+        }
+
+        .reply-box {
+            display: none;
+            margin-top: 10px;
+        }
+
+            .reply-box textarea {
+                width: 100%;
+                min-height: 44px;
+                border: 1px solid #ccc;
+                border-radius: 10px;
+                padding: 8px 10px;
+                font-family: inherit;
+                font-size: 13px;
+            }
+
+            .reply-box .send-btn {
+                width: auto;
+                margin-top: 6px;
+                padding: 8px 16px;
+                border-radius: 8px;
+                background: #1a1535;
+                font-size: 13px;
+            }
+
+        .edit-box textarea {
+            width: 100%;
+            min-height: 50px;
+            border: 1px solid #ccc;
+            border-radius: 10px;
+            padding: 8px 10px;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        .edit-box .edit-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .edit-box button {
+            width: auto;
+            margin: 0;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+
+        .edit-box .save-btn {
+            background: #1a1535;
+        }
+
+        .edit-box .cancel-btn {
+            background: #999;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            background: #1a1535;
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        /* right-click / long-press context menu */
+        .ctx-menu {
+            position: fixed;
+            z-index: 999;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.2);
+            padding: 6px;
+            display: none;
+            min-width: 140px;
+        }
+
+            .ctx-menu button {
+                width: 100%;
+                margin: 2px 0;
+                padding: 10px 12px;
+                text-align: left;
+                background: white;
+                color: #1a1535;
+                font-weight: normal;
+                border-radius: 8px;
+            }
+
+                .ctx-menu button:hover {
+                    background: #f2f0fa;
+                }
+
+                .ctx-menu button.danger {
+                    color: #b91c1c;
+                }
+
+        footer {
+            background: #1a1a1a;
+            color: white;
+            text-align: center;
+            padding: 30px;
+        }
+    </style>
+</head>
+
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo">
+            <h2>Qeja Connect</h2>
+        </div>
+        <nav>
+            <a href="home.html">Home</a>
+            <a href="mymessages.html">Notifications</a>
+            <a href="landlords.html">Landlords</a>
+            <a href="contact.html">Contact</a>
+            <a href="hostdashboard.html">Dashboard</a>
+            <a href="myprofile.html">Profile</a>
+        </nav>
+    </header>
+
+    <div class="page-heading">
+        <div>
+            <h1 id="groupTitle">Property Group Chat</h1>
+            <p id="groupSubtitle">Loading...</p>
+        </div>
+        <span class="owner-badge" id="ownerBadge" style="display:none;">You own this group</span>
+    </div>
+
+    <div class="chat-wrap">
+        <div class="composer" id="composer" style="display:none;">
+            <textarea id="postInput" placeholder="Share something with the other tenants..." maxlength="2000"></textarea>
+            <div class="composer-row">
+                <label class="announce-toggle" id="announceWrap" style="display:none;">
+                    <input type="checkbox" id="announceCheck"> Post as announcement
+                </label>
+                <button class="send-btn" onclick="submitPost()">Send</button>
+            </div>
+        </div>
+
+        <div id="feed"><p class="state-msg">Loading chat...</p></div>
+    </div>
+
+    <div class="ctx-menu" id="ctxMenu"></div>
+
+    <footer>
+        <p>© 2026 Qeja Connect Kenya Ltd. All Rights Reserved.</p>
+    </footer>
+
+    <script>
+        const API_BASE = "https://qeja-backend-azkf.onrender.com";
+        const params = new URLSearchParams(window.location.search);
+        const propertyId = params.get("property_id") || params.get("id");
+        const token = localStorage.getItem("token");
+
+        let isOwner = false;
+        let currentThread = [];
+        let openReplyId = null;
+        let refreshTimer = null;
+
+        if (!token) {
+        window.location.href = "signin.html";
+        }
+        if (!propertyId) {
+        document.getElementById("feed").innerHTML =
+        '<p class="state-msg">No property specified. Open this page from a listing or your dashboard.</p>';
+        }
+
+        function authHeaders(json) {
+        const h = { "Authorization": "Bearer " + token };
+        if (json) h["Content-Type"] = "application/json";
+        return h;
+        }
+
+        function timeAgo(dateStr) {
+        const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+        if (diff < 60) return "just now";
+        if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+        if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+        return Math.floor(diff / 86400) + "d ago";
+        }
+
+        function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+        }
+
+        async function loadMeta() {
+        try {
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/meta`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.success) {
+        document.getElementById("feed").innerHTML = `<p class="state-msg">${escapeHtml(data.message || "Can't open this group.")}</p>`;
+        return false;
+        }
+        isOwner = data.isOwner;
+        document.getElementById("groupTitle").textContent = data.property.title;
+        document.getElementById("groupSubtitle").textContent = "Chat for everyone renting this property";
+        document.getElementById("ownerBadge").style.display = isOwner ? "inline-block" : "none";
+        document.getElementById("composer").style.display = "block";
+        document.getElementById("announceWrap").style.display = isOwner ? "flex" : "none";
+        return true;
+        } catch (err) {
+        console.error(err);
+        document.getElementById("feed").innerHTML = '<p class="state-msg">Failed to load group.</p>';
+        return false;
+        }
+        }
+
+        async function loadPosts(silent) {
+        try {
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/posts`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.success) return;
+        currentThread = data.posts;
+        renderFeed();
+        } catch (err) {
+        if (!silent) console.error(err);
+        }
+        }
+
+        function renderFeed() {
+        const feed = document.getElementById("feed");
+        if (!currentThread.length) {
+        feed.innerHTML = '<p class="state-msg">No messages yet. Say hello 👋</p>';
+        return;
+        }
+        feed.innerHTML = currentThread.map(renderPost).join("");
+        }
+
+        function renderReactions(post) {
+        const emojiList = ["👍", "❤️", "😂", "😮", "😢"];
+        return `<div class="reactions">` + emojiList.map((e) => {
+        const count = post.reactions[e] || 0;
+        const mine  = post.my_reaction === e;
+        return `<button class="reaction-chip ${mine ? "mine" : ""}" onclick="react(${post.id}, '${e}')">${e}${count ? " " + count : ""}</button>`;
+        }).join("") + `</div>`;
+        }
+
+        function renderPost(post) {
+        const contentHtml = post.is_deleted
+        ? `<div class="post-content deleted">[message removed]</div>`
+        : `<div class="post-content">${escapeHtml(post.content)}</div>`;
+
+        const canModerate = post.is_mine || isOwner;
+
+        const repliesHtml = post.replies && post.replies.length
+        ? `<div class="replies">${post.replies.map(renderPost).join("")}</div>`
+        : "";
+
+        return `
+        <div class="post ${post.is_announcement ? "announcement" : ""}"
+        data-post-id="${post.id}"
+        data-can-moderate="${canModerate}"
+        data-is-mine="${post.is_mine}"
+        oncontextmenu="return handleContextMenu(event, ${post.id})">
+        <div class="post-head">
+        <img class="post-avatar" src="${post.author_pic || "default-user.png"}">
+        <div>
+        <div class="post-author">${escapeHtml(post.author_name)}${post.is_announcement ? '<span class="announce-tag">ANNOUNCEMENT</span>' : ""}</div>
+        <div class="post-meta">${timeAgo(post.created_at)}${post.updated_at ? " · edited" : ""}</div>
+        </div>
+        </div>
+        <div class="post-body" id="body-${post.id}">${contentHtml}</div>
+        ${post.is_deleted ? "" : renderReactions(post)}
+        ${post.is_deleted ? "" : `
+        <div class="post-actions">
+        <button onclick="toggleReply(${post.id})">Reply</button>
+        </div>
+        <div class="reply-box" id="reply-${post.id}">
+        <textarea placeholder="Write a reply..." id="replyInput-${post.id}" maxlength="2000"></textarea>
+        <button class="send-btn" onclick="submitReply(${post.id})">Reply</button>
+        </div>`}
+        ${repliesHtml}
+        </div>`;
+        }
+
+        function toggleReply(postId) {
+        const box = document.getElementById(`reply-${postId}`);
+        const isOpen = box.style.display === "block";
+        document.querySelectorAll(".reply-box").forEach((b) => (b.style.display = "none"));
+        box.style.display = isOpen ? "none" : "block";
+        if (!isOpen) document.getElementById(`replyInput-${postId}`).focus();
+        }
+
+        async function submitPost() {
+        const input = document.getElementById("postInput");
+        const content = input.value.trim();
+        if (!content) return;
+        const isAnnouncement = isOwner && document.getElementById("announceCheck").checked;
+
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/posts`, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ content, is_announcement: isAnnouncement }),
+        });
+        const data = await res.json();
+        if (!data.success) return alert(data.message || "Couldn't post.");
+        input.value = "";
+        document.getElementById("announceCheck").checked = false;
+        loadPosts();
+        }
+
+        async function submitReply(parentId) {
+        const input = document.getElementById(`replyInput-${parentId}`);
+        const content = input.value.trim();
+        if (!content) return;
+
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/posts`, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ content, parent_id: parentId }),
+        });
+        const data = await res.json();
+        if (!data.success) return alert(data.message || "Couldn't reply.");
+        loadPosts();
+        }
+
+        async function react(postId, emoji) {
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/posts/${postId}/react`, {
+        method: "POST",
+        headers: authHeaders(true),
+        body: JSON.stringify({ reaction: emoji }),
+        });
+        const data = await res.json();
+        if (data.success) loadPosts(true);
+        }
+
+        function startEdit(postId) {
+        const body = document.getElementById(`body-${postId}`);
+        const existing = body.querySelector(".post-content").textContent;
+        body.innerHTML = `
+        <div class="edit-box">
+        <textarea id="editInput-${postId}" maxlength="2000">${escapeHtml(existing)}</textarea>
+        <div class="edit-actions">
+        <button class="save-btn" onclick="saveEdit(${postId})">Save</button>
+        <button class="cancel-btn" onclick="loadPosts()">Cancel</button>
+        </div>
+        </div>`;
+        document.getElementById(`editInput-${postId}`).focus();
+        }
+
+        async function saveEdit(postId) {
+        const content = document.getElementById(`editInput-${postId}`).value.trim();
+        if (!content) return;
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/posts/${postId}`, {
+        method: "PATCH",
+        headers: authHeaders(true),
+        body: JSON.stringify({ content }),
+        });
+        const data = await res.json();
+        if (!data.success) return alert(data.message || "Couldn't save changes.");
+        loadPosts();
+        }
+
+        async function deletePost(postId) {
+        if (!confirm("Remove this post? This can't be undone.")) return;
+        const res = await fetch(`${API_BASE}/property-chat/${propertyId}/posts/${postId}`, {
+        method: "DELETE",
+        headers: authHeaders(),
+        });
+        const data = await res.json();
+        if (!data.success) return alert(data.message || "Couldn't remove post.");
+        loadPosts();
+        }
+
+        // ---- context menu (right-click on desktop, long-press on mobile) ----
+        const ctxMenu = document.getElementById("ctxMenu");
+
+        function closeCtxMenu() { ctxMenu.style.display = "none"; }
+        document.addEventListener("click", closeCtxMenu);
+        document.addEventListener("scroll", closeCtxMenu, true);
+
+        function openCtxMenu(x, y, postId) {
+        const postEl = document.querySelector(`.post[data-post-id="${postId}"]`);
+        if (!postEl) return;
+        const isMine = postEl.dataset.isMine === "true";
+        const canModerate = postEl.dataset.canModerate === "true";
+
+        let html = "";
+        if (isMine) html += `<button onclick="startEdit(${postId}); closeCtxMenu();">✏️ Edit</button>`;
+        if (isMine || canModerate) html += `<button class="danger" onclick="deletePost(${postId}); closeCtxMenu();">🗑️ Delete</button>`;
+        if (!html) return;
+
+        ctxMenu.innerHTML = html;
+        ctxMenu.style.display = "block";
+        const menuWidth = 160, menuHeight = 100;
+        ctxMenu.style.left = Math.min(x, window.innerWidth - menuWidth - 10) + "px";
+        ctxMenu.style.top  = Math.min(y, window.innerHeight - menuHeight - 10) + "px";
+        }
+
+        function handleContextMenu(event, postId) {
+        event.preventDefault();
+        event.stopPropagation();
+        openCtxMenu(event.clientX, event.clientY, postId);
+        return false;
+        }
+
+        // Long-press support for touch devices
+        let pressTimer = null;
+        let pressMoved = false;
+
+        document.addEventListener("touchstart", (e) => {
+        const postEl = e.target.closest(".post");
+        if (!postEl) return;
+        pressMoved = false;
+        pressTimer = setTimeout(() => {
+        if (!pressMoved) {
+        const touch = e.touches[0];
+        openCtxMenu(touch.clientX, touch.clientY, postEl.dataset.postId);
+        if (navigator.vibrate) navigator.vibrate(15);
+        }
+        }, 500);
+        }, { passive: true });
+
+        document.addEventListener("touchmove", () => { pressMoved = true; }, { passive: true });
+        document.addEventListener("touchend", () => { clearTimeout(pressTimer); }, { passive: true });
+
+        // ---- init ----
+        (async function init() {
+        if (!propertyId) return;
+        const ok = await loadMeta();
+        if (!ok) return;
+        await loadPosts();
+        refreshTimer = setInterval(() => loadPosts(true), 8000);
+        })();
+    </script>
+
+</body>
+</html>
