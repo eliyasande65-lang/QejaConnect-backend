@@ -1,0 +1,610 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activity Monitor | QejaConnect Admin</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f4f4;
+            color: #222;
+        }
+
+        header {
+            background: #1a1535;
+            color: white;
+            padding: 18px 25px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 12px;
+        }
+
+            header h1 {
+                margin: 0;
+                font-size: 1.4rem;
+            }
+
+        #adminKeyBar {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+            #adminKeyBar button {
+                padding: 8px 14px;
+                border: none;
+                border-radius: 8px;
+                color: white;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 13px;
+            }
+
+        main {
+            max-width: 1200px;
+            margin: 25px auto;
+            padding: 0 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 25px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.08);
+            padding: 20px;
+        }
+
+            .card h2 {
+                margin: 0 0 15px;
+                color: indigo;
+                font-size: 1.15rem;
+                display: flex;
+                align-items: center;
+                gap: 8px;
+            }
+
+        .pulse-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #22c55e;
+            display: inline-block;
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(34,197,94,0.5);
+            }
+
+            70% {
+                box-shadow: 0 0 0 8px rgba(34,197,94,0);
+            }
+
+            100% {
+                box-shadow: 0 0 0 0 rgba(34,197,94,0);
+            }
+        }
+
+        .online-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(230px,1fr));
+            gap: 12px;
+        }
+
+        .online-user-chip {
+            background: #f0fdf4;
+            border: 1px solid #bbf7d0;
+            border-radius: 10px;
+            padding: 10px 14px;
+            font-size: 13px;
+        }
+
+            .online-user-chip .name {
+                font-weight: 700;
+                color: #166534;
+            }
+
+            .online-user-chip .role-badge {
+                font-size: 10px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+                background: #dcfce7;
+                color: #166534;
+                padding: 2px 8px;
+                border-radius: 10px;
+                margin-left: 6px;
+            }
+
+            .online-user-chip .meta {
+                color: #666;
+                margin-top: 4px;
+                font-size: 11px;
+            }
+
+        .empty-note {
+            color: #999;
+            font-size: 13px;
+            padding: 10px 0;
+        }
+
+        .filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+            .filters input, .filters select {
+                padding: 9px 11px;
+                border-radius: 8px;
+                border: 1px solid #ccc;
+                font-size: 13px;
+            }
+
+            .filters button {
+                padding: 9px 16px;
+                border: none;
+                border-radius: 8px;
+                background: #1a1535;
+                color: white;
+                font-weight: 600;
+                cursor: pointer;
+                font-size: 13px;
+            }
+
+                .filters button.ghost {
+                    background: white;
+                    color: #1a1535;
+                    border: 1.5px solid #1a1535;
+                }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+            table th, table td {
+                padding: 10px 12px;
+                text-align: left;
+                border-bottom: 1px solid #eee;
+                vertical-align: top;
+            }
+
+            table th {
+                color: #666;
+                font-size: 11px;
+                text-transform: uppercase;
+                letter-spacing: 0.5px;
+            }
+
+        .action-tag {
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+            white-space: nowrap;
+        }
+
+        .tag-login {
+            background: #e0e7ff;
+            color: #4338ca;
+        }
+
+        .tag-messaged_landlord {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .tag-sent_message {
+            background: #e0f2fe;
+            color: #0369a1;
+        }
+
+        .tag-booked_property {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .tag-uploaded_property {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .tag-renewed_listing {
+            background: #ede9fe;
+            color: #6d28d9;
+        }
+
+        .tag-paid_rent {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .tag-requested_extension {
+            background: #fce7f3;
+            color: #9d174d;
+        }
+
+        .tag-default {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .details-cell {
+            color: #555;
+            max-width: 280px;
+            word-break: break-word;
+            font-family: monospace;
+            font-size: 11.5px;
+        }
+
+        .role-pill {
+            font-size: 10.5px;
+            font-weight: 700;
+            text-transform: uppercase;
+            padding: 2px 8px;
+            border-radius: 10px;
+        }
+
+            .role-pill.tenant {
+                background: #e0f2fe;
+                color: #075985;
+            }
+
+            .role-pill.landlord {
+                background: #fef3c7;
+                color: #92400e;
+            }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-top: 16px;
+            font-size: 13px;
+        }
+
+            .pagination button {
+                padding: 7px 14px;
+                border: 1px solid #ccc;
+                background: white;
+                border-radius: 8px;
+                cursor: pointer;
+            }
+
+                .pagination button:disabled {
+                    opacity: 0.4;
+                    cursor: not-allowed;
+                }
+
+        .loading-row td {
+            text-align: center;
+            color: #999;
+            padding: 30px;
+        }
+
+        #lockScreen {
+            position: fixed;
+            inset: 0;
+            background: #1a1535;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 5000;
+        }
+
+            #lockScreen .box {
+                background: white;
+                padding: 30px;
+                border-radius: 16px;
+                width: 100%;
+                max-width: 340px;
+                text-align: center;
+            }
+
+            #lockScreen input {
+                width: 100%;
+                padding: 12px;
+                border-radius: 8px;
+                border: 1px solid #ccc;
+                margin: 14px 0;
+                font-size: 14px;
+            }
+
+            #lockScreen button {
+                width: 100%;
+                padding: 12px;
+                border: none;
+                border-radius: 8px;
+                background: #1a1535;
+                color: white;
+                font-weight: 700;
+                cursor: pointer;
+            }
+
+            #lockScreen .err {
+                color: #b91c1c;
+                font-size: 12.5px;
+                margin-top: 8px;
+                min-height: 16px;
+            }
+    </style>
+</head>
+<body>
+
+    <!-- Admin secret gate -->
+    <div id="lockScreen">
+        <div class="box">
+            <h2 style="margin-top:0;color:#1a1535;">🔒 Admin Access</h2>
+            <p style="color:#666;font-size:13.5px;">Enter the admin secret to view activity data.</p>
+            <input type="password" id="adminSecretInput" placeholder="Admin secret" onkeydown="if(event.key==='Enter')unlock()">
+            <button onclick="unlock()">Unlock</button>
+            <div class="err" id="lockErr"></div>
+        </div>
+    </div>
+
+    <header>
+        <h1>📊 Activity Monitor</h1>
+        <div id="adminKeyBar" style="display:none;">
+            <button onclick="lockAgain()" style="background:#7a1f2b;">🔒 Lock</button>
+        </div>
+    </header>
+
+    <main>
+
+        <!-- ── ONLINE NOW ── -->
+        <div class="card">
+            <h2><span class="pulse-dot"></span> Online Right Now <span id="onlineCount" style="color:#999;font-weight:400;font-size:0.85rem;"></span></h2>
+            <div class="online-grid" id="onlineGrid">
+                <div class="empty-note">Loading…</div>
+            </div>
+        </div>
+
+        <!-- ── ACTIVITY LOG ── -->
+        <div class="card">
+            <h2>📜 Activity Log</h2>
+
+            <div class="filters">
+                <input type="text" id="searchInput" placeholder="Search by name...">
+                <select id="roleFilter">
+                    <option value="">All roles</option>
+                    <option value="tenant">Tenant</option>
+                    <option value="landlord">Landlord</option>
+                </select>
+                <select id="actionFilter">
+                    <option value="">All actions</option>
+                    <option value="login">Login</option>
+                    <option value="messaged_landlord">Messaged landlord</option>
+                    <option value="sent_message">Sent message</option>
+                    <option value="booked_property">Booked property</option>
+                    <option value="uploaded_property">Uploaded property</option>
+                    <option value="renewed_listing">Renewed listing</option>
+                    <option value="paid_rent">Paid rent</option>
+                    <option value="requested_extension">Requested extension</option>
+                </select>
+                <input type="date" id="fromDate">
+                <input type="date" id="toDate">
+                <button onclick="currentPage=1;loadLogs();">Apply</button>
+                <button class="ghost" onclick="resetFilters()">Reset</button>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>User</th>
+                        <th>Role</th>
+                        <th>Action</th>
+                        <th>Details</th>
+                        <th>IP</th>
+                        <th>When</th>
+                    </tr>
+                </thead>
+                <tbody id="logsBody">
+                    <tr class="loading-row"><td colspan="6">Loading…</td></tr>
+                </tbody>
+            </table>
+
+            <div class="pagination">
+                <button id="prevBtn" onclick="changePage(-1)">← Prev</button>
+                <span id="pageLabel">Page 1</span>
+                <button id="nextBtn" onclick="changePage(1)">Next →</button>
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        const API = "https://qeja-backend-azkf.onrender.com";
+        let adminSecret = sessionStorage.getItem("qc_admin_secret") || "";
+        let currentPage = 1;
+        let totalLogs   = 0;
+        const PAGE_SIZE = 25;
+
+        function unlock() {
+        const val = document.getElementById("adminSecretInput").value.trim();
+        if (!val) return;
+        adminSecret = val;
+        verifyAndEnter();
+        }
+
+        async function verifyAndEnter() {
+        try {
+        const res = await fetch(`${API}/admin/online-users`, {
+        headers: { "x-admin-secret": adminSecret }
+        });
+        if (res.status === 403) {
+        document.getElementById("lockErr").textContent = "Incorrect admin secret.";
+        return;
+        }
+        sessionStorage.setItem("qc_admin_secret", adminSecret);
+        document.getElementById("lockScreen").style.display = "none";
+        document.getElementById("adminKeyBar").style.display = "flex";
+        initDashboard();
+        } catch (err) {
+        document.getElementById("lockErr").textContent = "Could not reach server. Try again.";
+        }
+        }
+
+        function lockAgain() {
+        sessionStorage.removeItem("qc_admin_secret");
+        location.reload();
+        }
+
+        function initDashboard() {
+        loadOnlineUsers();
+        loadLogs();
+        setInterval(loadOnlineUsers, 15000); // refresh presence every 15s
+        }
+
+        function timeAgo(dateStr) {
+        const diffMs = Date.now() - new Date(dateStr).getTime();
+        const mins   = Math.floor(diffMs / 60000);
+        if (mins < 1)  return "just now";
+        if (mins < 60) return `${mins}m ago`;
+        const hrs = Math.floor(mins / 60);
+        if (hrs < 24) return `${hrs}h ago`;
+        return new Date(dateStr).toLocaleDateString("en-KE", { day:"numeric", month:"short" });
+        }
+
+        async function loadOnlineUsers() {
+        const grid  = document.getElementById("onlineGrid");
+        const count = document.getElementById("onlineCount");
+        try {
+        const res  = await fetch(`${API}/admin/online-users`, {
+        headers: { "x-admin-secret": adminSecret }
+        });
+        const data = await res.json();
+
+        if (!data.success) { grid.innerHTML = `<div class="empty-note">Failed to load.</div>`; return; }
+
+        count.textContent = `(${data.online.length})`;
+
+        if (!data.online.length) {
+        grid.innerHTML = `<div class="empty-note">No one is online right now.</div>`;
+        return;
+        }
+
+        grid.innerHTML = data.online.map(u => `
+        <div class="online-user-chip">
+        <span class="name">${u.fullname || "Unknown"}</span>
+        <span class="role-badge">${u.role}</span>
+        <div class="meta">Seen ${timeAgo(u.last_seen_at)} · ${u.email || "—"}</div>
+        </div>
+        `).join("");
+
+        } catch (err) {
+        grid.innerHTML = `<div class="empty-note">Network error.</div>`;
+        }
+        }
+
+        function buildQuery() {
+        const params = new URLSearchParams();
+        params.set("page", currentPage);
+        params.set("limit", PAGE_SIZE);
+
+        const role   = document.getElementById("roleFilter").value;
+        const action = document.getElementById("actionFilter").value;
+        const search = document.getElementById("searchInput").value.trim();
+        const from   = document.getElementById("fromDate").value;
+        const to     = document.getElementById("toDate").value;
+
+        if (role)   params.set("role", role);
+        if (action) params.set("action", action);
+        if (search) params.set("search", search);
+        if (from)   params.set("from", from + " 00:00:00");
+        if (to)     params.set("to", to + " 23:59:59");
+
+        return params.toString();
+        }
+
+        function resetFilters() {
+        document.getElementById("roleFilter").value = "";
+        document.getElementById("actionFilter").value = "";
+        document.getElementById("searchInput").value = "";
+        document.getElementById("fromDate").value = "";
+        document.getElementById("toDate").value = "";
+        currentPage = 1;
+        loadLogs();
+        }
+
+        async function loadLogs() {
+        const body = document.getElementById("logsBody");
+        body.innerHTML = `<tr class="loading-row"><td colspan="6">Loading…</td></tr>`;
+
+        try {
+        const res  = await fetch(`${API}/admin/activity-logs?${buildQuery()}`, {
+        headers: { "x-admin-secret": adminSecret }
+        });
+        const data = await res.json();
+
+        if (!data.success || !data.logs.length) {
+        body.innerHTML = `<tr class="loading-row"><td colspan="6">No activity found for this filter.</td></tr>`;
+        totalLogs = 0;
+        updatePagination();
+        return;
+        }
+
+        totalLogs = data.total;
+
+        body.innerHTML = data.logs.map(log => {
+        const tagClass = "tag-" + (log.action || "default");
+        let details = "—";
+        if (log.details) {
+        try {
+        const parsed = typeof log.details === "string" ? JSON.parse(log.details) : log.details;
+        details = Object.entries(parsed).map(([k,v]) => `${k}: ${v}`).join(", ");
+        } catch (e) { details = String(log.details); }
+        }
+        return `
+        <tr>
+        <td>${log.fullname || "Unknown (#" + log.user_id + ")"}</td>
+        <td><span class="role-pill ${log.role}">${log.role}</span></td>
+        <td><span class="action-tag ${tagClass}">${(log.action || "").replace(/_/g," ")}</span></td>
+        <td class="details-cell">${details}</td>
+        <td>${log.ip_address || "—"}</td>
+        <td>${new Date(log.created_at).toLocaleString("en-KE")}</td>
+        </tr>`;
+        }).join("");
+
+        updatePagination();
+
+        } catch (err) {
+        body.innerHTML = `<tr class="loading-row"><td colspan="6">Network error loading logs.</td></tr>`;
+        }
+        }
+
+        function updatePagination() {
+        const totalPages = Math.max(1, Math.ceil(totalLogs / PAGE_SIZE));
+        document.getElementById("pageLabel").textContent = `Page ${currentPage} of ${totalPages}`;
+        document.getElementById("prevBtn").disabled = currentPage <= 1;
+        document.getElementById("nextBtn").disabled = currentPage >= totalPages;
+        }
+
+        function changePage(delta) {
+        currentPage += delta;
+        if (currentPage < 1) currentPage = 1;
+        loadLogs();
+        }
+
+        // Auto-unlock if secret already stored this session
+        if (adminSecret) {
+        verifyAndEnter();
+        }
+    </script>
+
+</body>
+</html>

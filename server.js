@@ -192,6 +192,47 @@ function adminAuth(req, res, next) {
 let subscriptions = [];
 
 // =========================
+// ACTIVITY LOGGING & PRESENCE HELPERS
+// =========================
+
+// Records a single action in the activity feed.
+// action examples: "login", "signup", "messaged_landlord", "booked_property",
+// "sent_message", "uploaded_property", "renewed_listing", "paid_rent",
+// "requested_extension", "updated_profile_pic"
+async function logActivity(userId, role, action, details = null, req = null) {
+  try {
+    const ip = req ? (req.headers["x-forwarded-for"] || req.socket.remoteAddress) : null;
+    const ua = req ? req.headers["user-agent"] : null;
+    await dbPromise.query(
+      `INSERT INTO activity_logs (user_id, role, action, details, ip_address, user_agent)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+      [userId, role, action, details ? JSON.stringify(details) : null, ip, ua]
+    );
+  } catch (err) {
+    console.error("[ACTIVITY LOG]", err.message);
+  }
+}
+
+// Marks a user as "seen right now" — called on login and on every heartbeat ping.
+async function touchPresence(userId, role, req) {
+  try {
+    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
+    const ua = req.headers["user-agent"];
+    await dbPromise.query(
+      `INSERT INTO user_presence (user_id, role, last_seen_at, login_at, ip_address, user_agent)
+       VALUES (?, ?, NOW(), NOW(), ?, ?)
+       ON DUPLICATE KEY UPDATE
+         last_seen_at = NOW(),
+         ip_address   = VALUES(ip_address),
+         user_agent   = VALUES(user_agent)`,
+      [userId, role, ip, ua]
+    );
+  } catch (err) {
+    console.error("[PRESENCE]", err.message);
+  }
+}
+
+// =========================
 // ROOT
 // =========================
 app.get("/", (req, res) => {
@@ -267,7 +308,7 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
       );
       const { password: _pw, ...safeUser } = user;
       await touchPresence(user.id, "tenant", req);
-     await logActivity(user.id, "tenant", "login", null, req);
+      await logActivity(user.id, "tenant", "login", null, req);
       return res.json({ success: true, role: "tenant", token, user: safeUser });
     }
 
@@ -293,12 +334,20 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
     );
     const { password: _pw, ...safeLandlord } = landlord;
     await touchPresence(landlord.id, "landlord", req);
-     await logActivity(landlord.id, "landlord", "login", null, req);
+    await logActivity(landlord.id, "landlord", "login", null, req);
     res.json({ success: true, role: "landlord", token, user: safeLandlord });
   } catch (err) {
     console.error("[LOGIN ERROR]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
+});
+
+// =========================
+// ACTIVITY HEARTBEAT
+// =========================
+app.post("/activity/heartbeat", auth, async (req, res) => {
+  await touchPresence(req.user.id, req.user.role, req);
+  res.json({ success: true });
 });
 
 // =========================
@@ -593,6 +642,7 @@ app.post("/interested", auth, validate(interestedSchema), async (req, res) => {
          VALUES (?, ?, ?, 'tenant', ?)`,
         [conversation_id, landlord_id, tenant_id, message]
       );
+      await logActivity(tenant_id, "tenant", "messaged_landlord", { landlord_id, landlord_name }, req);
       return res.json({ success: true, message: "Chat started", conversation_id, landlord_name });
     }
 
@@ -682,7 +732,8 @@ app.post("/send-message", auth, validate(sendMessageSchema), (req, res) => {
       `INSERT INTO chats (conversation_id, landlord_id, tenant_id, sender_role, message)
        VALUES (?, ?, ?, ?, ?)`,
       [conversation_id, landlord_id, tenant_id, sender_role, message],
-      (err2) => {
+      // FIX: this callback must be async since it awaits logActivity below.
+      async (err2) => {
         if (err2) return res.status(500).json({ success: false, message: "Server error" });
         await logActivity(req.user.id, req.user.role, "sent_message", { conversation_id }, req);
         res.json({ success: true, message: "Message sent" });
@@ -863,58 +914,10 @@ app.post(
   }
 );
 
-// Records a single action in the activity feed.
-// action examples: "login", "signup", "messaged_landlord", "booked_property",
-// "sent_message", "uploaded_property", "renewed_listing", "paid_rent",
-// "requested_extension", "updated_profile_pic"
-async function logActivity(userId, role, action, details = null, req = null) {
-  try {
-    const ip = req ? (req.headers["x-forwarded-for"] || req.socket.remoteAddress) : null;
-    const ua = req ? req.headers["user-agent"] : null;
-    await dbPromise.query(
-      `INSERT INTO activity_logs (user_id, role, action, details, ip_address, user_agent)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [userId, role, action, details ? JSON.stringify(details) : null, ip, ua]
-    );
-  } catch (err) {
-    console.error("[ACTIVITY LOG]", err.message);
-  }
-}
- 
-// Marks a user as "seen right now" — called on login and on every heartbeat ping.
-async function touchPresence(userId, role, req) {
-  try {
-    const ip = req.headers["x-forwarded-for"] || req.socket.remoteAddress;
-    const ua = req.headers["user-agent"];
-    await dbPromise.query(
-      `INSERT INTO user_presence (user_id, role, last_seen_at, login_at, ip_address, user_agent)
-       VALUES (?, ?, NOW(), NOW(), ?, ?)
-       ON DUPLICATE KEY UPDATE
-         last_seen_at = NOW(),
-         ip_address   = VALUES(ip_address),
-         user_agent   = VALUES(user_agent)`,
-      [userId, role, ip, ua]
-    );
-  } catch (err) {
-    console.error("[PRESENCE]", err.message);
-  }
-}
- 
- 
-/* ------------------------------------------------------------
-   3. HEARTBEAT ENDPOINT — add near your other app.post(...) routes
-   ------------------------------------------------------------ */
- 
-app.post("/activity/heartbeat", auth, async (req, res) => {
-  await touchPresence(req.user.id, req.user.role, req);
-  res.json({ success: true });
-});
- 
- 
-/* ------------------------------------------------------------
-   4. ADMIN ENDPOINTS — add near your other router.get("/admin/...") routes
-   ------------------------------------------------------------ */
- 
+// =========================
+// ADMIN: ONLINE USERS / PRESENCE / ACTIVITY LOGS
+// =========================
+
 // Who is online RIGHT NOW (seen in the last 2 minutes)
 router.get("/admin/online-users", adminAuth, async (req, res) => {
   try {
@@ -936,7 +939,7 @@ router.get("/admin/online-users", adminAuth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
- 
+
 // Everyone's last-seen time, whether online now or not (for "last active" column)
 router.get("/admin/presence", adminAuth, async (req, res) => {
   try {
@@ -957,17 +960,17 @@ router.get("/admin/presence", adminAuth, async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
- 
+
 // Activity log with filters (user, role, action, date range, name search) + pagination
 router.get("/admin/activity-logs", adminAuth, async (req, res) => {
   try {
     const page   = Math.max(1, parseInt(req.query.page)  || 1);
     const limit  = Math.min(100, parseInt(req.query.limit) || 30);
     const offset = (page - 1) * limit;
- 
+
     const where  = [];
     const params = [];
- 
+
     if (req.query.user_id) { where.push("al.user_id = ?");     params.push(req.query.user_id); }
     if (req.query.role)    { where.push("al.role = ?");        params.push(req.query.role); }
     if (req.query.action)  { where.push("al.action = ?");      params.push(req.query.action); }
@@ -977,9 +980,9 @@ router.get("/admin/activity-logs", adminAuth, async (req, res) => {
       where.push("(u.fullname LIKE ? OR l.fullname LIKE ?)");
       params.push(`%${req.query.search}%`, `%${req.query.search}%`);
     }
- 
+
     const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
- 
+
     const [countRows] = await dbPromise.query(
       `SELECT COUNT(*) AS total
        FROM activity_logs al
@@ -988,7 +991,7 @@ router.get("/admin/activity-logs", adminAuth, async (req, res) => {
        ${whereSql}`,
       params
     );
- 
+
     const [rows] = await dbPromise.query(
       `SELECT al.id, al.user_id, al.role, al.action, al.details, al.ip_address, al.created_at,
               CASE WHEN al.role='tenant'   THEN u.fullname
@@ -1001,15 +1004,13 @@ router.get("/admin/activity-logs", adminAuth, async (req, res) => {
        LIMIT ? OFFSET ?`,
       [...params, limit, offset]
     );
- 
+
     res.json({ success: true, total: countRows[0].total, page, limit, logs: rows });
   } catch (err) {
     console.error("[ADMIN ACTIVITY LOGS]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
- 
- 
 
 // =========================
 // ADMIN: LIST ALL LANDLORDS
@@ -1367,13 +1368,16 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
               landlord_id, title, price, location, description, type,
               result.secure_url, maps_url || null, expiresAt, mpesa_transaction_id,
             ],
-            (err2) => {
+            // FIX: this callback must be async since it awaits logActivity below.
+            // Also parseInt(landlord_id) so activity_logs.user_id stores a number,
+            // consistent with the other logActivity(...) calls elsewhere in this file.
+            async (err2) => {
               if (err2) return res.status(500).json({ success: false, message: "Server error" });
               db.query(
                 `UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`,
                 [mpesa_transaction_id]
               );
-              await logActivity(landlord_id, "landlord", "uploaded_property", { title }, req);
+              await logActivity(parseInt(landlord_id), "landlord", "uploaded_property", { title }, req);
               res.json({ success: true, message: "Property uploaded", image_url: result.secure_url });
             }
           );

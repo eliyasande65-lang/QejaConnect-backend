@@ -9,6 +9,22 @@
         if (!localStorage.getItem('token')) window.location.replace('login.html');
         })();
     </script>
+    <script>
+        (function () {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        function ping() {
+        fetch("https://qeja-backend-azkf.onrender.com/activity/heartbeat", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+        }).catch(() => {});
+        }
+
+        ping(); // immediately on page load
+        setInterval(ping, 30000); // then every 30 seconds while the tab is open
+        })();
+    </script>
     <style>
         * {
             box-sizing: border-box;

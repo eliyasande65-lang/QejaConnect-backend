@@ -17,6 +17,22 @@
         });
         }
     </script>
+    <script>
+        (function () {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        function ping() {
+        fetch("https://qeja-backend-azkf.onrender.com/activity/heartbeat", {
+        method: "POST",
+        headers: { "Authorization": "Bearer " + token }
+        }).catch(() => {});
+        }
+
+        ping(); // immediately on page load
+        setInterval(ping, 30000); // then every 30 seconds while the tab is open
+        })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Host Sign Up — QejaConnect</title>
     <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
@@ -180,7 +196,7 @@
             align-items: center;
         }
 
-            /*.otp-row input {
+        /*.otp-row input {
                 flex: 1;
                 padding: 12px 14px;
                 background: var(--dim);
