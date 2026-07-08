@@ -225,8 +225,8 @@
         const adminSecret = localStorage.getItem("admin_secret");
 
         if (!adminSecret) {
-        window.location.href = "admin-login.html";
-        }
+       window.location.href = "admin.html";
+       }
 
         function adminHeaders() {
         return { "x-admin-secret": adminSecret };

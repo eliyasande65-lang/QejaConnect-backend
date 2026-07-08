@@ -1003,7 +1003,8 @@
             <a href="admin-tenants.html" style="text-decoration:none;"><button class="page-tab" type="button">👤 Tenants</button></a>
             <a href="admin-updates.html" style="text-decoration:none;"><button class="page-tab" type="button">📢 Updates</button></a>
             <a href="admin-refferrals.html" style="text-decoration:none;"><button class="page-tab" type="button">💸 Pay Referrals</button></a>
-            <!-- ✅ NEW: View Rent Payments tab -->
+            <a href="admin-property-chat.html" style="text-decoration:none;"><button class="page-tab" type="button">💬 View house conversations</button></a>
+            <a href="admin-activity.html" style="text-decoration:none;"><button class="page-tab" type="button">👨‍🚒 Monitor</button></a>
             <a href="admin-landlord.html" style="text-decoration:none;"><button class="page-tab rent-tab" type="button">💰 View Rent Payments</button></a>
             <a href="home.html" style="text-decoration:none;"><button class="page-tab" type="button">↗ Live Site</button></a>
         </div>
@@ -1094,14 +1095,7 @@
         searchDebounce = setTimeout(renderCards, 200);
         }
 
-        // ─────────────────────────────────────────────────────────────
-        // FIX: removed the hardcoded ?verified=0 — we now send the
-        // correct filter value (or nothing when "all") so the backend
-        // returns ALL landlords, not just pending ones.
-        // Also added a fallback: if the backend still filters by
-        // verified=1 internally, we strip that query and ask for
-        // unfiltered data via a separate "all" endpoint param.
-        // ─────────────────────────────────────────────────────────────
+        
         async function loadLandlords() {
         document.getElementById('grid').innerHTML = '<div class="state-msg"><div class="spinner"></div><br>Loading…</div>';
 

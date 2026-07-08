@@ -2,17 +2,17 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#1a1535">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="QejaConnect">
-    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <link rel="apple-touch-icon" href="logo.jpg">
     <!--brotherfromanothermother-->
     <script>
         (function() {
         if (!localStorage.getItem('token')) {
-        window.location.replace('login.html');
+        //window.location.replace('login.html');
         }
         })();
     </script>
@@ -95,7 +95,7 @@
             color: white;
             font-size: 24px;
             cursor: pointer;
-            z-index: 10005;
+            z-index: 10006;
         }
 
         /* ── SIDE MENU ── */
@@ -896,7 +896,7 @@
     <div class="overlay" id="overlay" onclick="closeMenu()"></div>
 
     <div class="side-menu" id="sideMenu">
-        <a href="#" onclick="goToMyGroup(); return false;">💬 Chat with housemates</a>
+        <button class="menu-btn" onclick="toggleMenu()">☰</button>
         <a href="landlords.html"> Landlords</a>
         <a href="contact.html">📞Contact</a>
         <a href="hostdashboard.html" id="menuDashboard">
@@ -1764,7 +1764,15 @@
         loadFeed();
     </script>
     <script>
+
         async function goToMyGroup() {
+        const token    = localStorage.getItem("token");
+        const role     = localStorage.getItem("role");
+        let   userId   = null;
+        try {
+            userId = JSON.parse(localStorage.getItem("loggedUser") || "{}").id;
+        } catch (e) { /* ignore */ }
+
         if (!token || !userId) {
         alert("Please login first");
         return;
