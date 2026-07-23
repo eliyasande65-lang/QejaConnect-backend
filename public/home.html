@@ -890,7 +890,17 @@
                 <p>Quality accommodation providence</p>
             </div>
         </div>
-        <a href="mytenancy.html"><button class="uni">🏠 My house 🔴</button></a>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="uni">🏠 My house 🔴</button>
+            <button id="askAiHeaderBtn" onclick="openAiChat()" title="Ask QejaConnect AI"
+                    style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:white;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;">
+                🤖 Ask AI
+            </button>
+            <a href="notification.html" id="bellIcon" title="Notifications" style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);text-decoration:none;color:white;font-size:22px;">
+                🔔
+                <span id="bellBadge" class="menu-badge" style="display:none;position:absolute;top:-4px;right:-4px;font-size:10px;padding:1px 6px;">0</span>
+            </a>
+        </div>
     </header>
 
     <div class="overlay" id="overlay" onclick="closeMenu()"></div>
@@ -898,24 +908,26 @@
     <div class="side-menu" id="sideMenu">
         <button class="menu-btn" onclick="toggleMenu()">☰</button>
         <a href="landlords.html"> Landlords</a>
-        <a href="contact.html">📞Contact</a>
+        <a href="contact.html">Contact</a>
+        <a href="notification.html">Notification</a>
         <a href="hostdashboard.html" id="menuDashboard">
             Dashboard
             <span id="menuDashboardBadge" class="menu-badge" style="display:none;"></span>
         </a>
         <a href="myprofile.html">Profile</a>
         <a href="mymessages.html" id="menuMessages">
-            💬 Support team
+            Support team
             <span id="navNotifBadge" class="menu-badge" style="display:none;">0</span>
         </a>
-        <a href="#" onclick="goToMyGroup(); return false;">💬 Chat with housemates</a>
+        <a href="#" onclick="goToMyGroup(); return false;">Chat with housemates</a>
+        <a href="#" onclick="openAiChat(); return false;">Ask QejaConnect AI</a>
         <a href="welcome.html" onclick="localStorage.removeItem('token'); localStorage.removeItem('role'); localStorage.removeItem('loggedUser');">
-            ! Log out
+            Log out
         </a>
 
         <a href="refer-earn.html">Refer & earn</a>
         <button onclick="toggleTheme()" style="margin:20px;padding:10px;border:none;background:none;color:white;cursor:pointer;">
-            🌙 Theme
+            Theme
         </button>
     </div>
 
@@ -1359,6 +1371,7 @@
             border-radius: 15px;
             line-height: 1.5;
             font-size: 14px;
+            white-space: pre-line;
         }
 
         .qc-user {
@@ -1425,7 +1438,7 @@
         }
     </style>
 
-    <button id="qc-ai-button" style="display:none">🤖</button>
+    <button id="qc-ai-button" onclick="openAiChat()">🤖</button>
 
     <div id="qc-ai-chat">
 
@@ -1435,7 +1448,7 @@
             <h3>QejaConnect AI</h3>
 
             <p>
-                Built for QejaConnect using OpenAI technology
+                Learns from you — powered by QejaConnect's own knowledge base
             </p>
         </div>
 
@@ -1447,9 +1460,8 @@
                 I'm QejaConnect AI.
 
                 I can help you navigate QejaConnect, find houses,
-                understand listings and answer questions about the platform.
-
-
+                do quick math, and answer questions about the platform.
+                If I don't know something yet, teach me and I'll remember!
             </div>
 
         </div>
@@ -1487,9 +1499,24 @@
         const messages =
         document.getElementById("qc-ai-messages");
 
-        aiButton.onclick = () => {
+        // ── Session id: one per browser, persisted across visits ──
+        function getAiSessionId() {
+        let sid = localStorage.getItem("qc_ai_session_id");
+        if (!sid) {
+        sid = "sess_" + Date.now() + "_" + Math.random().toString(36).slice(2, 10);
+        localStorage.setItem("qc_ai_session_id", sid);
+        }
+        return sid;
+        }
+
+        // ── Launch the chat widget (used by the floating button,
+        //    the header "Ask AI" button, and the side-menu link) ──
+        function openAiChat() {
         aiChat.style.display = "flex";
-        };
+        input.focus();
+        }
+
+        aiButton.onclick = openAiChat;
 
         closeBtn.onclick = () => {
         aiChat.style.display = "none";
@@ -1541,6 +1568,9 @@
         const token =
         localStorage.getItem("token");
 
+        let loggedUser = {};
+        try { loggedUser = JSON.parse(localStorage.getItem("loggedUser") || "{}"); } catch(e) {}
+
         const response =
         await fetch(
         "https://qeja-backend-azkf.onrender.com/ai/chat",
@@ -1553,7 +1583,9 @@
         },
 
         body:JSON.stringify({
-        message
+        message,
+        session_id: getAiSessionId(),
+        user_id: loggedUser && loggedUser.id ? loggedUser.id : null
         })
         });
 
@@ -1673,7 +1705,7 @@
         <div class="price">Ksh ${property.price}</div>
         <div class="location">${property.location}</div>
         <p>${property.description}</p>
-        <small>Posted by: ${property.landlord_name || "Unknown"}</small>
+        <a href= "landlord-profile.html? who= ${property.landlord_name}"><small>Posted by: ${property.landlord_name || "Unknown"}</small></a>
         ${own ? `<span class="booked-tag" style="color:#b8720b;">📌 This is your listing</span>` : ''}
         ${sortByBooked ? `<span class="booked-tag">🔥 ${property.booking_count || 0} booking${(property.booking_count || 0) === 1 ? '' : 's'}</span>` : ''}
         <button class="view-btn" onclick='openPopup(${JSON.stringify(property)})'>View Details</button>
@@ -1767,10 +1799,10 @@
 
         async function goToMyGroup() {
         const token    = localStorage.getItem("token");
-        const role     = localStorage.getItem("role");
+        const userRole     = localStorage.getItem("role");
         let   userId   = null;
         try {
-            userId = JSON.parse(localStorage.getItem("loggedUser") || "{}").id;
+        userId = JSON.parse(localStorage.getItem("loggedUser") || "{}").id;
         } catch (e) { /* ignore */ }
 
         if (!token || !userId) {
@@ -1802,6 +1834,19 @@
         alert("Couldn't open your group chat. Please try again.");
         }
         }
+
+        const role    = localStorage.getItem("role");
+        const myhoue=document.querySelector('.uni').addEventListener('click', () => {
+        if (role==="landlord"){
+        location.href="landlord_tenants.html";
+        return;
+        } else if(role==="tenant"){
+        location.href="mytenancy.html";
+        return;
+        } else {
+        alert('Please login first');
+        }
+        });
     </script>
     <script>
         function toggleTheme() {
@@ -1836,8 +1881,10 @@
         if (href && path && href.includes(path)) a.classList.add('active-link');
         });
 
+        let totalUnread = 0;
+
+        // ── Support message replies ──────────────────────────────
         try {
-        // Messages badge
         const msgRes  = await fetch('https://qeja-backend-azkf.onrender.com/my-messages', {
         headers: { 'Authorization': 'Bearer ' + token }
         });
@@ -1848,11 +1895,16 @@
         const unread = msgData.messages.filter(m => m.reply && !seen.includes(m.id)).length;
         const msgBadge = document.getElementById('navNotifBadge');
         if (msgBadge && unread > 0) { msgBadge.textContent = unread; msgBadge.style.display = 'inline-block'; }
+        totalUnread += unread;
         }
+        } catch (err) { console.error('Menu badge error (messages):', err); }
 
-        // Dashboard badge
+        // ── Landlord dashboard: new booking interests ────────────
         const userId = JSON.parse(localStorage.getItem('loggedUser') || '{}')?.id;
-        if (!userId) return;
+        const role   = localStorage.getItem('role');
+
+        if (userId && role === 'landlord') {
+        try {
         const reqRes  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
         const reqData = await reqRes.json();
         if (reqData.success && reqData.data?.length) {
@@ -1861,9 +1913,55 @@
         const unseen = reqData.data.filter(r => !seenReqs.includes(r.id)).length;
         const dashBadge = document.getElementById('menuDashboardBadge');
         if (dashBadge && unseen > 0) { dashBadge.textContent = unseen; dashBadge.style.display = 'inline-block'; }
+        totalUnread += unseen;
         }
-        } catch (err) {
-        console.error('Menu badge error:', err);
+        } catch (err) { console.error('Menu badge error (dashboard):', err); }
+        }
+
+        // ── Tenant: booking status changes + active tenancy ──────
+        if (userId && role === 'tenant') {
+        try {
+        let seenIds = [];
+        try { seenIds = JSON.parse(localStorage.getItem('notif_seen_ids') || '[]'); } catch {}
+
+        const bookRes  = await fetch(`https://qeja-backend-azkf.onrender.com/bookings/tenant/${userId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const bookData = await bookRes.json();
+        if (bookData.success) {
+        totalUnread += bookData.bookings.filter(b => !seenIds.includes(`booking-${b.id}`)).length;
+        }
+
+        const tenRes  = await fetch(`https://qeja-backend-azkf.onrender.com/tenancy/tenant/${userId}`, {
+        headers: { 'Authorization': 'Bearer ' + token }
+        });
+        const tenData = await tenRes.json();
+        if (tenData.success && tenData.tenancy && !seenIds.includes(`tenancy-${tenData.tenancy.id}`)) {
+        totalUnread += 1;
+        }
+        } catch (err) { console.error('Menu badge error (tenant):', err); }
+        }
+
+        // ── Platform-wide updates (announcements, alerts, etc.) ──
+        try {
+        const upRes  = await fetch('https://qeja-backend-azkf.onrender.com/updates');
+        const upData = await upRes.json();
+        if (upData.success && upData.updates?.length) {
+        let seenIds = [];
+        try { seenIds = JSON.parse(localStorage.getItem('notif_seen_ids') || '[]'); } catch {}
+        totalUnread += upData.updates.filter(u => !seenIds.includes(`update-${u.id}`)).length;
+        }
+        } catch (err) { console.error('Menu badge error (updates):', err); }
+
+        // ── Bell icon: combined unread count ──────────────────────
+        const bellBadge = document.getElementById('bellBadge');
+        if (bellBadge) {
+        if (totalUnread > 0) {
+        bellBadge.textContent = totalUnread > 99 ? '99+' : totalUnread;
+        bellBadge.style.display = 'inline-block';
+        } else {
+        bellBadge.style.display = 'none';
+        }
         }
         })();
     </script>
@@ -1879,8 +1977,8 @@
         }).catch(() => {});
         }
 
-        ping(); // immediately on page load
-        setInterval(ping, 30000); // then every 30 seconds while the tab is open
+        ping();
+        setInterval(ping, 30000);
         })();
     </script>
 </body>

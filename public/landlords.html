@@ -404,6 +404,13 @@
     </script>
     <script>
         async function goToMyGroup() {
+
+        const token    = localStorage.getItem("token");
+        const userRole   = localStorage.getItem("role");
+        let   userId   = null;
+        try {
+            userId = JSON.parse(localStorage.getItem("loggedUser") || "{}").id;
+        } catch (e) { /* ignore */ }
         if (!token || !userId) {
         alert("Please login first");
         return;

@@ -503,6 +503,13 @@
         }
 
         async function loadPosts(silent) {
+        // FIX: don't blow away an open reply box or edit box mid-type.
+        // A silent (background) refresh would otherwise re-render #feed
+        // every 8s, destroying the focused <textarea> and closing the
+        // mobile keyboard while the user is still typing.
+        if (silent && (openReplyId !== null || document.querySelector(".edit-box"))) {
+        return;
+        }
         try {
         const res = await fetch(`${API_BASE}/property-chat/${propertyId}/posts`, { headers: authHeaders() });
         const data = await res.json();
@@ -575,6 +582,9 @@
         const isOpen = box.style.display === "block";
         document.querySelectorAll(".reply-box").forEach((b) => (b.style.display = "none"));
         box.style.display = isOpen ? "none" : "block";
+        // FIX: track which reply box (if any) is open so loadPosts() knows
+        // to skip silent refreshes while the user is composing a reply.
+        openReplyId = isOpen ? null : postId;
         if (!isOpen) document.getElementById(`replyInput-${postId}`).focus();
         }
 
@@ -608,6 +618,9 @@
         });
         const data = await res.json();
         if (!data.success) return alert(data.message || "Couldn't reply.");
+        // FIX: clear the open-reply guard now that the reply has been sent,
+        // so the feed is free to refresh again (silently or otherwise).
+        openReplyId = null;
         loadPosts();
         }
 

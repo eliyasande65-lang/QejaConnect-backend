@@ -799,7 +799,7 @@
 
         async function goToMyGroup() {
             const token    = localStorage.getItem("token");
-            const role     = localStorage.getItem("role");
+            const userRole   = localStorage.getItem("role");
             let   userId   = null;
             try {
                 userId = JSON.parse(localStorage.getItem("loggedUser") || "{}").id;

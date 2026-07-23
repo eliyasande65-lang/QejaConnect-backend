@@ -1,0 +1,624 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="manifest" href="/QejaConnect/manifest.json">
+    <meta name="theme-color" content="#1a1535">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="QejaConnect">
+    <link rel="apple-touch-icon" href="/QejaConnect/logo.jpg">
+    <script>
+        if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/QejaConnect/sw.js')
+        .then(reg => console.log('SW registered:', reg.scope))
+        .catch(err => console.error('SW error:', err));
+        });
+        }
+    </script>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Notifications | Qeja Connect</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+        }
+
+        header {
+            background: #1a1535;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            flex-wrap: wrap;
+            color: white;
+        }
+
+        .logo-area {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        #logo {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+        }
+
+        header h2 {
+            margin: 0;
+            font-size: 18px;
+        }
+
+        .back-link {
+            color: white;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: bold;
+            opacity: 0.85;
+        }
+
+            .back-link:hover {
+                opacity: 1;
+            }
+
+        .page-wrap {
+            max-width: 760px;
+            margin: 0 auto;
+            padding: 18px 16px 60px;
+        }
+
+        .top-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 14px;
+            flex-wrap: wrap;
+        }
+
+            .top-row h1 {
+                font-size: 20px;
+                color: #1a1535;
+                margin: 0;
+            }
+
+        .mark-read-btn {
+            width: auto;
+            padding: 8px 14px;
+            font-size: 13px;
+            border-radius: 8px;
+            background: #ede9fe;
+            color: #4f46e5;
+            border: none;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+            .mark-read-btn:hover {
+                background: #e0d9fc;
+            }
+
+        .tab-bar {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding-bottom: 6px;
+            margin-bottom: 16px;
+        }
+
+            .tab-bar button {
+                width: auto;
+                white-space: nowrap;
+                padding: 8px 16px;
+                border-radius: 999px;
+                border: 1px solid #ddd;
+                background: white;
+                color: #555;
+                font-size: 13px;
+                font-weight: bold;
+                cursor: pointer;
+            }
+
+                .tab-bar button.active {
+                    background: #1a1535;
+                    color: white;
+                    border-color: #1a1535;
+                }
+
+        .notif-card {
+            display: flex;
+            gap: 12px;
+            background: white;
+            border-radius: 14px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.06);
+            padding: 14px 16px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            position: relative;
+            transition: transform 0.1s, box-shadow 0.15s;
+        }
+
+            .notif-card:hover {
+                transform: translateY(-1px);
+                box-shadow: 0 4px 14px rgba(0,0,0,0.1);
+            }
+
+            .notif-card.read {
+                opacity: 0.7;
+            }
+
+        .notif-icon {
+            font-size: 22px;
+            flex-shrink: 0;
+            width: 38px;
+            height: 38px;
+            border-radius: 10px;
+            background: #f2f0fa;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .notif-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .notif-title {
+            font-weight: bold;
+            color: #1a1535;
+            font-size: 14px;
+            margin-bottom: 3px;
+        }
+
+        .notif-text {
+            font-size: 13px;
+            color: #666;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+        }
+
+        .notif-time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        .unread-dot {
+            position: absolute;
+            top: 14px;
+            right: 14px;
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #4f46e5;
+        }
+
+        .state-msg {
+            text-align: center;
+            color: #999;
+            padding: 50px 20px;
+            font-size: 14px;
+        }
+
+        .type-badge {
+            display: inline-block;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            padding: 2px 8px;
+            border-radius: 999px;
+            margin-left: 8px;
+            vertical-align: middle;
+        }
+
+            .type-badge.booking {
+                background: #e0e7ff;
+                color: #4338ca;
+            }
+
+            .type-badge.tenancy {
+                background: #dcfce7;
+                color: #16a34a;
+            }
+
+            .type-badge.message {
+                background: #fef3c7;
+                color: #b45309;
+            }
+
+            .type-badge.update {
+                background: #ede9fe;
+                color: #6d28d9;
+            }
+
+            .type-badge.support {
+                background: #fee2e2;
+                color: #dc2626;
+            }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo-area">
+            <img src="logo.jpg" id="logo">
+            <h2>Notifications</h2>
+        </div>
+        <a class="back-link" href="home.html">← Back to Home</a>
+    </header>
+
+    <div class="page-wrap">
+        <div class="top-row">
+            <h1>What's new</h1>
+            <button class="mark-read-btn" onclick="markAllRead()">Mark all as read</button>
+        </div>
+
+        <div class="tab-bar" id="tabBar">
+            <button class="active" data-filter="all" onclick="setFilter('all', this)">All</button>
+            <button data-filter="booking" onclick="setFilter('booking', this)">Bookings</button>
+            <button data-filter="tenancy" onclick="setFilter('tenancy', this)">Tenancy</button>
+            <button data-filter="message" onclick="setFilter('message', this)">Messages</button>
+            <button data-filter="update" onclick="setFilter('update', this)">Updates</button>
+        </div>
+
+        <div id="notifList"><p class="state-msg">Loading notifications…</p></div>
+    </div>
+
+    <script>
+        const API_BASE   = "https://qeja-backend-azkf.onrender.com";
+        const token      = localStorage.getItem("token");
+        const userRole   = localStorage.getItem("role");
+        const loggedUser = JSON.parse(localStorage.getItem("loggedUser") || "null");
+        const userId     = loggedUser?.id;
+
+        let allNotifications = [];   // full merged, sorted list
+        let currentFilter     = "all";
+        let refreshTimer      = null;
+
+        if (!token) {
+        window.location.href = "signin.html";
+        }
+
+        function authHeaders() {
+        return { "Authorization": "Bearer " + token };
+        }
+
+        function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str == null ? "" : String(str);
+        return div.innerHTML;
+        }
+
+        function timeAgo(dateStr) {
+        if (!dateStr) return "";
+        const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+        if (diff < 60) return "just now";
+        if (diff < 3600) return Math.floor(diff / 60) + "m ago";
+        if (diff < 86400) return Math.floor(diff / 3600) + "h ago";
+        if (diff < 604800) return Math.floor(diff / 86400) + "d ago";
+        return new Date(dateStr).toLocaleDateString();
+        }
+
+        // ── SEEN / READ TRACKING ──────────────────────────────────
+        function getSeenIds() {
+        try { return new Set(JSON.parse(localStorage.getItem("notif_seen_ids") || "[]")); }
+        catch { return new Set(); }
+        }
+        function saveSeenIds(set) {
+        localStorage.setItem("notif_seen_ids", JSON.stringify([...set]));
+        }
+        function markRead(id) {
+        const seen = getSeenIds();
+        seen.add(id);
+        saveSeenIds(seen);
+        }
+        function markAllRead() {
+        const seen = getSeenIds();
+        allNotifications.forEach(n => seen.add(n.id));
+        saveSeenIds(seen);
+        renderList();
+        }
+
+        // ── DATA FETCHING ──────────────────────────────────────────
+        // Shared: platform-wide updates + support replies (both roles see these)
+        async function fetchSharedNotifications() {
+        const out = [];
+
+        try {
+        const res  = await fetch(`${API_BASE}/updates`);
+        const data = await res.json();
+        if (data.success) {
+        const iconMap = { announcement: "📢", maintenance: "🛠", alert: "⚠️", feature: "✨", promotion: "🎉" };
+        data.updates.forEach(u => {
+        out.push({
+        id:    `update-${u.id}`,
+        type:  "update",
+        icon:  iconMap[u.type] || "📢",
+        title: u.title,
+        body:  u.body,
+        date:  u.created_at,
+        link:  u.cta_url || null,
+        });
+        });
+        }
+        } catch (err) { console.error("[updates]", err); }
+
+        try {
+        const res  = await fetch(`${API_BASE}/my-messages`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+        data.messages
+        .filter(m => m.reply)
+        .forEach(m => {
+        out.push({
+        id:    `support-${m.id}`,
+        type:  "support",
+        icon:  "📩",
+        title: "Support replied to your message",
+        body:  m.reply,
+        date:  m.replied_at,
+        link:  "mymessages.html",
+        });
+        });
+        }
+        } catch (err) { console.error("[my-messages]", err); }
+
+        return out;
+        }
+
+        // Pulls real per-message notifications (with correct timestamps) out of
+        // a conversation list by reading each conversation's message thread and
+        // keeping only messages sent by the OTHER party.
+        async function fetchMessageNotifications(chats, myRole, openPage) {
+        const out = [];
+        for (const chat of chats) {
+        try {
+        const res  = await fetch(`${API_BASE}/messages/${chat.conversation_id}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (!data.success) continue;
+
+        const theirMessages = data.messages
+        .filter(m => m.sender_role !== myRole)
+        .slice(-3); // most recent few per conversation is enough for a feed
+
+        theirMessages.forEach(m => {
+        out.push({
+        id:      `msg-${m.id}`,
+        type:    "message",
+        icon:    "💬",
+        title:   `Message from ${chat.fullname}`,
+        body:    m.message,
+        date:    m.created_at,
+        link:    openPage,
+        onOpen:  () => {
+        localStorage.setItem("conversation_id", chat.conversation_id);
+        localStorage.setItem("chat_partner_name", chat.fullname);
+        },
+        });
+        });
+        } catch (err) {
+        console.error("[messages]", chat.conversation_id, err);
+        }
+        }
+        return out;
+        }
+
+        async function fetchLandlordNotifications() {
+        const out = [];
+
+        // New booking interests + tenancies that sprang from them
+        try {
+        const res  = await fetch(`${API_BASE}/landlord/interests/${userId}`);
+        const data = await res.json();
+        if (data.success) {
+        data.data.forEach(b => {
+        out.push({
+        id:    `booking-${b.id}`,
+        type:  "booking",
+        icon:  "📋",
+        title: `New booking interest — ${b.property_title || "Property"}`,
+        body:  `${b.tenant_name || "A tenant"}: "${b.message || ""}"`,
+        date:  b.created_at,
+        link:  "landlord_tenants.html",
+        });
+
+        if (b.tenancy_id) {
+        out.push({
+        id:    `tenancy-${b.tenancy_id}`,
+        type:  "tenancy",
+        icon:  "✅",
+        title: `Tenancy approved & started — ${b.property_title || "Property"}`,
+        body:  `${b.tenant_name || "Tenant"}'s tenancy began ${b.start_date ? new Date(b.start_date).toLocaleDateString() : "recently"}.`,
+        date:  b.start_date || b.created_at,
+        link:  "hostdashboard.html",
+        });
+        }
+        });
+        }
+        } catch (err) { console.error("[landlord/interests]", err); }
+
+        // Extension requests from tenants
+        try {
+        const res  = await fetch(`${API_BASE}/landlord/extension-requests/${userId}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+        data.data.forEach(r => {
+        out.push({
+        id:    `extension-${r.id}`,
+        type:  "tenancy",
+        icon:  "🗓",
+        title: `Extension request — ${r.property_title || "Property"}`,
+        body:  `${r.tenant_name || "Tenant"} asked for ${r.extra_months} more month${r.extra_months === 1 ? "" : "s"} (status: ${r.status}).`,
+        date:  r.created_at,
+        link:  "hostdashboard.html",
+        });
+        });
+        }
+        } catch (err) { console.error("[extension-requests]", err); }
+
+        // Messages from tenants
+        try {
+        const res  = await fetch(`${API_BASE}/landlord-chats/${userId}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success && data.chats?.length) {
+        const msgNotifs = await fetchMessageNotifications(data.chats, "landlord", "chat.html");
+        out.push(...msgNotifs);
+        }
+        } catch (err) { console.error("[landlord-chats]", err); }
+
+        return out;
+        }
+
+        async function fetchTenantNotifications() {
+        const out = [];
+
+        // Booking status (pending / approved / rejected)
+        try {
+        const res  = await fetch(`${API_BASE}/bookings/tenant/${userId}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+        data.bookings.forEach(b => {
+        const statusIcon = b.status === "approved" ? "✅" : b.status === "rejected" ? "❌" : "📋";
+        const statusText = b.status === "approved" ? "approved" : b.status === "rejected" ? "declined" : "pending";
+        out.push({
+        id:    `booking-${b.id}`,
+        type:  "booking",
+        icon:  statusIcon,
+        title: `Booking ${statusText} — ${b.title || "Property"}`,
+        body:  `Landlord: ${b.landlord_name || "N/A"}`,
+        date:  b.created_at,
+        link:  "bookings.html",
+        });
+        });
+        }
+        } catch (err) { console.error("[bookings/tenant]", err); }
+
+        // Active tenancy (confirms approval + start)
+        try {
+        const res  = await fetch(`${API_BASE}/tenancy/tenant/${userId}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success && data.tenancy) {
+        const t = data.tenancy;
+        out.push({
+        id:    `tenancy-${t.id}`,
+        type:  "tenancy",
+        icon:  "🏠",
+        title: `Tenancy active — ${t.property_title}`,
+        body:  `Started ${new Date(t.start_date).toLocaleDateString()} with ${t.landlord_name}.`,
+        date:  t.start_date,
+        link:  `property-group.html?property_id=${t.property_id}`,
+        });
+        }
+        } catch (err) { console.error("[tenancy/tenant]", err); }
+
+        // Messages from landlords
+        try {
+        const res  = await fetch(`${API_BASE}/tenant-chats/${userId}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success && data.chats?.length) {
+        const msgNotifs = await fetchMessageNotifications(data.chats, "tenant", "chat-tenant.html");
+        out.push(...msgNotifs);
+        }
+        } catch (err) { console.error("[tenant-chats]", err); }
+
+        return out;
+        }
+
+        async function loadNotifications() {
+        const list = document.getElementById("notifList");
+        const scrollY = list.scrollTop;
+
+        try {
+        const roleSpecific = userRole === "landlord"
+        ? await fetchLandlordNotifications()
+        : await fetchTenantNotifications();
+        const shared = await fetchSharedNotifications();
+
+        const merged = [...roleSpecific, ...shared].filter(n => n.date);
+        merged.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        allNotifications = merged;
+        renderList();
+        list.scrollTop = scrollY;
+        } catch (err) {
+        console.error("[loadNotifications]", err);
+        list.innerHTML = `<p class="state-msg">Couldn't load notifications. Pull to refresh or try again shortly.</p>`;
+        }
+        }
+
+        function setFilter(filter, btn) {
+        currentFilter = filter;
+        document.querySelectorAll("#tabBar button").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        renderList();
+        }
+
+        function renderList() {
+        const list = document.getElementById("notifList");
+        const seen = getSeenIds();
+
+        const items = currentFilter === "all"
+        ? allNotifications
+        : allNotifications.filter(n => n.type === currentFilter);
+
+        if (!items.length) {
+        list.innerHTML = `<p class="state-msg">Nothing here yet.</p>`;
+        return;
+        }
+
+        list.innerHTML = items.map(n => {
+        const isUnread = !seen.has(n.id);
+        return `
+        <div class="notif-card ${isUnread ? "" : "read"}" data-nid="${escapeHtml(n.id)}">
+        ${isUnread ? `<span class="unread-dot"></span>` : ""}
+        <div class="notif-icon">${n.icon}</div>
+        <div class="notif-body">
+        <div class="notif-title">${escapeHtml(n.title)}<span class="type-badge ${n.type}">${n.type}</span></div>
+        <div class="notif-text">${escapeHtml(n.body || "")}</div>
+        <div class="notif-time">${timeAgo(n.date)}</div>
+        </div>
+        </div>`;
+        }).join("");
+        }
+
+        // Event delegation: click a card -> mark read, run any pre-nav step, navigate
+        document.getElementById("notifList").addEventListener("click", (e) => {
+        const card = e.target.closest(".notif-card");
+        if (!card) return;
+        const id = card.dataset.nid;
+        const n  = allNotifications.find(x => x.id === id);
+        if (!n) return;
+
+        markRead(n.id);
+        card.classList.add("read");
+        const dot = card.querySelector(".unread-dot");
+        if (dot) dot.remove();
+
+        if (typeof n.onOpen === "function") n.onOpen();
+        if (n.link) window.location.href = n.link;
+        });
+
+        // ── init ──
+        (async function init() {
+        await loadNotifications();
+        refreshTimer = setInterval(loadNotifications, 20000);
+        })();
+    </script>
+</body>
+</html>

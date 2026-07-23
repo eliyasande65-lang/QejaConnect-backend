@@ -454,10 +454,14 @@
         <button class="add" onclick="location.href='bookings.html'">📋 Track My Booking</button>
     </div>
 
-    <div class="section-title">Your Properties</div>
-    <div class="dashboard" id="myProperties"></div>
+    <!-- FIX: wrapped so this whole section (heading + cards) can be
+         hidden for tenants — it's landlord-only content. -->
+    <div id="propertiesSection">
+        <div class="section-title">Your Properties</div>
+        <div class="dashboard" id="myProperties"></div>
+    </div>
 
-    <div class="dashboard" id="dashboard"<a href="#" onclick="goToMyGroup(); return false;">💬 Chat with housemates</a>></div>
+    <div class="dashboard" id="dashboard"></div>
 
     <div class="section-title">Your Chats</div>
 
@@ -470,6 +474,14 @@
     <div class="dashboard tab-content" id="tenantChats"></div>
 
     <script>
+        // Mark every currently-fetched request as "checked" so the
+        // Dashboard and Inquiries badges on other pages clear.
+        try {
+            const allIds = data.data.map(r => r.id);
+            localStorage.setItem('seenRequests', JSON.stringify(allIds));
+        } catch (err) {
+            console.error('Could not update seenRequests:', err);
+        }
         const loggedUser = JSON.parse(localStorage.getItem("loggedUser"));
         const token      = localStorage.getItem("token");
         const userId     = loggedUser?.id;
@@ -483,18 +495,21 @@
         }
 
         // ── SHOW/HIDE ACTIONS BASED ON ROLE ──────────────────────
-        // Landlords see "Add Property" + "Inquiries".
-        // Tenants see "Track My Booking" instead.
+        // Landlords see "Add Property" + "Inquiries" + "Your Properties".
+        // Tenants see "Track My Booking" instead, and no properties section.
         function setupRoleUI() {
-        const landlordActions = document.getElementById("landlordActions");
-        const tenantActions   = document.getElementById("tenantActions");
+        const landlordActions   = document.getElementById("landlordActions");
+        const tenantActions     = document.getElementById("tenantActions");
+        const propertiesSection = document.getElementById("propertiesSection");
 
         if (userRole === "tenant") {
-        if (landlordActions) landlordActions.style.display = "none";
-        if (tenantActions)   tenantActions.style.display   = "block";
+        if (landlordActions)   landlordActions.style.display   = "none";
+        if (tenantActions)     tenantActions.style.display     = "block";
+        if (propertiesSection) propertiesSection.style.display = "none";
         } else {
-        if (landlordActions) landlordActions.style.display = "";
-        if (tenantActions)   tenantActions.style.display   = "none";
+        if (landlordActions)   landlordActions.style.display   = "";
+        if (tenantActions)     tenantActions.style.display     = "none";
+        if (propertiesSection) propertiesSection.style.display = "";
         }
         }
 
@@ -515,11 +530,17 @@
         return;
         }
 
+        // FIX: the /landlord/interests/:id endpoint aliases these columns
+        // as property_title / tenant_name / tenant_email (see backend SQL:
+        // "p.title AS property_title", "t.fullname AS tenant_name",
+        // "t.email AS tenant_email"). The old code read r.title / r.fullname /
+        // r.email, none of which exist on the row, so every card rendered
+        // "undefined" for title, tenant name, and email.
         dashboard.innerHTML = data.data.map(r => `
         <div class="card">
-        <h3>${r.title}</h3>
-        <p><b>Tenant:</b> ${r.fullname}</p>
-        <p><b>Email:</b> ${r.email}</p>
+        <h3>${r.property_title}</h3>
+        <p><b>Tenant:</b> ${r.tenant_name}</p>
+        <p><b>Email:</b> ${r.tenant_email}</p>
         <p><b>Message:</b> ${r.message}</p>
         <p><b>Date:</b> ${new Date(r.created_at).toLocaleString()}</p>
         </div>
@@ -862,7 +883,7 @@
         msgBadge.style.display = 'inline-block';
         }
 
-        // ── New booking requests → Dashboard badge ──
+        // ── New booking requests → Dashboard badge + Inquiries badge ──
         // (landlords only — tenants have no "interests" to fetch)
         const role   = localStorage.getItem('role');
         const userId = JSON.parse(localStorage.getItem('loggedUser') || '{}')?.id;
@@ -871,37 +892,36 @@
         const reqRes  = await fetch(`https://qeja-backend-azkf.onrender.com/landlord/interests/${userId}`);
         const reqData = await reqRes.json();
 
-        // Dashboard badge = "unseen" interests since last visit to My Tenants
-        let unseenRequests = 0;
+        // Both badges now share one definition of "unchecked": requests
+        // whose id hasn't been recorded in 'seenRequests' yet. That list
+        // gets written the moment the landlord opens landlord_tenants.html
+        // (see the snippet for that page below), so both badges clear
+        // together as soon as the requests are actually looked at.
+        let uncheckedCount = 0;
         if (reqData.success && reqData.data?.length) {
-        let seenReqs = [];
-        try { seenReqs = JSON.parse(localStorage.getItem('seenRequests') || '[]'); } catch {}
-        unseenRequests = reqData.data.filter(r => !seenReqs.includes(r.id)).length;
+            let seenReqs = [];
+            try { seenReqs = JSON.parse(localStorage.getItem('seenRequests') || '[]'); } catch {}
+            uncheckedCount = reqData.data.filter(r => !seenReqs.includes(r.id)).length;
         }
 
         const dashBadge = document.getElementById('menuDashboardBadge');
-        if (dashBadge && unseenRequests > 0) {
-        dashBadge.textContent = unseenRequests;
-        dashBadge.style.display = 'inline-block';
-        }
-
-        // Inquiries badge = count of bookings still PENDING (mirrors the
-        // "Pending" stat on landlord_tenants.html). This stays accurate
-        // even after visiting that page, unlike "unseen" counts, since it
-        // only clears once a booking is approved/rejected — not just viewed.
-        let pendingCount = 0;
-        if (reqData.success && reqData.data?.length) {
-        pendingCount = reqData.data.filter(r => (r.status || 'pending') === 'pending').length;
+        if (dashBadge) {
+            if (uncheckedCount > 0) {
+                dashBadge.textContent = uncheckedCount;
+                dashBadge.style.display = 'inline-block';
+            } else {
+                dashBadge.style.display = 'none';
+            }
         }
 
         const inqBadge = document.getElementById('inquiriesBadge');
         if (inqBadge) {
-        if (pendingCount > 0) {
-        inqBadge.textContent = pendingCount;
-        inqBadge.style.display = 'inline-block';
-        } else {
-        inqBadge.style.display = 'none';
-        }
+            if (uncheckedCount > 0) {
+                inqBadge.textContent = uncheckedCount;
+                inqBadge.style.display = 'inline-block';
+            } else {
+                inqBadge.style.display = 'none';
+            }
         }
 
         } catch (err) {

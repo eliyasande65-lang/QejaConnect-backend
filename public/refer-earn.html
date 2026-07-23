@@ -26,7 +26,7 @@
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Refer & Earn · QejaConnect</title>
-
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
     <style>
         /* ============================================================
            RESET
@@ -531,6 +531,53 @@
             padding: 16px;
         }
 
+        .p-icon {
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            margin-bottom: 8px;
+            transition: .25s;
+        }
+
+        .popup-opt:hover .p-icon {
+            transform: scale(1.1);
+        }
+
+        /* Brand colors */
+        .popup-opt[data-platform="whatsapp"] .p-icon {
+            color: #25D366;
+            background: #e8f9ef;
+        }
+
+        .popup-opt[data-platform="twitter"] .p-icon {
+            color: #000;
+            background: #f2f2f2;
+        }
+
+        .popup-opt[data-platform="facebook"] .p-icon {
+            color: #1877F2;
+            background: #eaf2ff;
+        }
+
+        .popup-opt[data-platform="telegram"] .p-icon {
+            color: #229ED9;
+            background: #e9f7fd;
+        }
+
+        .popup-opt[data-platform="email"] .p-icon {
+            color: #EA4335;
+            background: #fff0ef;
+        }
+
+        .popup-opt[data-platform="copy"] .p-icon {
+            color: #6c757d;
+            background: #f4f4f4;
+        }
+
             .popup-overlay.open {
                 display: flex;
             }
@@ -732,30 +779,37 @@
             </div>
             <div class="popup-link" id="sharePopupLink">&mdash;</div>
             <div class="popup-options">
+
                 <div class="popup-opt" data-platform="whatsapp">
-                    <div class="p-icon">🟢</div>
+                    <div class="p-icon"><i class="fab fa-whatsapp"></i></div>
                     <div class="p-label">WhatsApp</div>
                 </div>
+
                 <div class="popup-opt" data-platform="twitter">
-                    <div class="p-icon">✖️</div>
+                    <div class="p-icon"><i class="fa-brands fa-x-twitter"></i></div>
                     <div class="p-label">X</div>
                 </div>
+
                 <div class="popup-opt" data-platform="facebook">
-                    <div class="p-icon">📘</div>
+                    <div class="p-icon"><i class="fab fa-facebook-f"></i></div>
                     <div class="p-label">Facebook</div>
                 </div>
+
                 <div class="popup-opt" data-platform="telegram">
-                    <div class="p-icon">✈️</div>
+                    <div class="p-icon"><i class="fab fa-telegram-plane"></i></div>
                     <div class="p-label">Telegram</div>
                 </div>
+
                 <div class="popup-opt" data-platform="email">
-                    <div class="p-icon">✉️</div>
+                    <div class="p-icon"><i class="fas fa-envelope"></i></div>
                     <div class="p-label">Email</div>
                 </div>
+
                 <div class="popup-opt" data-platform="copy">
-                    <div class="p-icon">📋</div>
-                    <div class="p-label">Copy</div>
+                    <div class="p-icon"><i class="fas fa-copy"></i></div>
+                    <div class="p-label">Copy Link</div>
                 </div>
+
             </div>
         </div>
     </div>
