@@ -1,4 +1,3 @@
-// JavaScript source code
 // aiController.js
 // ------------------------------------------------------------
 // Orchestrates one /ai/chat request:
@@ -11,6 +10,7 @@ const {
   classifyMessage,
   extractKeywords,
   detectMath,
+  detectGreeting,
   evaluateMath,
   FALLBACK_STOPWORDS
 } = require('./nlpEngine');
@@ -175,49 +175,56 @@ async function handleChat(req, res) {
     let botReply;
     let isMath = false;
 
-    if (messageType === 'statement') {
-      const pending = await findPendingQuestion(sessionId);
+    // ── 1. Math check runs FIRST, regardless of question/statement.
+    //    "2+2", "what is 2+2", "solve 2+2 please" should all hit this,
+    //    not just messages that happen to classify as questions.
+    const { isMath: mathDetected, expression } = detectMath(message);
+    isMath = mathDetected;
 
-      if (pending) {
-        await resolvePendingQuestion(pending.id, pending.question_text, message, userId);
-        const flavor = await getRandomScript('general');
-        botReply = `Thanks — I've learned that! 🎓${flavor ? ' ' + flavor : ''}`;
+    // ── 2. Is there a pending "teach me the answer" question waiting
+    //    on this session? Only statements resolve it (a fresh math
+    //    expression or a new question shouldn't be swallowed as an
+    //    answer to something else).
+    const pending = messageType === 'statement' ? await findPendingQuestion(sessionId) : null;
+
+    if (mathDetected) {
+      const { success, result, error } = evaluateMath(expression);
+      await pool.query(
+        `INSERT INTO math_queries_log (session_id, raw_message, expression, result, success)
+         VALUES (?, ?, ?, ?, ?)`,
+        [sessionId, message, expression, success ? String(result) : null, success ? 1 : 0]
+      );
+
+      const flavor = await getRandomScript('math');
+      if (success) {
+        botReply = `${expression} = ${result}${flavor ? ' — ' + flavor : ''}`;
       } else {
-        const flavor = await getRandomScript('idle');
-        botReply = flavor || "Got it, thanks for letting me know!";
+        botReply = `I couldn't work that expression out (${error}). Mind rephrasing it?`;
+      }
+    } else if (pending) {
+      await resolvePendingQuestion(pending.id, pending.question_text, message, userId);
+      const flavor = await getRandomScript('general');
+      botReply = `Thanks — I've learned that! 🎓${flavor ? ' ' + flavor : ''}`;
+    } else if (detectGreeting(message)) {
+      const flavor = await getRandomScript('greeting');
+      botReply = flavor || "Hey there! 👋 How can I help you today?";
+    } else if (messageType === 'question') {
+      const keywords = extractKeywords(message, stopwordSet);
+      const best = await findBestAnswer(keywords);
+
+      if (best) {
+        await incrementHitCount(best.id);
+        const flavor = await getRandomScript('general');
+        botReply = `${best.answer_text}${flavor ? '\n\n💡 ' + flavor : ''}`;
+      } else {
+        await createPendingQuestion(sessionId, userId, message, keywords);
+        botReply = "I don't know that one yet — can you tell me the answer? I'll remember it for next time!";
       }
     } else {
-      // messageType === 'question'
-      const { isMath: mathDetected, expression } = detectMath(message);
-      isMath = mathDetected;
-
-      if (mathDetected) {
-        const { success, result, error } = evaluateMath(expression);
-        await pool.query(
-          `INSERT INTO math_queries_log (session_id, raw_message, expression, result, success)
-           VALUES (?, ?, ?, ?, ?)`,
-          [sessionId, message, expression, success ? String(result) : null, success ? 1 : 0]
-        );
-
-        const flavor = await getRandomScript('math');
-        if (success) {
-          botReply = `${expression} = ${result}${flavor ? ' — ' + flavor : ''}`;
-        } else {
-          botReply = `I couldn't work that expression out (${error}). Mind rephrasing it?`;
-        }
-      } else {
-        const keywords = extractKeywords(message, stopwordSet);
-        const best = await findBestAnswer(keywords);
-
-        if (best) {
-          await incrementHitCount(best.id);
-          const flavor = await getRandomScript('general');
-          botReply = `${best.answer_text}${flavor ? '\n\n💡 ' + flavor : ''}`;
-        } else {
-          await createPendingQuestion(sessionId, userId, message, keywords);
-          botReply = "I don't know that one yet — can you tell me the answer? I'll remember it for next time!";
-        }
-      }
+      // Generic small talk: not math, not a pending answer, not a
+      // greeting, not classified as a question either.
+      const flavor = await getRandomScript('idle');
+      botReply = flavor || "Got it, thanks for letting me know!";
     }
 
     await logChat({ sessionId, userId, message, messageType, isMath, botReply });

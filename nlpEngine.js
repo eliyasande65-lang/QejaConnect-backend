@@ -1,4 +1,3 @@
-// JavaScript source code
 // nlpEngine.js
 // ------------------------------------------------------------
 // Pure, DB-agnostic NLP helpers. No network / DB calls in here —
@@ -151,10 +150,28 @@ function evaluateMath(expression) {
   }
 }
 
+// Matches a message that IS a greeting (whole message, allowing for
+// punctuation/an exclamation, not just contains-a-greeting-word somewhere).
+const GREETING_REGEX =
+  /^(hi+|hey+|hello+|yo+|sup|howdy|greetings|good\s?morning|good\s?afternoon|good\s?evening|morning|evening)[\s!.,]*$/i;
+
+/**
+ * Returns true if the whole message is essentially just a greeting,
+ * e.g. "hi", "hey there", "hello!", "good morning".
+ */
+function detectGreeting(rawText) {
+  const text = (rawText || '').trim();
+  if (!text) return false;
+  // Strip a trailing "there" / "guys" / name so "hey there" still matches.
+  const stripped = text.replace(/\b(there|guys|team|everyone)\b/gi, '').trim();
+  return GREETING_REGEX.test(stripped);
+}
+
 module.exports = {
   classifyMessage,
   extractKeywords,
   detectMath,
+  detectGreeting,
   evaluateMath,
   FALLBACK_STOPWORDS
 };
