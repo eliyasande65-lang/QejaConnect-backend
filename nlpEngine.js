@@ -106,9 +106,15 @@ const WORD_OPERATORS = [
   [/\bx\b/g, '*'] // "3 x 4"
 ];
 
-// Matches things like: 12 + 4, 3.5 * (2-1), 10 / 2 + 3
-const MATH_EXPRESSION_REGEX =
-  /-?\d+(\.\d+)?\s*(\^|\*|\/|\+|-|%)\s*(-?\(?\d)[\d.\s+\-*/^%()]*\d\)?|\(\s*-?\d+(\.\d+)?\s*(\^|\*|\/|\+|-|%)[\d.\s+\-*/^%()]*\)/;
+// Any contiguous run of math-safe characters — digits, the four basic
+// operators plus ^ and %, decimal points, parens, whitespace.
+const MATH_CANDIDATE_REGEX = /[0-9+\-*/^%().\s]+/g;
+
+// Confirms the candidate actually has the SHAPE of an expression —
+// a digit, then an operator, then (optionally parenthesised, optionally
+// negative) another digit — rather than just a lone number or stray
+// punctuation. Works for single-digit operands, unlike the old regex.
+const DIGIT_OP_DIGIT_REGEX = /\d\s*[+\-*/^%]\s*\(?-?\d/;
 
 /**
  * Try to find a math expression inside a natural-language question.
@@ -122,14 +128,16 @@ function detectMath(rawText) {
     text = text.replace(pattern, replacement);
   }
 
-  const match = text.match(MATH_EXPRESSION_REGEX);
-  if (!match) return { isMath: false, expression: null };
+  const candidates = text.match(MATH_CANDIDATE_REGEX) || [];
 
-  // Trim to only safe math characters before handing to mathjs
-  const expression = match[0].replace(/[^0-9.+\-*/^%() ]/g, '').trim();
-  if (!expression) return { isMath: false, expression: null };
+  for (const raw of candidates) {
+    const candidate = raw.trim();
+    if (!candidate) continue;
+    if (!DIGIT_OP_DIGIT_REGEX.test(candidate)) continue; // needs digit-op-digit shape
+    return { isMath: true, expression: candidate };
+  }
 
-  return { isMath: true, expression };
+  return { isMath: false, expression: null };
 }
 
 /**
