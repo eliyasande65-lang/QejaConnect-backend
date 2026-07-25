@@ -22,4 +22,4 @@ const aiController = require('./aiController');
 
 router.post('/chat', aiController.handleChat);
 
-module.exports = router;
+module.exports = router; 

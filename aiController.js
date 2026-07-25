@@ -1,7 +1,8 @@
 // aiController.js
 // ------------------------------------------------------------
 // Orchestrates one /ai/chat request:
-//   classify -> (math | keyword lookup | teach-me) -> log -> reply
+//   classify -> (math | pending-answer | greeting | keyword lookup
+//   -> web search fallback -> teach-me) -> log -> reply
 //
 // Expects a mysql2/promise pool to be passed in via init(pool).
 // ------------------------------------------------------------
@@ -15,8 +16,19 @@ const {
   FALLBACK_STOPWORDS
 } = require('./nlpEngine');
 
+const { searchWeb } = require('./webSearchEngine');
+
 let pool = null;
 let stopwordSet = FALLBACK_STOPWORDS;
+
+// Max web searches a single session can trigger per hour. Keeps API
+// costs bounded and stops someone from hammering the search provider
+// through the chat widget.
+const SEARCH_RATE_LIMIT_PER_HOUR = 15;
+
+// Web answers are trimmed to this length before being shown in chat —
+// the full text is always still reachable via the source link.
+const WEB_ANSWER_MAX_CHARS = 500;
 
 /** Call once at server startup, after your mysql2 pool is created. */
 function init(mysqlPool) {
@@ -156,6 +168,91 @@ async function createPendingQuestion(sessionId, userId, questionText, keywords) 
   );
 }
 
+// ── Web search fallback ──────────────────────────────────────────
+
+async function canSearchThisSession(sessionId) {
+  const [rows] = await pool.query(
+    `SELECT COUNT(*) AS cnt FROM web_search_log
+     WHERE session_id = ? AND created_at > (NOW() - INTERVAL 1 HOUR)`,
+    [sessionId]
+  );
+  return rows[0].cnt < SEARCH_RATE_LIMIT_PER_HOUR;
+}
+
+async function logWebSearch({ sessionId, userId, query, provider, success, title, url }) {
+  await pool.query(
+    `INSERT INTO web_search_log (session_id, user_id, query, provider, success, result_title, result_url)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [sessionId, userId || null, query, provider || null, success ? 1 : 0, title || null, url || null]
+  );
+}
+
+/**
+ * Attempts a web search for `message`, respecting the per-session
+ * rate limit. Logs the attempt either way. Returns the search result
+ * object or null.
+ */
+async function tryWebSearch(sessionId, userId, message) {
+  const allowed = await canSearchThisSession(sessionId);
+  if (!allowed) return null;
+
+  const result = await searchWeb(message);
+  await logWebSearch({
+    sessionId,
+    userId,
+    query: message,
+    provider: result?.provider,
+    success: !!result,
+    title: result?.title,
+    url: result?.url,
+  });
+  return result;
+}
+
+/** Formats a web search result into a chat-friendly reply with source link. */
+function formatWebAnswer(result) {
+  let extract = result.extract.trim();
+  if (extract.length > WEB_ANSWER_MAX_CHARS) {
+    extract = extract.slice(0, WEB_ANSWER_MAX_CHARS).trim() + '…';
+  }
+  const source = result.url ? `\n\n🌐 Source: ${result.title} — ${result.url}` : '';
+  return `${extract}${source}`;
+}
+
+/**
+ * Caches a web search answer into knowledge_base (source='web_search')
+ * so the NEXT time someone asks something with similar keywords, it's
+ * an instant DB hit instead of another external API call.
+ */
+async function cacheWebAnswer(questionText, result, keywords) {
+  if (!keywords.length) return; // nothing to index it by — skip caching
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    const [kbResult] = await conn.query(
+      `INSERT INTO knowledge_base (question_text, answer_text, source) VALUES (?, ?, 'web_search')`,
+      [questionText, result.extract.trim()]
+    );
+    const kbId = kbResult.insertId;
+
+    const keywordIds = await getOrCreateKeywordIds(conn, keywords);
+    for (const kwId of keywordIds) {
+      await conn.query(
+        'INSERT IGNORE INTO knowledge_base_keywords (knowledge_base_id, keyword_id) VALUES (?, ?)',
+        [kbId, kwId]
+      );
+    }
+
+    await conn.commit();
+  } catch (err) {
+    await conn.rollback();
+    console.error('[cacheWebAnswer]', err.message);
+  } finally {
+    conn.release();
+  }
+}
+
 /**
  * Main entry point — plug this into your Express route:
  *   router.post('/chat', aiController.handleChat);
@@ -176,15 +273,11 @@ async function handleChat(req, res) {
     let isMath = false;
 
     // ── 1. Math check runs FIRST, regardless of question/statement.
-    //    "2+2", "what is 2+2", "solve 2+2 please" should all hit this,
-    //    not just messages that happen to classify as questions.
     const { isMath: mathDetected, expression } = detectMath(message);
     isMath = mathDetected;
 
     // ── 2. Is there a pending "teach me the answer" question waiting
-    //    on this session? Only statements resolve it (a fresh math
-    //    expression or a new question shouldn't be swallowed as an
-    //    answer to something else).
+    //    on this session? Only statements resolve it.
     const pending = messageType === 'statement' ? await findPendingQuestion(sessionId) : null;
 
     if (mathDetected) {
@@ -213,12 +306,23 @@ async function handleChat(req, res) {
       const best = await findBestAnswer(keywords);
 
       if (best) {
+        // Fast path: already known, either seeded/taught or a
+        // previously cached web search answer.
         await incrementHitCount(best.id);
         const flavor = await getRandomScript('general');
         botReply = `${best.answer_text}${flavor ? '\n\n💡 ' + flavor : ''}`;
       } else {
-        await createPendingQuestion(sessionId, userId, message, keywords);
-        botReply = "I don't know that one yet — can you tell me the answer? I'll remember it for next time!";
+        // Not in the knowledge base — try searching the web before
+        // giving up and asking the user to teach it.
+        const webResult = await tryWebSearch(sessionId, userId, message);
+
+        if (webResult) {
+          botReply = formatWebAnswer(webResult);
+          await cacheWebAnswer(message, webResult, keywords);
+        } else {
+          await createPendingQuestion(sessionId, userId, message, keywords);
+          botReply = "I don't know that one yet, and I couldn't find it online either — can you tell me the answer? I'll remember it for next time!";
+        }
       }
     } else {
       // Generic small talk: not math, not a pending answer, not a
