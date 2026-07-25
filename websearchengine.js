@@ -1,4 +1,3 @@
-// JavaScript source code
 // webSearchEngine.js
 // ------------------------------------------------------------
 // Pluggable "search the web" fallback for the AI engine.
@@ -21,6 +20,12 @@ const axios = require('axios');
 const SERPER_API_KEY = process.env.SERPER_API_KEY || null;
 const REQUEST_TIMEOUT_MS = 6000;
 
+// Wikimedia's API policy rejects requests with no User-Agent, or a
+// generic one (axios's default "axios/1.x.x" counts as generic) —
+// they fail with a silent HTTP 403. A descriptive UA with contact
+// info is required: https://foundation.wikimedia.org/wiki/Policy:User-Agent_Policy
+const WIKI_USER_AGENT = 'QejaConnectBot/1.0 (https://eliyasande65-lang.github.io/QejaConnect; contact: qejaconnect@outlook.com)';
+
 /**
  * Wikipedia search: finds the best matching page title for the query,
  * then fetches its summary extract.
@@ -36,6 +41,7 @@ async function searchWikipedia(query) {
         format: 'json',
         srlimit: 1,
       },
+      headers: { 'User-Agent': WIKI_USER_AGENT },
       timeout: REQUEST_TIMEOUT_MS,
     });
 
@@ -45,7 +51,7 @@ async function searchWikipedia(query) {
     const title = hit.title;
     const summaryRes = await axios.get(
       `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}`,
-      { timeout: REQUEST_TIMEOUT_MS }
+      { headers: { 'User-Agent': WIKI_USER_AGENT }, timeout: REQUEST_TIMEOUT_MS }
     );
 
     const extract = summaryRes.data?.extract;
@@ -59,7 +65,7 @@ async function searchWikipedia(query) {
       provider: 'wikipedia',
     };
   } catch (err) {
-    console.error('[webSearchEngine] Wikipedia error:', err.message);
+    console.error('[webSearchEngine] Wikipedia error:', err.response?.status, err.message);
     return null;
   }
 }
@@ -100,7 +106,7 @@ async function searchSerper(query) {
     }
     return null;
   } catch (err) {
-    console.error('[webSearchEngine] Serper error:', err.message);
+    console.error('[webSearchEngine] Serper error:', err.response?.status, err.message);
     return null;
   }
 }
