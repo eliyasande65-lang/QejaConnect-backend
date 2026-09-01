@@ -17,6 +17,7 @@ const {
 } = require('./nlpEngine');
 
 const { searchWeb } = require('./webSearchEngine');
+const contextEngine = require('./contextEngine');
 
 let pool = null;
 let stopwordSet = FALLBACK_STOPWORDS;
@@ -33,6 +34,7 @@ const WEB_ANSWER_MAX_CHARS = 500;
 /** Call once at server startup, after your mysql2 pool is created. */
 function init(mysqlPool) {
   pool = mysqlPool;
+  contextEngine.init(mysqlPool);
   loadStopwords().catch(err =>
     console.error('AI engine: failed to load stopwords, using fallback list', err)
   );
@@ -62,11 +64,12 @@ async function getRandomScript(category) {
   return rows.length ? rows[0].content : null;
 }
 
-async function logChat({ sessionId, userId, message, messageType, isMath, botReply }) {
+async function logChat({ sessionId, userId, message, messageType, isMath, botReply, keywords }) {
+  const keywordsText = keywords && keywords.length ? keywords.join(',') : null;
   await pool.query(
-    `INSERT INTO chat_logs (session_id, user_id, message, message_type, is_math, bot_reply)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-    [sessionId, userId || null, message, messageType, isMath ? 1 : 0, botReply]
+    `INSERT INTO chat_logs (session_id, user_id, message, message_type, is_math, bot_reply, keywords_text)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [sessionId, userId || null, message, messageType, isMath ? 1 : 0, botReply, keywordsText]
   );
 }
 
@@ -260,7 +263,7 @@ async function cacheWebAnswer(questionText, result, keywords) {
 async function handleChat(req, res) {
   try {
     const { message, session_id: sessionId } = req.body;
-    const userId = req.user ? req.user.id : (req.body.user_id || null); // adapt to your auth middleware
+    const userId = req.user ? req.user.id : (req.body.user_id || null); 
 
     if (!message || !sessionId) {
       return res.status(400).json({ success: false, message: 'message and session_id are required' });
@@ -271,6 +274,7 @@ async function handleChat(req, res) {
     const messageType = classifyMessage(message);
     let botReply;
     let isMath = false;
+    let contextKeywordsForLog = null;
 
     // ── 1. Math check runs FIRST, regardless of question/statement.
     const { isMath: mathDetected, expression } = detectMath(message);
@@ -303,7 +307,14 @@ async function handleChat(req, res) {
       botReply = flavor || "Hey there! 👋 How can I help you today?";
     } else if (messageType === 'question') {
       const keywords = extractKeywords(message, stopwordSet);
-      const best = await findBestAnswer(keywords);
+
+      // Does this look like a follow-up ("what about Kilimani?") to the
+      // most recent question in this session? If so, merge keyword sets
+      // so the lookup/search below has the missing context.
+      const { effectiveKeywords, effectiveQueryText, usedContext } =
+        await contextEngine.resolveWithContext(sessionId, message, keywords);
+
+      const best = await findBestAnswer(effectiveKeywords);
 
       if (best) {
         // Fast path: already known, either seeded/taught or a
@@ -313,17 +324,31 @@ async function handleChat(req, res) {
         botReply = `${best.answer_text}${flavor ? '\n\n💡 ' + flavor : ''}`;
       } else {
         // Not in the knowledge base — try searching the web before
-        // giving up and asking the user to teach it.
-        const webResult = await tryWebSearch(sessionId, userId, message);
+        // giving up and asking the user to teach it. Use the
+        // context-enriched query text/keywords when this was a
+        // follow-up, so "what about Kilimani?" actually searches for
+        // something meaningful instead of just "Kilimani".
+        const searchQuery = usedContext ? effectiveQueryText : message;
+        const webResult = await tryWebSearch(sessionId, userId, searchQuery);
 
         if (webResult) {
           botReply = formatWebAnswer(webResult);
-          await cacheWebAnswer(message, webResult, keywords);
+          await cacheWebAnswer(searchQuery, webResult, effectiveKeywords);
         } else {
-          await createPendingQuestion(sessionId, userId, message, keywords);
+          // Store the enriched text (not just the raw follow-up) as
+          // question_text, since resolvePendingQuestion re-extracts
+          // keywords from question_text later — without this, a
+          // follow-up's context would be lost the moment it's taught.
+          await createPendingQuestion(sessionId, userId, searchQuery, effectiveKeywords);
           botReply = "I don't know that one yet, and I couldn't find it online either — can you tell me the answer? I'll remember it for next time!";
         }
       }
+
+      // Store THIS message's own keywords (not the merged set) so the
+      // next follow-up in the chain anchors off what was actually
+      // typed, while still inheriting accumulated context via the
+      // merge logic in contextEngine.
+      contextKeywordsForLog = keywords;
     } else {
       // Generic small talk: not math, not a pending answer, not a
       // greeting, not classified as a question either.
@@ -331,7 +356,7 @@ async function handleChat(req, res) {
       botReply = flavor || "Got it, thanks for letting me know!";
     }
 
-    await logChat({ sessionId, userId, message, messageType, isMath, botReply });
+    await logChat({ sessionId, userId, message, messageType, isMath, botReply, keywords: contextKeywordsForLog });
 
     return res.json({ success: true, reply: botReply, type: messageType, is_math: isMath });
   } catch (err) {

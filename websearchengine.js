@@ -24,7 +24,7 @@ const REQUEST_TIMEOUT_MS = 6000;
 // generic one (axios's default "axios/1.x.x" counts as generic) —
 // they fail with a silent HTTP 403. A descriptive UA with contact
 // info is required: https://foundation.wikimedia.org/wiki/Policy:User-Agent_Policy
-const WIKI_USER_AGENT = 'QejaConnectBot/1.0 (https://eliyasande65-lang.github.io/QejaConnect; contact: qejaconnect@outlook.com)';
+const WIKI_USER_AGENT = 'QejaConnectBot/1.0 (https://eliyasande65-lang.github.io; contact: qejaconnect@outlook.com)';
 
 /**
  * Wikipedia search: finds the best matching page title for the query,
