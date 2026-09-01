@@ -24,6 +24,51 @@
         .catch(err => console.error('SW error:', err));
         });
         }
+        const VAPID_PUBLIC_KEY = "BE3u50iOkmwX_n3S2hUaKLq31fQ1RCS45GoMKnUghiYsJqfyH8rH4LfqmERRDFKCbS9DA5sLxVscw6oIX6nyjg8"; 
+            function urlBase64ToUint8Array(base64String) {
+              const padding = '='.repeat((4 - base64String.length % 4) % 4);
+              const base64 = (base64String + padding).replace(/-/g, '+').replace(/_/g, '/');
+              const rawData = window.atob(base64);
+              return Uint8Array.from([...rawData].map(char => char.charCodeAt(0)));
+            }
+
+            async function subscribeToPush() {
+              if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+                console.warn('Push not supported on this browser');
+                return;
+              }
+
+              const permission = await Notification.requestPermission();
+              if (permission !== 'granted') {
+                console.warn('Notification permission not granted:', permission);
+                return;
+              }
+
+              const reg = await navigator.serviceWorker.ready;
+
+              let subscription = await reg.pushManager.getSubscription();
+              if (!subscription) {
+                subscription = await reg.pushManager.subscribe({
+                  userVisibleOnly: true,
+                  applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+                });
+              }
+
+              await fetch("https://qeja-backend-azkf.onrender.com/subscribe", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(subscription)
+              });
+            }
+
+            // Trigger it — ideally on a user gesture (button tap) rather than page load,
+            // since iOS/Chrome are more likely to honor the prompt that way.
+            document.getElementById('bellIcon')?.addEventListener('click', (e) => {
+              // don't block navigation to notification.html — fire and forget
+              subscribeToPush();
+            });
+           
+            subscribeToPush();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Qeja Connect | Home</title>
@@ -896,7 +941,7 @@
                     style="display:flex;align-items:center;gap:6px;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.25);color:white;padding:8px 14px;border-radius:20px;font-size:13px;font-weight:600;cursor:pointer;">
                 🤖 Ask AI
             </button>
-            <a href="notification.html" id="bellIcon" title="Notifications" style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);text-decoration:none;color:white;font-size:22px;">
+            <a href="notification.html" onclick="maybeShowNotifPrompt()" id="bellIcon" title="Notifications" style="position:relative;display:flex;align-items:center;justify-content:center;width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.08);text-decoration:none;color:white;font-size:22px;">
                 🔔
                 <span id="bellBadge" class="menu-badge" style="display:none;position:absolute;top:-4px;right:-4px;font-size:10px;padding:1px 6px;">0</span>
             </a>
@@ -996,7 +1041,7 @@
                 <h3>Quick Links</h3>
                 <a href="privacy_policy.html">Privacy Policy</a>
                 <p>About us</p>
-                <p>Terms and Conditions</p>
+                <a href="terms.html">Terms and Conditions</a>
             </div>
         </div>
         <div class="copyright">© 2026 Qeja Connect Kenya Ltd. All Rights Reserved.</div>
@@ -1087,6 +1132,30 @@
         setTimeout(() => toast.remove(), 300);
         }, duration);
         }
+
+        function maybeShowNotifPrompt() {
+          if (Notification.permission !== 'default') return; // already granted or denied — don't ask again
+  
+          const banner = document.createElement('div');
+          banner.style.cssText = `position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+            background:#1a1535;color:white;padding:14px 20px;border-radius:12px;
+            display:flex;gap:12px;align-items:center;z-index:999998;box-shadow:0 6px 18px rgba(0,0,0,.25);`;
+          banner.innerHTML = `
+            <span>🔔 Get notified about new messages & updates</span>
+            <button id="enableNotifBtn" style="background:white;color:#1a1535;border:none;
+              padding:8px 14px;border-radius:8px;font-weight:bold;cursor:pointer;">Enable</button>
+            <button id="dismissNotifBtn" style="background:none;color:#ccc;border:none;
+              cursor:pointer;font-size:18px;">✕</button>
+          `;
+          document.body.appendChild(banner);
+
+          document.getElementById('enableNotifBtn').onclick = async () => {
+            banner.remove();
+            await subscribeToPush(); // your existing function
+          };
+          document.getElementById('dismissNotifBtn').onclick = () => banner.remove();
+        }
+        maybeShowNotifPrompt()
     </script>
 
     <!-- POPUP SCRIPTS (replace existing openPopup / interested scripts) -->
@@ -1662,57 +1731,50 @@
         }
 
         function renderProperties(searchText) {
-        const grid  = document.getElementById("propertyGrid");
-        const count = document.getElementById("resultsCount");
-        let list    = [...allProperties];
+  const grid  = document.getElementById("propertyGrid");
+  const count = document.getElementById("resultsCount");
+  let list    = [...allProperties];
+  // ... your existing filter logic ...
 
-        // Location chip filter
-        if (activeLocation !== "all") {
-        list = list.filter(p => (p.location || "").toLowerCase() === activeLocation.toLowerCase());
-        }
+  grid.innerHTML = "";
+  count.textContent = `${list.length} propert${list.length === 1 ? 'y' : 'ies'} found`;
 
-        // Text search box (town/area) — works alongside the chip filter
-        if (searchText) {
-        list = list.filter(p =>
-        (p.location || "").toLowerCase().includes(searchText) ||
-        (p.title || "").toLowerCase().includes(searchText) ||
-        (p.description || "").toLowerCase().includes(searchText)
-        );
-        }
+  if (!list.length) {
+    grid.innerHTML = `<p style="text-align:center;color:#999;padding:40px;">No properties match this filter.</p>`;
+    return;
+  }
 
-        // Most booked sort
-        if (sortByBooked) {
-        list.sort((a, b) => (b.booking_count || 0) - (a.booking_count || 0));
-        }
+  const myId = getLoggedInUserId();
 
-        grid.innerHTML = "";
-        count.textContent = `${list.length} propert${list.length === 1 ? 'y' : 'ies'} found`;
-
-        if (!list.length) {
-        grid.innerHTML = `<p style="text-align:center;color:#999;padding:40px;">No properties match this filter.</p>`;
-        return;
-        }
-
-        const myId = getLoggedInUserId();
-
-        list.forEach(property => {
-        const own = myId && property.landlord_id != null && String(property.landlord_id) === myId;
-        grid.innerHTML += `
-        <div class="property-card">
-        <img src="${property.image_url}" />
-        <div class="property-info">
+  list.forEach((property) => {
+    const own = myId && property.landlord_id != null && String(property.landlord_id) === myId;
+    grid.innerHTML += `
+    <div class="property-card">
+      <img src="${property.image_url}" />
+      <div class="property-info">
         <h3>${property.title}</h3>
         <div class="price">Ksh ${property.price}</div>
         <div class="location">${property.location}</div>
         <p>${property.description}</p>
-        <a href="landlord-profile.html?landlord_id=${property.landlord_id}&who=${encodeURIComponent(property.landlord_name || '')}"><small>Posted by: ${property.landlord_name || "Unknown"}</small></a>
+        <a href="landlord-profile.html?id=${property.landlord_id}&who=${encodeURIComponent(property.landlord_name || '')}">
+          <small>Posted by: ${property.landlord_name || "Unknown"}</small>
+        </a>
         ${own ? `<span class="booked-tag" style="color:#b8720b;">📌 This is your listing</span>` : ''}
         ${sortByBooked ? `<span class="booked-tag">🔥 ${property.booking_count || 0} booking${(property.booking_count || 0) === 1 ? '' : 's'}</span>` : ''}
-        <button class="view-btn" onclick='openPopup(${JSON.stringify(property)})'>View Details</button>
-        </div>
-        </div>`;
-        });
-        }
+        <button class="view-btn" data-property-id="${property.id}">View Details</button>
+      </div>
+    </div>`;
+  });
+
+  // Attach click handlers after render — no inline JSON in HTML at all
+  grid.querySelectorAll('.view-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-property-id');
+      const property = allProperties.find(p => String(p.id) === String(id));
+      if (property) openPopup(property);
+    });
+  });
+}
     </script>
 
     <script>
