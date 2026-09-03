@@ -33,6 +33,137 @@ const softContactSchema = z.object({
 });
 
 const softTrackSchema = z.string().trim().min(3).max(40).regex(/^SI-[A-Z0-9-]+$/i, "Invalid project ID");
+const softSignupSchema = z.object({
+  name: z.string().trim().min(2).max(100),
+  email: z.string().email().max(150),
+  password: z.string().trim().min(6).max(128)
+});
+
+async function ensureSoftUserTable() {
+  try {
+    await dbPromise.query(`
+      CREATE TABLE IF NOT EXISTS soft_users (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        name VARCHAR(100) NOT NULL,
+        email VARCHAR(150) NOT NULL UNIQUE,
+        password_hash VARCHAR(128) NOT NULL,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+  } catch (err) {
+    console.error("[SOFT USERS TABLE]", err.message);
+  }
+}
+
+ensureSoftUserTable();
+
+// ---------------------------------------------------------
+// POST /soft/signup
+// Public signup for customer accounts.
+// ---------------------------------------------------------
+app.post("/soft/signup", generalLimiter, validate(softSignupSchema), async (req, res) => {
+  try {
+    const { name, email, password } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
+
+    const [existing] = await dbPromise.query(
+      `SELECT id FROM soft_users WHERE LOWER(email)=? LIMIT 1`,
+      [normalizedEmail]
+    );
+
+    if (existing.length) {
+      return res.status(409).json({ success: false, message: "An account with this email already exists." });
+    }
+
+    const passwordHash = String(password).trim();
+
+    const [result] = await dbPromise.query(
+      `INSERT INTO soft_users (name, email, password_hash)
+       VALUES (?, ?, ?)`,
+      [String(name).trim(), normalizedEmail, passwordHash]
+    );
+
+    const token = `soft-${Date.now()}-${result.insertId}`;
+
+    res.status(201).json({
+      success: true,
+      message: "Account created successfully.",
+      token,
+      user: {
+        id: result.insertId,
+        name: String(name).trim(),
+        email: normalizedEmail
+      }
+    });
+  } catch (err) {
+    console.error("[SOFT SIGNUP]", err.message);
+    res.status(500).json({ success: false, message: "Could not create your account." });
+  }
+});
+
+// ---------------------------------------------------------
+// GET /soft/feedback/:email
+// Returns admin replies and project status updates for a customer email.
+// ---------------------------------------------------------
+app.get("/soft/feedback/:email", generalLimiter, async (req, res) => {
+  try {
+    const email = String(req.params.email || "").trim().toLowerCase();
+
+    if (!email) {
+      return res.status(400).json({ success: false, message: "Email is required." });
+    }
+
+    const [contactRows] = await dbPromise.query(
+      `SELECT id, name, email, message, reply, replied_at, created_at
+       FROM soft_contact_messages
+       WHERE LOWER(email)=? AND reply IS NOT NULL AND TRIM(reply)<>''
+       ORDER BY replied_at DESC, created_at DESC
+       LIMIT 50`,
+      [email]
+    );
+
+    const [orderRows] = await dbPromise.query(
+      `SELECT id, order_code, customer_name, customer_email, plan_name,
+              website_type, service, status, customer_message,
+              created_at, updated_at
+       FROM soft_orders
+       WHERE LOWER(customer_email)=? AND customer_message IS NOT NULL
+         AND TRIM(customer_message)<>''
+       ORDER BY updated_at DESC
+       LIMIT 50`,
+      [email]
+    );
+
+    const replies = [
+      ...contactRows.map(row => ({
+        type: "contact_reply",
+        title: "Reply from admin",
+        project_id: null,
+        status: "replied",
+        message: row.reply,
+        created_at: row.replied_at || row.created_at
+      })),
+      ...orderRows.map(row => ({
+        type: "project_update",
+        title: row.order_code || row.plan_name || "Project update",
+        project_id: row.order_code,
+        status: row.status,
+        message: row.customer_message,
+        created_at: row.updated_at || row.created_at
+      }))
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    res.json({
+      success: true,
+      email,
+      total: replies.length,
+      replies
+    });
+  } catch (err) {
+    console.error("[SOFT FEEDBACK]", err.message);
+    res.status(500).json({ success: false, message: "Could not load your feedback." });
+  }
+});
 
 // ---------------------------------------------------------
 // POST /soft/contact
@@ -94,6 +225,8 @@ app.post("/soft/orders", generalLimiter, validate(softOrderSchema), async (req, 
       success: true,
       message: "Project request received successfully.",
       order_id: orderId,
+      tracking_id: orderId,
+      tracking_code: orderId,
       id: result.insertId,
       status: "received"
     });
