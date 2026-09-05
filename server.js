@@ -43,7 +43,7 @@ webpush.setVapidDetails(
 // =========================
 app.use(helmet());
 
-const allowedOrigins = ["https://eliyasande65-lang.github.io"];
+const allowedOrigins = ["https://qejaconnect.co.ke"];
 
 app.use(
   cors({
