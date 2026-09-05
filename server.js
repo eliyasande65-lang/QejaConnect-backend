@@ -284,7 +284,7 @@ app.post("/signup", signupLimiter, validate(signupSchema), async (req, res) => {
       `UPDATE users SET referral_code = ? WHERE id = ?`,
       [myCode, result.insertId]
     );
-
+    await issueOtp(email, "tenant", "signup");
     res.json({ success: true, message: "User created", tenant_id: displayId });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
@@ -458,7 +458,7 @@ router.post("/admin/tenants/:id/email", adminAuth, async (req, res) => {
     }
 
     await resend.emails.send({
-      from:    "QejaConnect <onboarding@resend.dev>",
+      from:    "QejaConnect <info@qejaconnect.co.ke>",
       to:      rows[0].email,
       subject,
       text:    message,
@@ -483,7 +483,7 @@ app.post("/send-push", auth, async (req, res) => {
   const payload = JSON.stringify({
     title: "🏠 New Property Added",
     body:  "Check out the latest listing on QejaConnect!",
-    url:   "/QejaConnect/welcome.html",
+    url:   "https://qejaconnect.co.ke/index.html",
   });
   try {
     await Promise.all(subscriptions.map((sub) => webpush.sendNotification(sub, payload)));
@@ -852,14 +852,7 @@ async function getNextDisplayId(table, prefix) {
 // =========================
 // REGISTER LANDLORD
 // =========================
-app.post(
-  "/register-landlord",
-  signupLimiter,
-  upload.fields([
-    { name: "profile_pic", maxCount: 1 },
-    { name: "id_photo",    maxCount: 1 },
-  ]),
-  async (req, res) => {
+app.post(  "/register-landlord",  signupLimiter,  upload.fields([    { name: "profile_pic", maxCount: 1 },    { name: "id_photo",    maxCount: 1 },  ]),  async (req, res) => {
     try {
       const {
         fullname, email, phone, id, kra, county,
@@ -908,13 +901,14 @@ app.post(
           property, type, units, description,
           profile_pic_url, id_photo_url, hashedPassword, displayId,
         ],
-        (err2) => {
+        async(err2) => {
           if (err2) {
             if (err2.code === "ER_DUP_ENTRY") {
               return res.status(409).json({ success: false, message: "Email already registered" });
             }
             return res.status(500).json({ success: false, message: "Server error" });
           }
+          await issueOtp(email, "landlord", "signup");
           res.json({ success: true, message: "Landlord registered", landlord_id: displayId });
         }
       );
@@ -1492,6 +1486,258 @@ app.post("/tenancy/extension-request/:id/respond", auth, async (req, res) => {
   }
 });
 
+
+const crypto = require("crypto");
+
+const OTP_TTL_MINUTES  = 10;
+const OTP_MAX_ATTEMPTS = 5;
+
+function generateOtpCode() {
+  return String(crypto.randomInt(100000, 1000000)); // 6-digit code
+}
+
+function hashOtp(code) {
+  return crypto.createHash("sha256").update(code).digest("hex");
+}
+
+async function sendOtpEmail(email, code, purpose) {
+  const subject = purpose === "signup"
+    ? "Verify your QejaConnect email"
+    : "Reset your QejaConnect password";
+
+  const heading = purpose === "signup"
+    ? "Confirm your email address"
+    : "Reset your password";
+
+  await resend.emails.send({
+    from:    "QejaConnect <no-reply@qejaconnect.co.ke>",
+    to:      email,
+    subject,
+    html: `
+      <div style="font-family:sans-serif;max-width:480px;margin:auto">
+        <h2>${heading}</h2>
+        <p>Your one-time code is:</p>
+        <p style="font-size:28px;font-weight:bold;letter-spacing:4px">${code}</p>
+        <p>This code expires in ${OTP_TTL_MINUTES} minutes. If you didn't request this, you can ignore this email.</p>
+      </div>
+    `,
+  });
+}
+
+// Invalidates any earlier unconsumed code for this email+purpose,
+// creates a new one, and emails it.
+async function issueOtp(email, role, purpose) {
+  const code      = generateOtpCode();
+  const codeHash  = hashOtp(code);
+  const expiresAt = new Date(Date.now() + OTP_TTL_MINUTES * 60 * 1000);
+
+  await dbPromise.query(
+    `UPDATE otp_codes SET consumed_at = NOW()
+     WHERE email = ? AND purpose = ? AND consumed_at IS NULL`,
+    [email, purpose]
+  );
+
+  await dbPromise.query(
+    `INSERT INTO otp_codes (email, role, purpose, code_hash, expires_at)
+     VALUES (?, ?, ?, ?, ?)`,
+    [email, role, purpose, codeHash, expiresAt]
+  );
+
+  await sendOtpEmail(email, code, purpose);
+}
+
+// Returns { ok: true, role } on success, or { ok: false, message }.
+async function verifyOtp(email, purpose, code) {
+  const [rows] = await dbPromise.query(
+    `SELECT * FROM otp_codes
+     WHERE email = ? AND purpose = ? AND consumed_at IS NULL
+     ORDER BY id DESC LIMIT 1`,
+    [email, purpose]
+  );
+  if (!rows.length) return { ok: false, message: "No code found. Please request a new one." };
+
+  const row = rows[0];
+
+  if (new Date(row.expires_at) < new Date()) {
+    return { ok: false, message: "Code expired. Please request a new one." };
+  }
+  if (row.attempts >= OTP_MAX_ATTEMPTS) {
+    return { ok: false, message: "Too many attempts. Please request a new code." };
+  }
+  if (hashOtp(code) !== row.code_hash) {
+    await dbPromise.query(`UPDATE otp_codes SET attempts = attempts + 1 WHERE id = ?`, [row.id]);
+    return { ok: false, message: "Incorrect code." };
+  }
+
+  await dbPromise.query(`UPDATE otp_codes SET consumed_at = NOW() WHERE id = ?`, [row.id]);
+  return { ok: true, role: row.role };
+}
+
+const otpLimiter = rateLimit({
+  windowMs:        15 * 60 * 1000,
+  max:             5,
+  message:         { success: false, message: "Too many code requests. Try again in 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+const sendOtpSchema = z.object({
+  email:   z.string().email(),
+  purpose: z.enum(["signup", "password_reset"]),
+});
+
+const verifySignupSchema = z.object({
+  email: z.string().email(),
+  otp:   z.string().length(6),
+});
+
+const forgotPasswordSchema = z.object({
+  email: z.string().email(),
+});
+
+const resetPasswordSchema = z.object({
+  email:        z.string().email(),
+  otp:          z.string().length(6),
+  new_password: z.string().min(6).max(100),
+});
+
+// ---------------------------------------------------------
+// POST /auth/send-otp
+// Generic "resend code" endpoint — used by a signup screen's
+// resend button. purpose: "signup" | "password_reset"
+// ---------------------------------------------------------
+app.post("/auth/send-otp", otpLimiter, validate(sendOtpSchema), async (req, res) => {
+  const { email, purpose } = req.body;
+
+  try {
+    const [tenantRows]   = await dbPromise.query(`SELECT id FROM users WHERE email = ?`, [email]);
+    const [landlordRows] = await dbPromise.query(`SELECT id FROM landlords WHERE email = ?`, [email]);
+    const role = tenantRows.length ? "tenant" : landlordRows.length ? "landlord" : null;
+
+    if (!role) {
+      return res.status(404).json({ success: false, message: "No account found with that email." });
+    }
+
+    await issueOtp(email, role, purpose);
+    res.json({ success: true, message: "Code sent." });
+  } catch (err) {
+    console.error("[SEND OTP]", err.message);
+    res.status(500).json({ success: false, message: "Could not send code." });
+  }
+});
+
+// ---------------------------------------------------------
+// POST /auth/verify-email
+// Confirms the signup OTP and flips email_verified on the
+// right table (users or landlords).
+// ---------------------------------------------------------
+app.post("/auth/verify-email", otpLimiter, validate(verifySignupSchema), async (req, res) => {
+  const { email, otp } = req.body;
+
+  try {
+    const result = await verifyOtp(email, "signup", otp);
+    if (!result.ok) return res.status(400).json({ success: false, message: result.message });
+
+    const table = result.role === "tenant" ? "users" : "landlords";
+    await dbPromise.query(`UPDATE ${table} SET email_verified = 1 WHERE email = ?`, [email]);
+
+    res.json({ success: true, message: "Email verified." });
+  } catch (err) {
+    console.error("[VERIFY EMAIL]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// POST /auth/forgot-password
+// Sends a password-reset OTP if the email exists. Always
+// returns a generic success message so this can't be used to
+// enumerate registered accounts.
+// ---------------------------------------------------------
+app.post("/auth/forgot-password", otpLimiter, validate(forgotPasswordSchema), async (req, res) => {
+  const { email } = req.body;
+
+  try {
+    const [tenantRows]   = await dbPromise.query(`SELECT id FROM users WHERE email = ?`, [email]);
+    const [landlordRows] = await dbPromise.query(`SELECT id FROM landlords WHERE email = ?`, [email]);
+    const role = tenantRows.length ? "tenant" : landlordRows.length ? "landlord" : null;
+
+    if (role) await issueOtp(email, role, "password_reset");
+
+    res.json({ success: true, message: "If that email is registered, a code has been sent." });
+  } catch (err) {
+    console.error("[FORGOT PASSWORD]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// POST /auth/reset-password
+// Verifies the OTP and sets the new password.
+// ---------------------------------------------------------
+app.post("/auth/reset-password", otpLimiter, validate(resetPasswordSchema), async (req, res) => {
+  const { email, otp, new_password } = req.body;
+
+  try {
+    const result = await verifyOtp(email, "password_reset", otp);
+    if (!result.ok) return res.status(400).json({ success: false, message: result.message });
+
+    const table  = result.role === "tenant" ? "users" : "landlords";
+    const hashed = await bcrypt.hash(new_password, SALT_ROUNDS);
+    await dbPromise.query(`UPDATE ${table} SET password = ? WHERE email = ?`, [hashed, email]);
+
+    res.json({ success: true, message: "Password updated. You can now log in." });
+  } catch (err) {
+    console.error("[RESET PASSWORD]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// ---------------------------------------------------------
+// POST /admin/users/:role/:id/email
+// Lets the admin email ANY single user — tenant or landlord —
+// unlike the existing /admin/tenants/:id/email route, which
+// only looks at the `users` table. :role is "tenant" or
+// "landlord".
+//
+// You can either replace your current /admin/tenants/:id/email
+// route with this one, or keep both — this one just also
+// covers landlords.
+// ---------------------------------------------------------
+app.post("/admin/users/:role/:id/email", adminAuth, async (req, res) => {
+  const { role, id } = req.params;
+  const { subject, message } = req.body;
+
+  if (!["tenant", "landlord"].includes(role)) {
+    return res.status(400).json({ success: false, message: "role must be 'tenant' or 'landlord'" });
+  }
+  if (!subject || !message) {
+    return res.status(400).json({ success: false, message: "Subject and message required" });
+  }
+
+  try {
+    const table = role === "tenant" ? "users" : "landlords";
+    const [rows] = await dbPromise.query(
+      `SELECT email, fullname FROM ${table} WHERE id = ?`,
+      [id]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: `${role} not found` });
+    }
+
+    await resend.emails.send({
+      from:    "QejaConnect <no-reply@qejaconnect.co.ke>",
+      to:      rows[0].email,
+      subject,
+      text:    message,
+    });
+
+    res.json({ success: true, message: `Email sent to ${rows[0].fullname}` });
+  } catch (err) {
+    console.error("[ADMIN EMAIL USER]", err.message);
+    res.status(500).json({ success: false, message: "Failed to send email" });
+  }
+});
 // =========================
 // WEBAUTHN – FINGERPRINT LOGIN
 // =========================
@@ -2893,9 +3139,7 @@ router.get("/admin/property-chat/:propertyId/posts", adminAuth, async (req, res)
  *   - validate(), auth(), adminAuth(), generalLimiter and z are defined
  * and BEFORE app.use(router) / the global error handler.
  *
- * Frontend base API:
- *   https://qeja-backend-azkf.onrender.com
- *
+ 
  * Routes intentionally use /soft/* so they do not collide with existing
  * QejaConnect routes such as POST /contact.
  */
