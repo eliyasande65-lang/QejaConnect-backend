@@ -461,7 +461,7 @@ router.post("/admin/tenants/:id/email", adminAuth, async (req, res) => {
     }
 
     await resend.emails.send({
-      from:    "QejaConnect <onboarding@resend.dev>",
+      from:    "QejaConnect <info@qejaconnect.co.ke>",
       to:      rows[0].email,
       subject,
       text:    message,
