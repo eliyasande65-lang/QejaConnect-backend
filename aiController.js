@@ -55,7 +55,7 @@ async function logMessage(sessionId, userId, role, message) {
 }
 
 async function askGemini(message) {
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-3.6-flash" });
   const result = await model.generateContent(`${SYSTEM_CONTEXT}\n\nUser: ${message}`);
   return result.response.text();
 }
