@@ -1351,55 +1351,63 @@ app.post("/upload-property", auth, upload.single("image"), (req, res) => {
     return res.status(403).json({ success: false, message: "Forbidden" });
   }
 
-  db.query(
-    `SELECT id FROM mpesa_payments
-     WHERE transaction_id=? AND landlord_id=? AND status='completed' LIMIT 1`,
-    [mpesa_transaction_id, landlord_id],
-    (verifyErr, verifyRows) => {
-      if (verifyErr) return res.status(500).json({ success: false, message: "Server error" });
-      if (verifyRows.length === 0) {
-        return res.status(402).json({
-          success: false,
-          message: "Payment not verified. Please complete M-Pesa payment first.",
-        });
-      }
+  // Helper to perform the actual upload and DB insert. If a
+  // mpesa_transaction_id is provided, we'll mark the payment as used.
+  function performUpload(transactionId) {
+    const uploadStream = cloudinary.uploader.upload_stream(
+      { folder: "qejaconnect" },
+      (err, result) => {
+        if (err) return res.status(500).json({ success: false, message: "Upload failed" });
 
-      const uploadStream = cloudinary.uploader.upload_stream(
-        { folder: "qejaconnect" },
-        (err, result) => {
-          if (err) return res.status(500).json({ success: false, message: "Upload failed" });
+        const expiresAt = listing_expires_at
+          ? new Date(listing_expires_at)
+          : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
-          const expiresAt = listing_expires_at
-            ? new Date(listing_expires_at)
-            : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
-          db.query(
-            `INSERT INTO properties
-               (landlord_id, title, price, location, description, type,
-                image_url, maps_url, listing_expires_at, mpesa_transaction_id)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-            [
-              landlord_id, title, price, location, description, type,
-              result.secure_url, maps_url || null, expiresAt, mpesa_transaction_id,
-            ],
-            // FIX: this callback must be async since it awaits logActivity below.
-            // Also parseInt(landlord_id) so activity_logs.user_id stores a number,
-            // consistent with the other logActivity(...) calls elsewhere in this file.
-            async (err2) => {
-              if (err2) return res.status(500).json({ success: false, message: "Server error" });
-              db.query(
-                `UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`,
-                [mpesa_transaction_id]
-              );
-              await logActivity(parseInt(landlord_id), "landlord", "uploaded_property", { title }, req);
-              res.json({ success: true, message: "Property uploaded", image_url: result.secure_url });
+        db.query(
+          `INSERT INTO properties
+             (landlord_id, title, price, location, description, type,
+              image_url, maps_url, listing_expires_at, mpesa_transaction_id)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            landlord_id, title, price, location, description, type,
+            result.secure_url, maps_url || null, expiresAt, transactionId || null,
+          ],
+          async (err2) => {
+            if (err2) return res.status(500).json({ success: false, message: "Server error" });
+            if (transactionId) {
+              db.query(`UPDATE mpesa_payments SET status='used' WHERE transaction_id=?`, [transactionId]);
             }
-          );
+            await logActivity(parseInt(landlord_id), "landlord", "uploaded_property", { title }, req);
+            res.json({ success: true, message: "Property uploaded", image_url: result.secure_url });
+          }
+        );
+      }
+    );
+    streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
+  }
+
+  // If a mpesa_transaction_id was provided, verify it first. Otherwise
+  // allow free uploads (no payment verification required).
+  if (mpesa_transaction_id && String(mpesa_transaction_id).trim() !== "") {
+    db.query(
+      `SELECT id FROM mpesa_payments
+       WHERE transaction_id=? AND landlord_id=? AND status='completed' LIMIT 1`,
+      [mpesa_transaction_id, landlord_id],
+      (verifyErr, verifyRows) => {
+        if (verifyErr) return res.status(500).json({ success: false, message: "Server error" });
+        if (verifyRows.length === 0) {
+          return res.status(402).json({
+            success: false,
+            message: "Payment not verified. Please complete M-Pesa payment first.",
+          });
         }
-      );
-      streamifier.createReadStream(req.file.buffer).pipe(uploadStream);
-    }
-  );
+        performUpload(mpesa_transaction_id);
+      }
+    );
+  } else {
+    // No payment provided — proceed with free upload.
+    performUpload(null);
+  }
 });
 
 // =========================
