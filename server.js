@@ -46,7 +46,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // =========================
 app.use(helmet());
 
-const allowedOrigins = ["https://eliyasande65-lang.github.io"];
+const allowedOrigins = ["https://qejaconnect.co.ke", "https://www.qejaconnect.co.ke", "http://localhost:3000", "http://localhost:5173", "https://qejaconnect.netlify.app"];
 
 app.use(
   cors({
