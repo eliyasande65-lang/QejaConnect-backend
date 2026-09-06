@@ -235,11 +235,6 @@ async function touchPresence(userId, role, req) {
   }
 }
 
-const aiController = require('./aiController');
-const aiRoutes      = require('./ai.routes');
-
-aiController.init(dbPromise);   // give it your existing promise pool
-app.use('/ai', aiRoutes);       // mounts POST /ai/chat
 // =========================
 // ROOT
 // =========================
@@ -250,7 +245,7 @@ app.get("/", (req, res) => {
 
 
 
-router.post('/chat', aiController.handleChat);
+// AI controller removed — using external/alternative AI integration later
 
 module.exports = router;
 // =========================
