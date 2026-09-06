@@ -191,6 +191,66 @@ function adminAuth(req, res, next) {
 
 let subscriptions = [];
 
+const { OAuth2Client } = require("google-auth-library");
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+const googleAuthSchema = z.object({
+  credential: z.string().min(20),
+});
+
+app.post("/auth/google", generalLimiter, validate(googleAuthSchema), async (req, res) => {
+  const { credential } = req.body;
+
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const { sub: googleId, email, name, email_verified } = payload;
+
+    if (!email_verified) {
+      return res.status(400).json({ success: false, message: "Google email not verified." });
+    }
+
+    // Already linked to a Google account?
+    let [rows] = await dbPromise.query(`SELECT * FROM users WHERE google_id = ?`, [googleId]);
+
+    if (!rows.length) {
+      // Existing email/password account -> link it
+      [rows] = await dbPromise.query(`SELECT * FROM users WHERE email = ?`, [email]);
+      if (rows.length) {
+        await dbPromise.query(`UPDATE users SET google_id = ? WHERE id = ?`, [googleId, rows[0].id]);
+      } else {
+        // Brand new account
+        const displayId = await getNextDisplayId("users", "QT");
+        const myCode = `REF${1000 + Math.floor(Math.random() * 900000)}`; // temp; overwritten below
+        const [result] = await dbPromise.query(
+          `INSERT INTO users (fullname, email, google_id, display_id, email_verified)
+           VALUES (?, ?, ?, ?, 1)`,
+          [name || "Google User", email, googleId, displayId]
+        );
+        await dbPromise.query(
+          `UPDATE users SET referral_code = ? WHERE id = ?`,
+          [`REF${1000 + result.insertId}`, result.insertId]
+        );
+        [rows] = await dbPromise.query(`SELECT * FROM users WHERE id = ?`, [result.insertId]);
+      }
+    }
+
+    const user = rows[0];
+    const token = jwt.sign({ id: user.id, role: "tenant" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+    const { password: _pw, ...safeUser } = user;
+
+    await touchPresence(user.id, "tenant", req);
+    await logActivity(user.id, "tenant", "login", { via: "google" }, req);
+
+    res.json({ success: true, role: "tenant", token, user: safeUser });
+  } catch (err) {
+    console.error("[GOOGLE AUTH]", err.message);
+    res.status(401).json({ success: false, message: "Google sign-in failed." });
+  }
+});
 // =========================
 // ACTIVITY LOGGING & PRESENCE HELPERS
 // =========================
