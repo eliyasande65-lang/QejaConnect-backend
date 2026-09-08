@@ -356,6 +356,53 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
   }
 });
 
+// Verify token
+const ticket = await googleClient.verifyIdToken({
+  idToken,
+  audience: process.env.GOOGLE_CLIENT_ID,
+});
+const payload = ticket.getPayload(); // { sub, email, email_verified, name, picture, ... }
+
+if (!payload || !payload.email) {
+  return res.status(400).json({ success: false, message: "Invalid Google token" });
+}
+if (!payload.email_verified) {
+  // optional: require verified email
+  return res.status(403).json({ success: false, message: "Google email not verified" });
+}
+
+const email = payload.email.toLowerCase();
+const fullname = payload.name || "Google User";
+const profile_pic = payload.picture || null;
+
+// Find existing user (tenant) first
+const [users] = await dbPromise.query("SELECT * FROM users WHERE email = ? LIMIT 1", [email]);
+
+let user;
+if (users.length) {
+  user = users[0];
+} else {
+  // Create a new tenant account (adapt as you prefer)
+  const displayId = await getNextDisplayId("users", "QT");
+  const [result] = await dbPromise.query(
+    `INSERT INTO users (fullname, email, phone, profile_pic, display_id)
+     VALUES (?, ?, ?, ?, ?)`,
+    [fullname, email, null, profile_pic, displayId]
+  );
+  const [newRows] = await dbPromise.query("SELECT * FROM users WHERE id = ?", [result.insertId]);
+  user = newRows[0];
+}
+
+// Sign JWT
+const token = jwt.sign({ id: user.id, role: "tenant" }, process.env.JWT_SECRET, { expiresIn: "1d" });
+
+// Optionally touch presence / log activity like normal login
+await touchPresence(user.id, "tenant", req);
+await logActivity(user.id, "tenant", "google_login", null, req);
+
+const { password: _pw, ...safeUser } = user;
+return res.json({ success: true, role: "tenant", token, user: safeUser });
+
 // =========================
 // ACTIVITY HEARTBEAT
 // =========================
