@@ -248,6 +248,191 @@ app.get("/", (req, res) => {
 });
 
 
+/* =========================================================
+   ACCOUNT DELETION + APPEAL SYSTEM
+   Paste this block into server.js:
+     - AFTER dbPromise, adminAuth, auth, generalLimiter, resend are defined
+     - BEFORE app.use(router) / the global error handler
+
+   Requires the `account_deletions` table — see account-deletions.sql
+   Also requires Node's built-in "crypto" module — add this once near
+   your other top-level requires if it isn't already there:
+     const crypto = require("crypto");
+   ========================================================= */
+
+// =========================
+// ADMIN: DELETE ACCOUNT (tenant or landlord) + notify + appeal link
+// =========================
+app.delete("/admin/accounts/:role/:id", adminAuth, async (req, res) => {
+  const { role, id } = req.params;
+  const { reason } = req.body;
+
+  if (!["tenant", "landlord"].includes(role)) {
+    return res.status(400).json({ success: false, message: "role must be 'tenant' or 'landlord'" });
+  }
+  if (!reason || !reason.trim()) {
+    return res.status(400).json({ success: false, message: "A reason for deletion is required." });
+  }
+
+  const table = role === "tenant" ? "users" : "landlords";
+
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT id, fullname, email, display_id FROM ${table} WHERE id = ?`,
+      [id]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "Account not found." });
+    }
+    const account = rows[0];
+
+    // Random, unguessable token used in the appeal link — doesn't depend
+    // on the (now-deleted) account existing anywhere else.
+    const appealToken = crypto.randomBytes(24).toString("hex");
+
+    await dbPromise.query(
+      `INSERT INTO account_deletions
+         (user_id, role, fullname, email, display_id, reason, appeal_token, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 'deleted')`,
+      [account.id, role, account.fullname, account.email, account.display_id, reason.trim(), appealToken]
+    );
+
+    await dbPromise.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
+
+    const appealUrl = `https://eliyasande65-lang.github.io/QejaConnect/appeal.html?token=${appealToken}`;
+
+    try {
+      await resend.emails.send({
+        from: "QejaConnect <info@qejaconnect.co.ke>",
+        to: account.email,
+        subject: "Your QejaConnect account has been deleted",
+        text:
+          `Hi ${account.fullname},\n\n` +
+          `Your QejaConnect account (${account.display_id}) has been deleted by an administrator.\n\n` +
+          `Reason given:\n${reason.trim()}\n\n` +
+          `If you believe this was a mistake, you can appeal this decision here:\n${appealUrl}\n\n` +
+          `This link is unique to your account and can be used once.\n\n` +
+          `— The QejaConnect Team`,
+      });
+    } catch (mailErr) {
+      // Deletion already happened — don't fail the request over email,
+      // just log it so it can be resent manually if needed.
+      console.error("[ACCOUNT DELETE EMAIL]", mailErr.message);
+    }
+
+    res.json({ success: true, message: `${role === "tenant" ? "Tenant" : "Landlord"} account deleted and notified.` });
+  } catch (err) {
+    console.error("[ADMIN DELETE ACCOUNT]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// =========================
+// PUBLIC: SUBMIT AN APPEAL
+// =========================
+app.post("/appeal/:token", generalLimiter, async (req, res) => {
+  const { token } = req.params;
+  const { message } = req.body;
+
+  if (!message || !message.trim()) {
+    return res.status(400).json({ success: false, message: "Please explain why you're appealing." });
+  }
+  if (message.trim().length > 3000) {
+    return res.status(400).json({ success: false, message: "Message is too long." });
+  }
+
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT id, status FROM account_deletions WHERE appeal_token = ? LIMIT 1`,
+      [token]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "This appeal link is invalid or has expired." });
+    }
+    if (rows[0].status !== "deleted") {
+      return res.status(409).json({ success: false, message: "An appeal has already been submitted for this account." });
+    }
+
+    await dbPromise.query(
+      `UPDATE account_deletions
+       SET status = 'appealed', appeal_message = ?, appealed_at = NOW()
+       WHERE appeal_token = ?`,
+      [message.trim(), token]
+    );
+
+    res.json({ success: true, message: "Your appeal has been submitted. We'll review it and get back to you by email." });
+  } catch (err) {
+    console.error("[APPEAL SUBMIT]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// Lets the appeal page confirm the token is valid before showing the form
+// (and show whose account it is, without leaking anything sensitive).
+app.get("/appeal/:token", generalLimiter, async (req, res) => {
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT fullname, display_id, reason, status FROM account_deletions WHERE appeal_token = ? LIMIT 1`,
+      [req.params.token]
+    );
+    if (!rows.length) {
+      return res.status(404).json({ success: false, message: "This appeal link is invalid or has expired." });
+    }
+    const { fullname, display_id, reason, status } = rows[0];
+    res.json({ success: true, fullname, display_id, reason, status });
+  } catch (err) {
+    console.error("[APPEAL LOOKUP]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// =========================
+// ADMIN: LIST DELETIONS / APPEALS
+// =========================
+app.get("/admin/account-deletions", adminAuth, async (req, res) => {
+  try {
+    const status = req.query.status; // 'deleted' | 'appealed' | 'resolved'
+    let where = "";
+    let params = [];
+    if (status && ["deleted", "appealed", "resolved"].includes(status)) {
+      where = "WHERE status = ?";
+      params = [status];
+    }
+
+    const [rows] = await dbPromise.query(
+      `SELECT id, user_id, role, fullname, email, display_id, reason,
+              appeal_message, admin_note, status, created_at, appealed_at
+       FROM account_deletions
+       ${where}
+       ORDER BY created_at DESC`,
+      params
+    );
+    res.json({ success: true, deletions: rows });
+  } catch (err) {
+    console.error("[ADMIN DELETIONS LIST]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// =========================
+// ADMIN: RESOLVE AN APPEAL (mark reviewed, add a note)
+// =========================
+app.patch("/admin/account-deletions/:id/resolve", adminAuth, async (req, res) => {
+  const { admin_note } = req.body;
+  try {
+    const [result] = await dbPromise.query(
+      `UPDATE account_deletions SET status = 'resolved', admin_note = ? WHERE id = ?`,
+      [admin_note ? String(admin_note).trim().slice(0, 2000) : null, req.params.id]
+    );
+    if (!result.affectedRows) {
+      return res.status(404).json({ success: false, message: "Record not found." });
+    }
+    res.json({ success: true, message: "Marked as resolved." });
+  } catch (err) {
+    console.error("[ADMIN RESOLVE APPEAL]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
 
 
 // AI controller removed — using external/alternative AI integration later
