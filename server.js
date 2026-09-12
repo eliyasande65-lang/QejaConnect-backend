@@ -251,15 +251,65 @@ app.get("/", (req, res) => {
 
 /* =========================================================
    ACCOUNT DELETION + APPEAL SYSTEM
-   Paste this block into server.js:
-     - AFTER dbPromise, adminAuth, auth, generalLimiter, resend are defined
-     - BEFORE app.use(router) / the global error handler
-
    Requires the `account_deletions` table — see account-deletions.sql
-   Also requires Node's built-in "crypto" module — add this once near
-   your other top-level requires if it isn't already there:
-     const crypto = require("crypto");
    ========================================================= */
+
+// Shared helper used by both the admin-initiated deletion route and the
+// self-service "delete my own account" route below. Looks up the account,
+// records it in account_deletions (with a one-time appeal token), deletes
+// the row from users/landlords, and emails the account holder.
+async function deleteAccountAndNotify(role, id, reason) {
+  if (!["tenant", "landlord"].includes(role)) {
+    return { ok: false, status: 400, message: "role must be 'tenant' or 'landlord'" };
+  }
+
+  const table = role === "tenant" ? "users" : "landlords";
+
+  const [rows] = await dbPromise.query(
+    `SELECT id, fullname, email, display_id FROM ${table} WHERE id = ?`,
+    [id]
+  );
+  if (!rows.length) {
+    return { ok: false, status: 404, message: "Account not found." };
+  }
+  const account = rows[0];
+
+  // Random, unguessable token used in the appeal link — doesn't depend
+  // on the (now-deleted) account existing anywhere else.
+  const appealToken = crypto.randomBytes(24).toString("hex");
+
+  await dbPromise.query(
+    `INSERT INTO account_deletions
+       (user_id, role, fullname, email, display_id, reason, appeal_token, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, 'deleted')`,
+    [account.id, role, account.fullname, account.email, account.display_id, reason, appealToken]
+  );
+
+  await dbPromise.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
+
+  const appealUrl = `https://eliyasande65-lang.github.io/QejaConnect/appeal.html?token=${appealToken}`;
+
+  try {
+    await resend.emails.send({
+      from: "QejaConnect <info@qejaconnect.co.ke>",
+      to: account.email,
+      subject: "Your QejaConnect account has been deleted",
+      text:
+        `Hi ${account.fullname},\n\n` +
+        `Your QejaConnect account (${account.display_id}) has been deleted.\n\n` +
+        `Reason given:\n${reason}\n\n` +
+        `If you believe this was a mistake, you can appeal this decision here:\n${appealUrl}\n\n` +
+        `This link is unique to your account and can be used once.\n\n` +
+        `— The QejaConnect Team`,
+    });
+  } catch (mailErr) {
+    // Deletion already happened — don't fail the request over email,
+    // just log it so it can be resent manually if needed.
+    console.error("[ACCOUNT DELETE EMAIL]", mailErr.message);
+  }
+
+  return { ok: true, role, account, appealUrl };
+}
 
 // =========================
 // ADMIN: DELETE ACCOUNT (tenant or landlord) + notify + appeal link
@@ -275,55 +325,39 @@ app.delete("/admin/accounts/:role/:id", adminAuth, async (req, res) => {
     return res.status(400).json({ success: false, message: "A reason for deletion is required." });
   }
 
-  const table = role === "tenant" ? "users" : "landlords";
-
   try {
-    const [rows] = await dbPromise.query(
-      `SELECT id, fullname, email, display_id FROM ${table} WHERE id = ?`,
-      [id]
-    );
-    if (!rows.length) {
-      return res.status(404).json({ success: false, message: "Account not found." });
+    const result = await deleteAccountAndNotify(role, id, reason.trim());
+    if (!result.ok) {
+      return res.status(result.status).json({ success: false, message: result.message });
     }
-    const account = rows[0];
-
-    // Random, unguessable token used in the appeal link — doesn't depend
-    // on the (now-deleted) account existing anywhere else.
-    const appealToken = crypto.randomBytes(24).toString("hex");
-
-    await dbPromise.query(
-      `INSERT INTO account_deletions
-         (user_id, role, fullname, email, display_id, reason, appeal_token, status)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 'deleted')`,
-      [account.id, role, account.fullname, account.email, account.display_id, reason.trim(), appealToken]
-    );
-
-    await dbPromise.query(`DELETE FROM ${table} WHERE id = ?`, [id]);
-
-    const appealUrl = `https://eliyasande65-lang.github.io/QejaConnect/appeal.html?token=${appealToken}`;
-
-    try {
-      await resend.emails.send({
-        from: "QejaConnect <info@qejaconnect.co.ke>",
-        to: account.email,
-        subject: "Your QejaConnect account has been deleted",
-        text:
-          `Hi ${account.fullname},\n\n` +
-          `Your QejaConnect account (${account.display_id}) has been deleted by an administrator.\n\n` +
-          `Reason given:\n${reason.trim()}\n\n` +
-          `If you believe this was a mistake, you can appeal this decision here:\n${appealUrl}\n\n` +
-          `This link is unique to your account and can be used once.\n\n` +
-          `— The QejaConnect Team`,
-      });
-    } catch (mailErr) {
-      // Deletion already happened — don't fail the request over email,
-      // just log it so it can be resent manually if needed.
-      console.error("[ACCOUNT DELETE EMAIL]", mailErr.message);
-    }
-
     res.json({ success: true, message: `${role === "tenant" ? "Tenant" : "Landlord"} account deleted and notified.` });
   } catch (err) {
     console.error("[ADMIN DELETE ACCOUNT]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// =========================
+// SELF-SERVICE: DELETE MY OWN ACCOUNT
+// Lets a logged-in tenant or landlord delete their own account. Reuses the
+// same account_deletions + appeal-link flow as the admin route above, so a
+// user who changes their mind can still appeal.
+// =========================
+app.delete("/account", auth, async (req, res) => {
+  const { reason } = req.body || {};
+
+  try {
+    const result = await deleteAccountAndNotify(
+      req.user.role,
+      req.user.id,
+      reason && reason.trim() ? reason.trim() : "Account deleted by user request."
+    );
+    if (!result.ok) {
+      return res.status(result.status).json({ success: false, message: result.message });
+    }
+    res.json({ success: true, message: "Your account has been deleted." });
+  } catch (err) {
+    console.error("[SELF DELETE ACCOUNT]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -435,10 +469,6 @@ app.patch("/admin/account-deletions/:id/resolve", adminAuth, async (req, res) =>
   }
 });
 
-
-// AI controller removed — using external/alternative AI integration later
-
-module.exports = router;
 // =========================
 // SIGNUP
 // =========================
@@ -539,8 +569,9 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
   } catch (err) {
     console.error("[LOGIN ERROR]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
- } 
-} 
+  }
+});
+
 // =========================
 // GOOGLE LOGIN
 // =========================
@@ -562,6 +593,7 @@ app.post("/login/google", async (req, res) => {
       return res.status(400).json({ success: false, message: "Invalid Google token" });
     }
     if (!payload.email_verified) {
+      // optional: require verified email
       return res.status(403).json({ success: false, message: "Google email not verified" });
     }
 
@@ -992,7 +1024,6 @@ app.post("/send-message", auth, validate(sendMessageSchema), (req, res) => {
       `INSERT INTO chats (conversation_id, landlord_id, tenant_id, sender_role, message)
        VALUES (?, ?, ?, ?, ?)`,
       [conversation_id, landlord_id, tenant_id, sender_role, message],
-      // FIX: this callback must be async since it awaits logActivity below.
       async (err2) => {
         if (err2) return res.status(500).json({ success: false, message: "Server error" });
         await logActivity(req.user.id, req.user.role, "sent_message", { conversation_id }, req);
@@ -1274,11 +1305,9 @@ router.get("/admin/activity-logs", adminAuth, async (req, res) => {
 
 // =========================
 // ADMIN: LIST ALL LANDLORDS
-// ─ FIX: now respects ?verified= filter so the admin panel can
-//   show pending, approved, rejected, or ALL landlords.
-//   Also returns every column the admin card needs (profile_pic,
-//   id_photo, national_id, kra_pin, county, town, etc.)
-//   plus proper pagination via total / limit.
+// ─ Respects ?verified= filter so the admin panel can show pending,
+//   approved, rejected, or ALL landlords. Also returns every column
+//   the admin card needs plus proper pagination via total / limit.
 // =========================
 app.get("/admin/landlords", adminAuth, async (req, res) => {
   try {
@@ -2244,7 +2273,7 @@ router.post("/bookings/:id/cancel", auth, async (req, res) => {
 // =========================
 // WITHDRAWALS
 // =========================
-app.get("/admin/withdrawals", async (req, res) => {
+app.get("/admin/withdrawals", adminAuth, async (req, res) => {
   try {
     const status     = req.query.status || "pending";
     const statuses   = status.split(",");
@@ -2265,7 +2294,7 @@ app.get("/admin/withdrawals", async (req, res) => {
   }
 });
 
-app.post("/admin/withdrawals/:id/mark-paid", async (req, res) => {
+app.post("/admin/withdrawals/:id/mark-paid", adminAuth, async (req, res) => {
   try {
     await db.promise().query(
       `UPDATE withdrawal_requests SET status='paid', paid_at=NOW() WHERE id=?`,
@@ -2278,7 +2307,7 @@ app.post("/admin/withdrawals/:id/mark-paid", async (req, res) => {
   }
 });
 
-app.post("/admin/withdrawals/:id/reject", async (req, res) => {
+app.post("/admin/withdrawals/:id/reject", adminAuth, async (req, res) => {
   try {
     const { admin_note } = req.body;
     await db.promise().query(
@@ -2292,7 +2321,7 @@ app.post("/admin/withdrawals/:id/reject", async (req, res) => {
   }
 });
 
-app.post("/admin/withdrawals/:id/note", async (req, res) => {
+app.post("/admin/withdrawals/:id/note", adminAuth, async (req, res) => {
   try {
     const { admin_note } = req.body;
     await db.promise().query(
@@ -2306,14 +2335,17 @@ app.post("/admin/withdrawals/:id/note", async (req, res) => {
   }
 });
 
-app.post("/withdrawals/request", async (req, res) => {
+app.post("/withdrawals/request", auth, async (req, res) => {
   try {
-    const { landlord_id, amount, method, phone, account_name, bank_details, note } = req.body;
+    if (req.user.role !== "landlord") {
+      return res.status(403).json({ success: false, message: "Only landlords can request withdrawals." });
+    }
+    const { amount, method, phone, account_name, bank_details, note } = req.body;
     const [result] = await db.promise().query(
       `INSERT INTO withdrawal_requests
          (landlord_id, amount, method, phone, account_name, bank_details, note)
        VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [landlord_id, amount, method, phone, account_name, bank_details, note]
+      [req.user.id, amount, method, phone, account_name, bank_details, note]
     );
     res.json({ success: true, id: result.insertId });
   } catch (err) {
@@ -2322,8 +2354,11 @@ app.post("/withdrawals/request", async (req, res) => {
   }
 });
 
-app.get("/withdrawals/landlord/:landlordId", async (req, res) => {
+app.get("/withdrawals/landlord/:landlordId", auth, async (req, res) => {
   try {
+    if (req.user.role !== "landlord" || req.user.id !== parseInt(req.params.landlordId)) {
+      return res.status(403).json({ success: false, message: "Forbidden" });
+    }
     const [rows] = await db.promise().query(
       `SELECT * FROM withdrawal_requests WHERE landlord_id = ? ORDER BY created_at DESC`,
       [req.params.landlordId]
@@ -3145,11 +3180,6 @@ router.get("/admin/property-chat/:propertyId/posts", adminAuth, async (req, res)
 
 /*
  * SOFT INNOVATIONS API ROUTES
- * Paste this block into your existing QejaConnect server.js AFTER:
- *   - dbPromise is created
- *   - validate(), auth(), adminAuth(), generalLimiter and z are defined
- * and BEFORE app.use(router) / the global error handler.
- *
  * Frontend base API:
  *   https://qeja-backend-azkf.onrender.com
  *
@@ -3310,7 +3340,6 @@ function statusMessage(status) {
 
 // ---------------------------------------------------------
 // ADMIN: GET /admin/soft/orders
-// Add to an existing admin dashboard later.
 // ---------------------------------------------------------
 app.get("/admin/soft/orders", adminAuth, async (req, res) => {
   try {
@@ -3468,4 +3497,3 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT} 🚀`);
 });
- 
