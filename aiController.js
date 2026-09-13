@@ -12,7 +12,7 @@ function init(pool) {
 const { GoogleGenAI } = require("@google/genai");
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-const SYSTEM_CONTEXT = `You are QejaConnect AI, a friendly assistant for QejaConnect — a Kenyan platform connecting tenants and landlords for housing. Help users navigate the site: finding properties, messaging landlords, booking, rent payments via M-Pesa, and referrals. Keep answers short, clear, and friendly.`;
+const SYSTEM_CONTEXT = `You are QejaConnect AI, a friendly assistant for QejaConnect — a Kenyan platform connecting tenants and landlords for housing. Help users navigate the site: finding properties, messaging landlords, booking, rent payments via M-Pesa, and referrals. Keep answers short, clear, and friendly, terms and conditions are available at https://qejaconnect.co.ke/terms.`;
 
 // =========================
 // "teach: question = answer" syntax
