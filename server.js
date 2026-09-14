@@ -311,6 +311,111 @@ async function deleteAccountAndNotify(role, id, reason) {
   return { ok: true, role, account, appealUrl };
 }
 
+
+// Keep a list of open SSE connections so we can push click events live
+let sseClients = [];
+
+// Frontend page opens this to receive real-time "someone clicked" updates
+router.get('/click-events', (req, res) => {
+  res.set({
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache',
+    Connection: 'keep-alive',
+  });
+  res.flushHeaders();
+
+  sseClients.push(res);
+
+  req.on('close', () => {
+    sseClients = sseClients.filter((client) => client !== res);
+  });
+});
+
+function broadcastClick(data) {
+  sseClients.forEach((client) => client.write(`data: ${JSON.stringify(data)}\n\n`));
+}
+
+// Send the email
+router.post('/send-email', async (req, res) => {
+  const { to, subject, message } = req.body;
+
+  if (!to || !subject || !message) {
+    return res.status(400).json({ error: 'to, subject, and message are required' });
+  }
+
+  const trackingId = uuidv4();
+  const baseUrl = process.env.BACKEND_URL || 'https://qeja-backend-azkf.onrender.com';
+  const learnMoreUrl = `${baseUrl}/track-click/${trackingId}`;
+
+  try {
+    await dbPromise.query(
+      `INSERT INTO email_clicks (id, recipient_email, subject) VALUES (?, ?, ?)`,
+      [trackingId, to, subject]
+    );
+
+    const html = `
+      <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+        <h2 style="color:#1a1a1a;">${subject}</h2>
+        <p style="color:#444; line-height:1.5;">${message}</p>
+        <div style="margin-top: 24px;">
+          <a href="${learnMoreUrl}"
+             style="background-color:#0b7d3e; color:#ffffff; padding:12px 24px;
+                    border-radius:6px; text-decoration:none; font-weight:bold;
+                    display:inline-block;">
+            Learn More
+          </a>
+        </div>
+        <p style="color:#999; font-size:12px; margin-top:32px;">
+          QejaConnect — Kenya's rental housing platform
+        </p>
+      </div>
+    `;
+
+    await resend.emails.send({
+      from: 'KONAMI PAY<noreply@qejaconnect.co.ke>',
+      to,
+      subject,
+      html,
+    });
+
+    res.json({ success: true, trackingId });
+  } catch (err) {
+    console.error('Send email error:', err);
+    res.status(500).json({ error: 'Failed to send email' });
+  }
+});
+
+// The Learn More button points here. Logs the click, notifies the open
+// sender page over SSE, then redirects the recipient to the real site.
+router.get('/track-click/:id', async (req, res) => {
+  const { id } = req.params;
+
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT recipient_email, subject, clicked_at FROM email_clicks WHERE id = ?`,
+      [id]
+    );
+
+    if (rows.length && !rows[0].clicked_at) {
+      await dbPromise.query(`UPDATE email_clicks SET clicked_at = NOW() WHERE id = ?`, [id]);
+
+      broadcastClick({
+        id,
+        recipient_email: rows[0].recipient_email,
+        subject: rows[0].subject,
+        clicked_at: new Date().toISOString(),
+      });
+    }
+  } catch (err) {
+    console.error('Track click error:', err);
+  }
+
+  res.redirect('https://qejaconnect.co.ke');
+});
+
+module.exports = router;
+
+
 // =========================
 // ADMIN: DELETE ACCOUNT (tenant or landlord) + notify + appeal link
 // =========================
