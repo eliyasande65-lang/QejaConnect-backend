@@ -356,6 +356,7 @@ router.post('/send-email', async (req, res) => {
 
     const html = `
       <div style="font-family: Arial, sans-serif; max-width: 480px; margin: 0 auto;">
+      <img src="qejaconnect.co.ke/kon.jpg" style="width:90%;height:100px;">
         <h2 style="color:#1a1a1a;">${subject}</h2>
         <p style="color:#444; line-height:1.5;">${message}</p>
         <div style="margin-top: 24px;">
@@ -363,11 +364,11 @@ router.post('/send-email', async (req, res) => {
              style="background-color:#0b7d3e; color:#ffffff; padding:12px 24px;
                     border-radius:6px; text-decoration:none; font-weight:bold;
                     display:inline-block;">
-            Learn More
+            Redeem Points
           </a>
         </div>
         <p style="color:#999; font-size:12px; margin-top:32px;">
-          QejaConnect — Kenya's rental housing platform
+          Earn from being our user💸 🎉 
         </p>
       </div>
     `;
