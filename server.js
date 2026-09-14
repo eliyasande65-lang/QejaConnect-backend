@@ -4,6 +4,7 @@ const mysql       = require("mysql2");
 const crypto = require("crypto");
 const cors        = require("cors");
 const bcrypt      = require("bcrypt");
+const { v4: uuidv4 } = require('uuid');
 const jwt         = require("jsonwebtoken");
 const multer      = require("multer");
 const streamifier = require("streamifier");
