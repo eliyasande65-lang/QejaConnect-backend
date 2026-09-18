@@ -301,7 +301,7 @@ async function deleteAccountAndNotify(role, id, reason) {
         `Reason given:\n${reason}\n\n` +
         `If you believe this was a mistake, you can appeal this decision here:\n${appealUrl}\n\n` +
         `This link is unique to your account and can be used once.\n\n` +
-        `— The QejaConnect Team`,
+        `The QejaConnect Team`,
     });
   } catch (mailErr) {
     // Deletion already happened — don't fail the request over email,
@@ -412,7 +412,7 @@ router.get('/track-click/:id', async (req, res) => {
     console.error('Track click error:', err);
   }
 
-  res.redirect('https://eliyasande65-lang.github.io/eliya');
+  res.redirect('https://eliyasande65-lang.github.io/eliya/connami');
 });
 
 module.exports = router;
