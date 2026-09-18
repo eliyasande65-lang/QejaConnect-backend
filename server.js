@@ -416,6 +416,21 @@ router.get('/track-click/:id', async (req, res) => {
 });
 
 module.exports = router;
+// Node.js Express Proxy Example (run on your own serv
+const { createProxyMiddleware } = require('http-proxy-middleware');
+
+
+app.use('/api', createProxyMiddleware({
+    target: 'https://target-api.com',
+    changeOrigin: true,
+    onProxyReq: (proxyReq, req, res) => {
+        // Strip identifying headers
+        proxyReq.removeHeader('origin');
+        proxyReq.removeHeader('referer');
+        proxyReq.removeHeader('x-forwarded-for');
+    }
+}));
+
 
 
 // =========================
