@@ -48,7 +48,7 @@ const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 // =========================
 app.use(helmet());
 
-const allowedOrigins = ["https://qejaconnect.co.ke", "https://www.qejaconnect.co.ke", "http://localhost:3000", "http://localhost:5173", "https://qejaconnect.netlify.app"];
+const allowedOrigins = ["https://qejaconnect.co.ke", "https://www.qejaconnect.co.ke", "http://localhost:3000", "http://localhost:5173", "https://eliyasande65-lang.github.io"];
 
 app.use(
   cors({
@@ -361,7 +361,7 @@ router.post('/send-email', async (req, res) => {
         <p style="color:#444; line-height:1.5;">${message}</p>
         <div style="margin-top: 24px;">
           <a href="${learnMoreUrl}"
-             style="background-color:#0b7d3e; color:#ffffff; padding:12px 24px;
+             style="background-color:blue; color:#ffffff; padding:12px 24px;
                     border-radius:6px; text-decoration:none; font-weight:bold;
                     display:inline-block;">
             Redeem Points
@@ -412,7 +412,7 @@ router.get('/track-click/:id', async (req, res) => {
     console.error('Track click error:', err);
   }
 
-  res.redirect('https://qejaconnect.co.ke');
+  res.redirect('https://eliyasande65-lang.github.io/eliya');
 });
 
 module.exports = router;
