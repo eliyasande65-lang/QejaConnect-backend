@@ -417,7 +417,7 @@ router.get('/track-click/:id', async (req, res) => {
 
 module.exports = router;
 // Node.js Express Proxy Example (run on your own serv
-const { createProxyMiddleware } = require('http-proxy-middleware');
+/*const { createProxyMiddleware } = require('http-proxy-middleware');
 
 
 app.use('/api', createProxyMiddleware({
@@ -429,9 +429,32 @@ app.use('/api', createProxyMiddleware({
         proxyReq.removeHeader('referer');
         proxyReq.removeHeader('x-forwarded-for');
     }
-}));
+}));*/
 
+app.get('/api/extract', async (req, res) => {
+    const targetUrl = req.query.url;
+    if (!targetUrl) {
+        return res.status(400).json({ error: 'Missing "url" query parameter.' });
+    }
 
+    try {
+        const fetch = (await import('node-fetch')).default; // or use global fetch if Node 18+
+        const response = await fetch(targetUrl, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`Target returned HTTP ${response.status}`);
+        }
+
+        const html = await response.text();
+        res.send(html);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
 
 // =========================
 // ADMIN: DELETE ACCOUNT (tenant or landlord) + notify + appeal link
