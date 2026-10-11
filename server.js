@@ -82,6 +82,22 @@ const signupLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
+const otpSendLimiter = rateLimit({
+  windowMs:        60 * 60 * 1000,
+  max:             10,
+  message:         { success: false, message: "Too many code requests. Try again later." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
+const otpVerifyLimiter = rateLimit({
+  windowMs:        15 * 60 * 1000,
+  max:             20,
+  message:         { success: false, message: "Too many attempts. Try again in a few minutes." },
+  standardHeaders: true,
+  legacyHeaders:   false,
+});
+
 const generalLimiter = rateLimit({
   windowMs:        15 * 60 * 1000,
   max:             100,
@@ -105,6 +121,16 @@ const signupSchema = z.object({
   phone:         z.string().min(9).max(15),
   password:      z.string().min(6).max(100),
   referral_code: z.string().max(20).optional(),
+});
+
+const sendOtpSchema = z.object({
+  email:   z.string().email("Invalid email").max(255),
+  purpose: z.enum(["signup"]).default("signup"),
+});
+
+const verifyEmailSchema = z.object({
+  email: z.string().email("Invalid email").max(255),
+  otp:   z.string().regex(/^\d{6}$/, "Enter the 6-digit code."),
 });
 
 const messageSchema = z.object({
@@ -615,16 +641,244 @@ app.patch("/admin/account-deletions/:id/resolve", adminAuth, async (req, res) =>
 });
 
 // =========================
+// EMAIL OTP (signup verification)
+// =========================
+// Codes are 6 digits, valid for 10 minutes, stored only as an HMAC hash, and
+// limited to 5 wrong guesses, 1 send per 30s and 5 sends per hour per email.
+const OTP_TTL_MS              = 10 * 60 * 1000;
+const OTP_RESEND_COOLDOWN_MS  = 30 * 1000;
+const OTP_SEND_WINDOW_MS      = 60 * 60 * 1000;
+const OTP_MAX_SENDS_PER_HOUR  = 5;
+const OTP_MAX_ATTEMPTS        = 5;
+
+// Idempotent: creates the OTP table and an email_verified column on users and
+// landlords. Existing rows default to 1 (verified) so current users are not
+// locked out; only new email sign-ups are inserted with 0.
+async function ensureOtpSchema() {
+  await dbPromise.query(`
+    CREATE TABLE IF NOT EXISTS email_otps (
+      email        VARCHAR(255) NOT NULL,
+      role         VARCHAR(10)  NOT NULL,
+      code_hash    CHAR(64)     NOT NULL,
+      expires_at   BIGINT       NOT NULL,
+      attempts     INT          NOT NULL DEFAULT 0,
+      send_count   INT          NOT NULL DEFAULT 1,
+      window_start BIGINT       NOT NULL,
+      last_sent_at BIGINT       NOT NULL,
+      PRIMARY KEY (email, role)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
+  for (const table of ["users", "landlords"]) {
+    const [cols] = await dbPromise.query(
+      `SELECT COUNT(*) AS c FROM information_schema.COLUMNS
+       WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = 'email_verified'`,
+      [table]
+    );
+    if (!cols[0].c) {
+      await dbPromise.query(
+        `ALTER TABLE ${table} ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 1`
+      );
+    }
+  }
+}
+
+const otpSchemaReady = ensureOtpSchema()
+  .then(() => true)
+  .catch((err) => {
+    console.error("[OTP SCHEMA]", err.message);
+    return false;
+  });
+
+const OTP_UNAVAILABLE = {
+  success: false,
+  message: "Verification service is unavailable. Please try again shortly.",
+};
+
+function otpHash(email, code) {
+  return crypto
+    .createHmac("sha256", process.env.JWT_SECRET)
+    .update(`${email}:${code}`)
+    .digest("hex");
+}
+
+function otpHashesMatch(a, b) {
+  const ba = Buffer.from(String(a), "hex");
+  const bb = Buffer.from(String(b), "hex");
+  return ba.length === bb.length && crypto.timingSafeEqual(ba, bb);
+}
+
+function escapeOtpHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => (
+    { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]
+  ));
+}
+
+async function sendOtpEmail(email, fullname, code) {
+  const firstName = String(fullname || "").trim().split(/\s+/)[0] || "there";
+  const { error } = await resend.emails.send({
+    from:    "QejaConnect <info@qejaconnect.co.ke>",
+    to:      email,
+    subject: `${code} is your QejaConnect verification code`,
+    text:
+      `Hi ${firstName},\n\n` +
+      `Your QejaConnect verification code is: ${code}\n\n` +
+      `It expires in 10 minutes. If you didn't create a QejaConnect account, you can ignore this email.\n\n` +
+      `The QejaConnect Team`,
+    html:
+      `<div style="font-family:Segoe UI,Arial,sans-serif;max-width:480px;margin:auto;padding:24px;color:#1a1535">` +
+      `<h2 style="margin:0 0 12px">Verify your email</h2>` +
+      `<p>Hi ${escapeOtpHtml(firstName)}, use this code to finish creating your QejaConnect account:</p>` +
+      `<p style="font-size:32px;font-weight:700;letter-spacing:8px;margin:20px 0">${code}</p>` +
+      `<p style="color:#555">This code expires in 10 minutes. If you didn't sign up, you can ignore this email.</p>` +
+      `</div>`,
+  });
+  // Resend returns { error } instead of throwing for API-level failures
+  if (error) throw new Error(error.message || "Email provider error");
+}
+
+// Generates a code, stores its hash and emails it.
+// Returns { ok: true } or { ok: false, reason: "cooldown" | "limit" | "send_failed" }.
+async function issueEmailOtp(rawEmail, role, fullname) {
+  const email = String(rawEmail).trim().toLowerCase();
+  const now   = Date.now();
+
+  const [rows] = await dbPromise.query(
+    "SELECT * FROM email_otps WHERE email = ? AND role = ?",
+    [email, role]
+  );
+  const prev = rows[0];
+
+  let sendCount   = 1;
+  let windowStart = now;
+  if (prev) {
+    if (now - Number(prev.last_sent_at) < OTP_RESEND_COOLDOWN_MS) {
+      return { ok: false, reason: "cooldown" };
+    }
+    if (now - Number(prev.window_start) < OTP_SEND_WINDOW_MS) {
+      if (prev.send_count >= OTP_MAX_SENDS_PER_HOUR) return { ok: false, reason: "limit" };
+      sendCount   = prev.send_count + 1;
+      windowStart = Number(prev.window_start);
+    }
+  }
+
+  const code = String(crypto.randomInt(0, 1000000)).padStart(6, "0");
+
+  await dbPromise.query(
+    `INSERT INTO email_otps
+       (email, role, code_hash, expires_at, attempts, send_count, window_start, last_sent_at)
+     VALUES (?, ?, ?, ?, 0, ?, ?, ?)
+     ON DUPLICATE KEY UPDATE
+       code_hash = VALUES(code_hash), expires_at = VALUES(expires_at), attempts = 0,
+       send_count = VALUES(send_count), window_start = VALUES(window_start),
+       last_sent_at = VALUES(last_sent_at)`,
+    [email, role, otpHash(email, code), now + OTP_TTL_MS, sendCount, windowStart, now]
+  );
+
+  try {
+    await sendOtpEmail(email, fullname, code);
+  } catch (mailErr) {
+    console.error("[OTP EMAIL]", mailErr.message);
+    await dbPromise.query("DELETE FROM email_otps WHERE email = ? AND role = ?", [email, role]);
+    return { ok: false, reason: "send_failed" };
+  }
+  return { ok: true };
+}
+
+// POST /auth/send-otp  { email, purpose: "signup" }  — resend a code
+app.post("/auth/send-otp", otpSendLimiter, validate(sendOtpSchema), async (req, res) => {
+  const email = req.body.email.trim().toLowerCase();
+  try {
+    if (!(await otpSchemaReady)) return res.status(503).json(OTP_UNAVAILABLE);
+
+    const [tenants]   = await dbPromise.query(
+      "SELECT fullname FROM users WHERE email = ? AND email_verified = 0 LIMIT 1", [email]);
+    const [landlords] = await dbPromise.query(
+      "SELECT fullname FROM landlords WHERE email = ? AND email_verified = 0 LIMIT 1", [email]);
+
+    const targets = [];
+    if (tenants.length)   targets.push(["tenant",   tenants[0].fullname]);
+    if (landlords.length) targets.push(["landlord", landlords[0].fullname]);
+
+    for (const [role, fullname] of targets) {
+      const r = await issueEmailOtp(email, role, fullname);
+      if (!r.ok && (r.reason === "cooldown" || r.reason === "limit")) {
+        return res.status(429).json({
+          success: false,
+          message: r.reason === "cooldown"
+            ? "Please wait a few seconds before requesting another code."
+            : "Too many codes requested. Please try again in an hour.",
+        });
+      }
+      if (!r.ok) {
+        return res.status(502).json({ success: false, message: "Could not send the code. Please try again." });
+      }
+    }
+
+    // Same response whether or not an unverified account exists (no account enumeration)
+    res.json({ success: true, message: "If an unverified account exists for this email, a new code has been sent." });
+  } catch (err) {
+    console.error("[SEND OTP]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// POST /auth/verify-email  { email, otp }
+app.post("/auth/verify-email", otpVerifyLimiter, validate(verifyEmailSchema), async (req, res) => {
+  const email = req.body.email.trim().toLowerCase();
+  const now   = Date.now();
+  try {
+    if (!(await otpSchemaReady)) return res.status(503).json(OTP_UNAVAILABLE);
+
+    const [rows] = await dbPromise.query("SELECT * FROM email_otps WHERE email = ?", [email]);
+    const expected = otpHash(email, req.body.otp);
+
+    let matched = null;
+    let lockedOut = false;
+    for (const row of rows) {
+      if (now > Number(row.expires_at)) continue;
+      if (row.attempts >= OTP_MAX_ATTEMPTS) { lockedOut = true; continue; }
+      if (otpHashesMatch(row.code_hash, expected)) { matched = row; break; }
+    }
+
+    if (!matched) {
+      await dbPromise.query(
+        "UPDATE email_otps SET attempts = attempts + 1 WHERE email = ? AND expires_at > ?",
+        [email, now]
+      );
+      return res.status(400).json({
+        success: false,
+        message: lockedOut
+          ? "Too many incorrect attempts. Please request a new code."
+          : "Incorrect or expired code.",
+      });
+    }
+
+    const table = matched.role === "landlord" ? "landlords" : "users";
+    await dbPromise.query(`UPDATE ${table} SET email_verified = 1 WHERE email = ?`, [email]);
+    await dbPromise.query("DELETE FROM email_otps WHERE email = ? AND role = ?", [email, matched.role]);
+
+    res.json({ success: true, message: "Email verified" });
+  } catch (err) {
+    console.error("[VERIFY EMAIL]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
+// =========================
 // SIGNUP
 // =========================
 app.post("/signup", signupLimiter, validate(signupSchema), async (req, res) => {
-  const { fullname, email, phone, password, referral_code } = req.body;
+  const { fullname, phone, password, referral_code } = req.body;
+  const email = req.body.email.trim().toLowerCase();
 
   if (!/^(\+254|0)[71]\d{8}$/.test(phone)) {
     return res.status(400).json({ success: false, message: "Invalid phone number format" });
   }
 
   try {
+    if (!(await otpSchemaReady)) return res.status(503).json(OTP_UNAVAILABLE);
+
     let referredBy = null;
 
     if (referral_code && referral_code.trim()) {
@@ -638,8 +892,10 @@ app.post("/signup", signupLimiter, validate(signupSchema), async (req, res) => {
     const hashed    = await bcrypt.hash(password, SALT_ROUNDS);
     const displayId = await getNextDisplayId("users", "QT");
 
+    // email_verified starts at 0 until the emailed code is confirmed
     const [result] = await dbPromise.query(
-      `INSERT INTO users (fullname, email, phone, password, referred_by, display_id) VALUES (?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO users (fullname, email, phone, password, referred_by, display_id, email_verified)
+       VALUES (?, ?, ?, ?, ?, ?, 0)`,
       [fullname, email, phone, hashed, referredBy, displayId]
     );
 
@@ -649,11 +905,41 @@ app.post("/signup", signupLimiter, validate(signupSchema), async (req, res) => {
       [myCode, result.insertId]
     );
 
-    res.json({ success: true, message: "User created", tenant_id: displayId });
+    const otp = await issueEmailOtp(email, "tenant", fullname);
+
+    res.json({
+      success: true,
+      message: otp.ok
+        ? "User created. A verification code has been sent to your email."
+        : "User created, but we couldn't send the verification code. Please tap Resend code.",
+      tenant_id: displayId,
+      requires_verification: true,
+      email_sent: otp.ok,
+    });
   } catch (err) {
     if (err.code === "ER_DUP_ENTRY") {
+      // Email already registered but never verified: send a fresh code instead of
+      // dead-ending the person. Stored details are NOT overwritten.
+      try {
+        const [existing] = await dbPromise.query(
+          "SELECT fullname FROM users WHERE email = ? AND email_verified = 0 LIMIT 1",
+          [email]
+        );
+        if (existing.length) {
+          const otp = await issueEmailOtp(email, "tenant", existing[0].fullname);
+          return res.json({
+            success: true,
+            message: "This email is already registered but not verified. We've sent a new code.",
+            requires_verification: true,
+            email_sent: otp.ok,
+          });
+        }
+      } catch (lookupErr) {
+        console.error("[SIGNUP DUP LOOKUP]", lookupErr.message);
+      }
       return res.status(409).json({ success: false, message: "Email already registered" });
     }
+    console.error("[SIGNUP]", err.message);
     res.status(500).json({ success: false, message: "Server error" });
   }
 });
@@ -675,6 +961,15 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
       const valid = await bcrypt.compare(password, user.password);
       if (!valid) {
         return res.status(401).json({ success: false, message: "Wrong password" });
+      }
+      if (Number(user.email_verified) === 0) {
+        await issueEmailOtp(user.email, "tenant", user.fullname).catch(() => {});
+        return res.status(403).json({
+          success: false,
+          needs_verification: true,
+          email: user.email,
+          message: "Your email isn't verified yet. We've sent a new code to your inbox. Enter it on the sign-up page using the same email.",
+        });
       }
       const token = jwt.sign(
         { id: user.id, role: "tenant" },
@@ -700,6 +995,15 @@ app.post("/login", loginLimiter, validate(loginSchema), async (req, res) => {
     const valid    = await bcrypt.compare(password, landlord.password);
     if (!valid) {
       return res.status(401).json({ success: false, message: "Wrong password" });
+    }
+    if (Number(landlord.email_verified) === 0) {
+      await issueEmailOtp(landlord.email, "landlord", landlord.fullname).catch(() => {});
+      return res.status(403).json({
+        success: false,
+        needs_verification: true,
+        email: landlord.email,
+        message: "Your email isn't verified yet. We've sent a new code to your inbox. Enter it on the host sign-up page using the same email.",
+      });
     }
 
     const token = jwt.sign(
@@ -752,13 +1056,32 @@ app.post("/login/google", async (req, res) => {
     let user;
     if (users.length) {
       user = users[0];
+
+      // Older Google accounts were created without a referral code: backfill it.
+      if (!user.referral_code) {
+        user.referral_code = `REF${1000 + user.id}`;
+        await dbPromise.query("UPDATE users SET referral_code = ? WHERE id = ?", [user.referral_code, user.id]);
+      }
+
+      // Google has already verified this email, so an unverified email sign-up
+      // using the same address can be marked verified.
+      if (Number(user.email_verified) === 0) {
+        await dbPromise.query("UPDATE users SET email_verified = 1 WHERE id = ?", [user.id]);
+        await dbPromise.query("DELETE FROM email_otps WHERE email = ? AND role = 'tenant'", [email]).catch(() => {});
+        user.email_verified = 1;
+      }
     } else {
-      // Create a new tenant account (adapt as you prefer)
+      // Create a new tenant account and give it its own referral code
+      // (same REF<1000+id> format as email sign-up)
       const displayId = await getNextDisplayId("users", "QT");
       const [result] = await dbPromise.query(
         `INSERT INTO users (fullname, email, phone, profile_pic, display_id)
          VALUES (?, ?, ?, ?, ?)`,
         [fullname, email, null, profile_pic, displayId]
+      );
+      await dbPromise.query(
+        "UPDATE users SET referral_code = ? WHERE id = ?",
+        [`REF${1000 + result.insertId}`, result.insertId]
       );
       const [newRows] = await dbPromise.query("SELECT * FROM users WHERE id = ?", [result.insertId]);
       user = newRows[0];
@@ -1287,9 +1610,12 @@ app.post(
   async (req, res) => {
     try {
       const {
-        fullname, email, phone, id, kra, county,
+        fullname, email: rawEmail, phone, id, kra, county,
         town, property, type, units, description, password,
       } = req.body;
+      const email = String(rawEmail || "").trim().toLowerCase();
+
+      if (!(await otpSchemaReady)) return res.status(503).json(OTP_UNAVAILABLE);
 
       const profileFile = req.files?.["profile_pic"]?.[0];
       const idFile      = req.files?.["id_photo"]?.[0];
@@ -1322,8 +1648,8 @@ app.post(
         INSERT INTO landlords
           (fullname, email, phone, national_id, kra_pin, county, town,
            property_name, property_type, units, description,
-           profile_pic, id_photo, password, verified, display_id)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?)
+           profile_pic, id_photo, password, verified, display_id, email_verified)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 0, ?, 0)
       `;
 
       db.query(
@@ -1333,14 +1659,43 @@ app.post(
           property, type, units, description,
           profile_pic_url, id_photo_url, hashedPassword, displayId,
         ],
-        (err2) => {
-          if (err2) {
-            if (err2.code === "ER_DUP_ENTRY") {
-              return res.status(409).json({ success: false, message: "Email already registered" });
+        async (err2) => {
+          try {
+            if (err2) {
+              if (err2.code === "ER_DUP_ENTRY") {
+                // Registered earlier but never verified: send a fresh code instead of
+                // dead-ending. Stored details are NOT overwritten.
+                const [existing] = await dbPromise.query(
+                  "SELECT fullname FROM landlords WHERE email = ? AND email_verified = 0 LIMIT 1",
+                  [email]
+                );
+                if (existing.length) {
+                  const otp = await issueEmailOtp(email, "landlord", existing[0].fullname);
+                  return res.json({
+                    success: true,
+                    message: "This email is already registered but not verified. We've sent a new code.",
+                    requires_verification: true,
+                    email_sent: otp.ok,
+                  });
+                }
+                return res.status(409).json({ success: false, message: "Email already registered" });
+              }
+              console.error("[REGISTER LANDLORD INSERT]", err2.message);
+              return res.status(500).json({ success: false, message: "Server error" });
             }
-            return res.status(500).json({ success: false, message: "Server error" });
+
+            const otp = await issueEmailOtp(email, "landlord", fullname);
+            res.json({
+              success: true,
+              message: "Landlord registered",
+              landlord_id: displayId,
+              requires_verification: true,
+              email_sent: otp.ok,
+            });
+          } catch (cbErr) {
+            console.error("[REGISTER LANDLORD]", cbErr.message);
+            res.status(500).json({ success: false, message: "Server error" });
           }
-          res.json({ success: true, message: "Landlord registered", landlord_id: displayId });
         }
       );
     } catch (err) {
