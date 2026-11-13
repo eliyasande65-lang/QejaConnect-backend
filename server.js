@@ -1243,6 +1243,499 @@ app.post("/send-push", auth, async (req, res) => {
   }
 });
 
+/* =========================================================
+   SEO PAGES
+   Public, server-rendered pages for every property (/p/:id-slug)
+   and every platform update (/u/:id-slug), plus sitemap.xml and
+   robots.txt. Each page carries its own <title>, meta description,
+   canonical URL, Open Graph / Twitter tags and JSON-LD so search
+   engines and WhatsApp/Facebook previews can read it without
+   running any JavaScript.
+
+   Optional env vars:
+     SITE_URL       front-end origin   (default https://qejaconnect.co.ke)
+     PAGE_BASE_URL  origin that serves these pages — the API host
+                    unless you proxy /p, /u and /sitemap.xml from your
+                    main domain (default https://qeja-backend-azkf.onrender.com)
+   ========================================================= */
+const SITE_URL      = (process.env.SITE_URL || "https://qejaconnect.co.ke").replace(/\/+$/, "");
+const PAGE_BASE_URL = (process.env.PAGE_BASE_URL || "https://qeja-backend-azkf.onrender.com").replace(/\/+$/, "");
+const BOT_UA        = /bot|crawl|spider|slurp|preview|facebookexternalhit|whatsapp|headless|lighthouse|curl|wget/i;
+
+function escHtml(s) {
+  return String(s == null ? "" : s)
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#39;");
+}
+function jsonLd(obj) { return JSON.stringify(obj).replace(/</g, "\\u003c"); }
+function plainText(s) { return String(s == null ? "" : s).replace(/\s+/g, " ").trim(); }
+function slugify(s) {
+  return String(s == null ? "" : s)
+    .toLowerCase().normalize("NFKD").replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 70).replace(/-+$/g, "");
+}
+function truncateText(s, max) {
+  const t = plainText(s);
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max - 1);
+  const sp  = cut.lastIndexOf(" ");
+  return (sp > max * 0.6 ? cut.slice(0, sp) : cut).replace(/[\s,.;:–-]+$/, "") + "…";
+}
+function safeHttpUrl(u) {
+  const s = String(u == null ? "" : u).trim();
+  return /^https?:\/\//i.test(s) ? s : "";
+}
+function formatKsh(v) {
+  if (v == null || v === "") return "";
+  const n = Number(String(v).replace(/[^0-9.]/g, ""));
+  return Number.isFinite(n) && n > 0 ? n.toLocaleString("en-KE") : plainText(v);
+}
+function parseFeatures(f) {
+  if (Array.isArray(f)) return f.map(plainText).filter(Boolean);
+  if (typeof f === "string" && f.trim()) {
+    try {
+      const parsed = JSON.parse(f);
+      if (Array.isArray(parsed)) return parsed.map(plainText).filter(Boolean);
+    } catch { /* not JSON — treat as comma list */ }
+    return f.split(",").map(plainText).filter(Boolean);
+  }
+  return [];
+}
+
+// Path pieces: /p/12-2-bedroom-house-juja  and  /u/5-scheduled-maintenance
+function propertyPath(p) { return `/p/${p.id}-${slugify(`${p.title || ""} ${p.location || ""}`) || "property"}`; }
+function propertyPageUrl(p) { return PAGE_BASE_URL + propertyPath(p); }
+function updatePath(u) { return `/u/${u.id}-${slugify(u.title) || "update"}`; }
+function updatePageUrl(u) { return PAGE_BASE_URL + updatePath(u); }
+
+function isListingLive(p) {
+  return Number(p.landlord_verified) === 1 &&
+    (!p.listing_expires_at || new Date(p.listing_expires_at) > new Date());
+}
+
+function propertySeoTitle(p) {
+  const title = plainText(p.title) || "Property for rent";
+  const loc   = plainText(p.location);
+  const inLoc = loc && !title.toLowerCase().includes(loc.toLowerCase()) ? ` in ${loc}` : "";
+  const desc  = truncateText(p.description, 35);
+  return `${title}${inLoc}${desc ? " – " + desc : ""} | QejaConnect`;
+}
+function propertySeoDescription(p) {
+  const type  = plainText(p.type) || "House";
+  const loc   = plainText(p.location);
+  const price = formatKsh(p.price);
+  const intro = `${type} for rent${loc ? " in " + loc : ""}${price ? " at Ksh " + price + " per month" : ""}.`;
+  return truncateText(`${intro} ${truncateText(p.description, 95)} Verified listing on QejaConnect.`, 160);
+}
+
+// Page views are counted per property per day. Bots/link-preview fetchers and
+// owner previews (?preview=1) are skipped so the landlord's numbers stay honest.
+async function ensureSeoSchema() {
+  await dbPromise.query(`
+    CREATE TABLE IF NOT EXISTS property_views (
+      property_id INT  NOT NULL,
+      view_date   DATE NOT NULL,
+      views       INT  NOT NULL DEFAULT 0,
+      PRIMARY KEY (property_id, view_date)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+}
+ensureSeoSchema().catch((err) => console.error("[SEO SCHEMA]", err.message));
+
+function recordPropertyView(propertyId, req) {
+  if (req.query.preview) return;
+  if (BOT_UA.test(req.headers["user-agent"] || "")) return;
+  dbPromise
+    .query(
+      `INSERT INTO property_views (property_id, view_date, views) VALUES (?, CURDATE(), 1)
+       ON DUPLICATE KEY UPDATE views = views + 1`,
+      [propertyId]
+    )
+    .catch((err) => console.error("[PROPERTY VIEW]", err.message));
+}
+
+const SEO_CSS = `
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f4f4f4;color:#222;line-height:1.6}
+a{color:indigo}.top{background:#1a1535;padding:14px 20px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.top a{color:#fff;text-decoration:none}.top .brand{font-size:1.25rem;font-weight:700}.top nav a{font-size:14px;opacity:.9}
+.wrap{max-width:920px;margin:0 auto;padding:18px 16px 40px}.crumbs{font-size:13px;color:#666;margin-bottom:12px}.crumbs a{text-decoration:none}
+article,.card{background:#fff;border-radius:16px;box-shadow:0 0 10px rgba(0,0,0,.08);overflow:hidden}
+.hero{display:block;width:100%;aspect-ratio:3/2;max-height:480px;object-fit:cover;background:#ddd}
+.in{padding:20px 22px 24px}.badges{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.badge{background:#eef2ff;color:#4f46e5;font-size:11px;font-weight:700;padding:4px 12px;border-radius:20px;text-transform:uppercase;letter-spacing:.5px}
+.badge.ok{background:#d1fae5;color:#065f46;text-transform:none}
+h1{color:indigo;font-size:1.55rem;margin:6px 0 8px;line-height:1.25}h2{color:indigo;font-size:1.1rem;margin:22px 0 8px}
+.price{color:darkviolet;font-size:1.5rem;font-weight:700;margin:4px 0}.price small{font-size:.9rem;color:#666;font-weight:400}
+.loc{color:#555;margin:4px 0 14px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:14px 0}
+.grid div{background:#f8fafc;border-radius:8px;padding:10px;font-size:13px}.grid b{display:block;color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+.desc{white-space:normal;word-wrap:break-word}.feat{display:flex;flex-wrap:wrap;gap:8px;padding:0;margin:0;list-style:none}
+.feat li{background:#eee;padding:6px 12px;border-radius:20px;font-size:13px}
+.owner{margin:18px 0;background:#f8fafc;border-radius:10px;padding:12px 14px;font-size:14px}
+.cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.btn{display:inline-block;padding:13px 20px;border-radius:12px;border:none;font-size:14px;font-weight:700;cursor:pointer;text-decoration:none;text-align:center;font-family:inherit}
+.btn.primary{background:#1a1535;color:#fff}.btn.alt{background:#4f46e5;color:#fff}.btn.map{background:#1a73e8;color:#fff}.btn.ghost{background:#fff;color:#1a1535;border:1px solid #1a1535}
+.btn:hover{opacity:.88}.rel{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:14px}
+.rel a{display:block;text-decoration:none;color:#222}.rel img{width:100%;height:120px;object-fit:cover;display:block}
+.rel .b{padding:10px 12px;font-size:13px}.rel .b strong{display:block;color:indigo}
+footer{background:#1b1b1b;color:#ccc;text-align:center;padding:28px 16px;font-size:13px}footer a{color:#a78bfa;margin:0 8px;text-decoration:none}
+@media(max-width:520px){h1{font-size:1.25rem}.in{padding:16px}}
+`;
+
+function renderSeoShell({ title, description, canonical, robots, image, ogType, keywords, schema, nonce, body, script }) {
+  return `<!DOCTYPE html>
+<html lang="en-KE">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>${escHtml(title)}</title>
+<meta name="description" content="${escHtml(description)}">
+${keywords ? `<meta name="keywords" content="${escHtml(keywords)}">` : ""}
+<meta name="robots" content="${robots}">
+<link rel="canonical" href="${escHtml(canonical)}">
+<meta name="theme-color" content="#1a1535">
+<meta name="geo.region" content="KE">
+<meta property="og:type" content="${ogType || "website"}">
+<meta property="og:site_name" content="QejaConnect">
+<meta property="og:locale" content="en_KE">
+<meta property="og:title" content="${escHtml(title)}">
+<meta property="og:description" content="${escHtml(description)}">
+<meta property="og:url" content="${escHtml(canonical)}">
+${image ? `<meta property="og:image" content="${escHtml(image)}">` : ""}
+<meta name="twitter:card" content="${image ? "summary_large_image" : "summary"}">
+<meta name="twitter:title" content="${escHtml(title)}">
+<meta name="twitter:description" content="${escHtml(description)}">
+${image ? `<meta name="twitter:image" content="${escHtml(image)}">` : ""}
+<link rel="icon" href="${SITE_URL}/logo.jpg">
+${schema ? `<script type="application/ld+json">${jsonLd(schema)}</script>` : ""}
+<style>${SEO_CSS}</style>
+</head>
+<body>
+<header class="top"><a class="brand" href="${SITE_URL}/home.html">Qeja Connect</a><nav><a href="${SITE_URL}/home.html">Browse all houses</a></nav></header>
+${body}
+<footer>
+<div>© 2026 Qeja Connect Kenya Ltd.</div>
+<div style="margin-top:8px"><a href="${SITE_URL}/home.html">Home</a><a href="${SITE_URL}/privacy_policy.html">Privacy</a><a href="${SITE_URL}/terms.html">Terms</a></div>
+</footer>
+${script ? `<script nonce="${nonce}">${script}</script>` : ""}
+</body>
+</html>`;
+}
+
+function sendSeoPage(res, nonce, status, html) {
+  res.status(status);
+  res.set({
+    "Content-Type": "text/html; charset=utf-8",
+    "Cache-Control": "public, max-age=60",
+    // These pages are the only ones that need inline styles/scripts and remote
+    // (Cloudinary) images, so the relaxed policy is scoped to them alone.
+    "Content-Security-Policy":
+      `default-src 'self'; img-src * data:; style-src 'unsafe-inline'; script-src 'nonce-${nonce}'; ` +
+      `base-uri 'none'; form-action 'none'; frame-ancestors 'none'`,
+  });
+  res.send(html);
+}
+
+function sendSeoGone(res, status, heading, message) {
+  const nonce = crypto.randomBytes(16).toString("base64");
+  const body = `<main class="wrap"><div class="card"><div class="in">
+<h1>${escHtml(heading)}</h1><p>${escHtml(message)}</p>
+<div class="cta"><a class="btn primary" href="${SITE_URL}/home.html">Browse available houses</a></div></div></div></main>`;
+  sendSeoPage(res, nonce, status, renderSeoShell({
+    title: `${heading} | QejaConnect`,
+    description: message,
+    canonical: `${SITE_URL}/home.html`,
+    robots: "noindex, follow",
+    nonce, body,
+  }));
+}
+
+// ── /p/:id-slug  — one page per property ──────────────────────
+app.get("/p/:slug", async (req, res) => {
+  const id = parseInt(req.params.slug, 10);
+  if (!Number.isInteger(id) || id <= 0) return sendSeoGone(res, 404, "Property not found", "We couldn't find that property.");
+
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT p.*, l.fullname AS landlord_name, l.verified AS landlord_verified
+       FROM properties p LEFT JOIN landlords l ON p.landlord_id = l.id
+       WHERE p.id = ? LIMIT 1`,
+      [id]
+    );
+    if (!rows.length) return sendSeoGone(res, 404, "Property not found", "We couldn't find that property.");
+
+    const p = rows[0];
+    if (!isListingLive(p)) {
+      return sendSeoGone(res, 410, "This listing is no longer available", "The landlord has not renewed this listing. Browse other available houses on QejaConnect.");
+    }
+
+    // One canonical URL per property — old/partial slugs redirect to it.
+    const wanted = propertyPath(p);
+    if (req.path !== wanted) {
+      const qs = req.url.includes("?") ? req.url.slice(req.url.indexOf("?")) : "";
+      return res.redirect(301, wanted + qs);
+    }
+
+    recordPropertyView(p.id, req);
+
+    const canonical = PAGE_BASE_URL + wanted;
+    const title     = plainText(p.title) || "Property for rent";
+    const loc       = plainText(p.location);
+    const type      = plainText(p.type) || "House";
+    const price     = formatKsh(p.price);
+    const priceNum  = Number(String(p.price == null ? "" : p.price).replace(/[^0-9.]/g, ""));
+    const seoTitle  = propertySeoTitle(p);
+    const seoDesc   = propertySeoDescription(p);
+    const features  = parseFeatures(p.features);
+    const h1        = loc && !title.toLowerCase().includes(loc.toLowerCase()) ? `${title} in ${loc}` : title;
+    const mapUrl    = safeHttpUrl(p.maps_url);
+
+    const details = [
+      ["Type", type],
+      p.bedrooms   ? ["Bedrooms",  p.bedrooms]  : null,
+      p.bathrooms  ? ["Bathrooms", p.bathrooms] : null,
+      p.floor      ? ["Floor",     p.floor]     : null,
+      p.size       ? ["Size",      p.size]      : null,
+      p.deposit    ? ["Deposit",   "Ksh " + formatKsh(p.deposit)] : null,
+      p.available_from ? ["Available from", String(p.available_from).slice(0, 10)] : null,
+    ].filter(Boolean);
+
+    let related = [];
+    if (loc) {
+      const [relRows] = await dbPromise.query(
+        `SELECT p.id, p.title, p.location, p.price, p.image_url
+         FROM properties p LEFT JOIN landlords l ON p.landlord_id = l.id
+         WHERE p.id <> ? AND p.location = ? AND l.verified = 1
+           AND (p.listing_expires_at IS NULL OR p.listing_expires_at > NOW())
+         ORDER BY p.id DESC LIMIT 6`,
+        [p.id, p.location]
+      );
+      related = relRows;
+    }
+
+    const homeLink = `${SITE_URL}/home.html?property=${p.id}`;
+    const locLink  = loc ? `${SITE_URL}/home.html?location=${encodeURIComponent(loc)}` : `${SITE_URL}/home.html`;
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@graph": [
+        {
+          "@type": "BreadcrumbList",
+          itemListElement: [
+            { "@type": "ListItem", position: 1, name: "Home", item: `${SITE_URL}/home.html` },
+            { "@type": "ListItem", position: 2, name: loc ? `${type} for rent in ${loc}` : "Properties", item: locLink },
+            { "@type": "ListItem", position: 3, name: title, item: canonical },
+          ],
+        },
+        {
+          "@type": "Product",
+          "@id": canonical + "#listing",
+          name: h1,
+          description: truncateText(p.description, 300) || seoDesc,
+          category: `${type} for rent`,
+          url: canonical,
+          image: p.image_url ? [p.image_url] : undefined,
+          brand: { "@type": "Organization", name: "QejaConnect" },
+          offers: Number.isFinite(priceNum) && priceNum > 0 ? {
+            "@type": "Offer",
+            url: canonical,
+            price: priceNum,
+            priceCurrency: "KES",
+            availability: "https://schema.org/InStock",
+            priceSpecification: { "@type": "UnitPriceSpecification", price: priceNum, priceCurrency: "KES", unitCode: "MON" },
+          } : undefined,
+          areaServed: loc ? { "@type": "Place", name: loc, address: { "@type": "PostalAddress", addressLocality: loc, addressCountry: "KE" } } : undefined,
+        },
+      ],
+    };
+
+    const nonce = crypto.randomBytes(16).toString("base64");
+    const body = `
+<main class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="${SITE_URL}/home.html">Home</a> › ${loc ? `<a href="${escHtml(locLink)}">${escHtml(loc)}</a> › ` : ""}<span>${escHtml(title)}</span></nav>
+<article class="card">
+${p.image_url ? `<img class="hero" src="${escHtml(p.image_url)}" alt="${escHtml(h1)}" fetchpriority="high">` : ""}
+<div class="in">
+<div class="badges"><span class="badge">${escHtml(type)}</span><span class="badge ok">Verified landlord</span></div>
+<h1>${escHtml(h1)}</h1>
+${price ? `<p class="price">Ksh ${escHtml(price)} <small>/ month</small></p>` : ""}
+${loc ? `<p class="loc">📍 ${escHtml(loc)}</p>` : ""}
+<div class="grid">${details.map(([k, v]) => `<div><b>${escHtml(k)}</b>${escHtml(v)}</div>`).join("")}</div>
+<h2>About this ${escHtml(type.toLowerCase())}${loc ? " in " + escHtml(loc) : ""}</h2>
+<p class="desc">${escHtml(String(p.description || "No description provided.")).replace(/\r?\n/g, "<br>")}</p>
+${features.length ? `<h2>Features</h2><ul class="feat">${features.map((f) => `<li>${escHtml(f)}</li>`).join("")}</ul>` : ""}
+<div class="owner">Posted by <a href="${SITE_URL}/landlord-profile.html?id=${p.landlord_id}&amp;who=${encodeURIComponent(p.landlord_name || "")}">${escHtml(p.landlord_name || "Landlord")}</a></div>
+<div class="cta">
+<a class="btn primary" href="${escHtml(homeLink)}">Message landlord or book</a>
+${mapUrl ? `<a class="btn map" href="${escHtml(mapUrl)}" target="_blank" rel="noopener">View map</a>` : ""}
+<button class="btn ghost" id="shareBtn" type="button" data-url="${escHtml(canonical)}" data-title="${escHtml(seoTitle)}">Share</button>
+</div>
+</div>
+</article>
+${related.length ? `<h2 style="margin-top:28px">More houses in ${escHtml(loc)}</h2>
+<div class="rel">${related.map((r) => `<div class="card"><a href="${escHtml(propertyPath(r))}">${r.image_url ? `<img src="${escHtml(r.image_url)}" alt="${escHtml(r.title)} in ${escHtml(r.location)}" loading="lazy">` : ""}<div class="b"><strong>${escHtml(r.title)}</strong>Ksh ${escHtml(formatKsh(r.price))}</div></a></div>`).join("")}</div>` : ""}
+</main>`;
+
+    const script = `
+var b=document.getElementById('shareBtn');
+if(b){b.addEventListener('click',function(){
+  var url=b.getAttribute('data-url'),t=b.getAttribute('data-title');
+  if(navigator.share){navigator.share({title:t,url:url}).catch(function(){});return;}
+  if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){b.textContent='Link copied ✓';});}
+  else{window.prompt('Copy this link',url);}
+});}`;
+
+    sendSeoPage(res, nonce, 200, renderSeoShell({
+      title: seoTitle,
+      description: seoDesc,
+      canonical,
+      robots: "index, follow, max-image-preview:large",
+      image: p.image_url,
+      ogType: "product",
+      keywords: [type + " for rent in " + loc, title, loc && "houses for rent in " + loc, "QejaConnect"].filter(Boolean).join(", "),
+      schema, nonce, body, script,
+    }));
+  } catch (err) {
+    console.error("[PROPERTY PAGE]", err.message);
+    sendSeoGone(res, 500, "Something went wrong", "Please try again in a moment.");
+  }
+});
+
+// ── /u/:id-slug  — one page per platform update ────────────────
+app.get("/u/:slug", async (req, res) => {
+  const id = parseInt(req.params.slug, 10);
+  if (!Number.isInteger(id) || id <= 0) return sendSeoGone(res, 404, "Update not found", "We couldn't find that update.");
+
+  try {
+    const [rows] = await dbPromise.query(
+      `SELECT id, title, body, type, image_url, cta_url, cta_label, created_at FROM updates WHERE id = ? LIMIT 1`,
+      [id]
+    );
+    if (!rows.length) return sendSeoGone(res, 404, "Update not found", "We couldn't find that update.");
+
+    const u = rows[0];
+    const wanted = updatePath(u);
+    if (req.path !== wanted) return res.redirect(301, wanted);
+
+    const canonical = PAGE_BASE_URL + wanted;
+    const title     = plainText(u.title);
+    const label     = plainText(u.type) ? plainText(u.type).charAt(0).toUpperCase() + plainText(u.type).slice(1) : "Announcement";
+    const desc      = truncateText(u.body, 155);
+    const dateStr   = new Date(u.created_at).toLocaleDateString("en-KE", { day: "numeric", month: "long", year: "numeric" });
+    const ctaUrl    = safeHttpUrl(u.cta_url);
+
+    const schema = {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      headline: truncateText(title, 110),
+      description: desc,
+      image: u.image_url ? [u.image_url] : undefined,
+      datePublished: new Date(u.created_at).toISOString(),
+      mainEntityOfPage: canonical,
+      author: { "@type": "Organization", name: "QejaConnect" },
+      publisher: { "@type": "Organization", name: "QejaConnect", logo: { "@type": "ImageObject", url: `${SITE_URL}/logo-512.png` } },
+    };
+
+    const nonce = crypto.randomBytes(16).toString("base64");
+    const body = `
+<main class="wrap">
+<nav class="crumbs" aria-label="Breadcrumb"><a href="${SITE_URL}/home.html">Home</a> › <span>Platform updates</span></nav>
+<article class="card">
+${u.image_url ? `<img class="hero" src="${escHtml(u.image_url)}" alt="${escHtml(title)}" fetchpriority="high">` : ""}
+<div class="in">
+<div class="badges"><span class="badge">${escHtml(label)}</span><span style="font-size:13px;color:#888">${escHtml(dateStr)}</span></div>
+<h1>${escHtml(title)}</h1>
+<p class="desc">${escHtml(String(u.body || "")).replace(/\r?\n/g, "<br>")}</p>
+<div class="cta">
+${ctaUrl ? `<a class="btn alt" href="${escHtml(ctaUrl)}" target="_blank" rel="noopener">${escHtml(u.cta_label || "Learn more")}</a>` : ""}
+<a class="btn primary" href="${SITE_URL}/home.html">Browse houses</a>
+</div>
+</div>
+</article>
+</main>`;
+
+    sendSeoPage(res, nonce, 200, renderSeoShell({
+      title: `${title} | QejaConnect Updates`,
+      description: desc || title,
+      canonical,
+      robots: "index, follow, max-image-preview:large",
+      image: u.image_url,
+      ogType: "article",
+      schema, nonce, body,
+    }));
+  } catch (err) {
+    console.error("[UPDATE PAGE]", err.message);
+    sendSeoGone(res, 500, "Something went wrong", "Please try again in a moment.");
+  }
+});
+
+// ── sitemap.xml + robots.txt ───────────────────────────────────
+app.get("/sitemap.xml", async (req, res) => {
+  try {
+    const [props] = await dbPromise.query(
+      `SELECT p.id, p.title, p.location, p.created_at
+       FROM properties p LEFT JOIN landlords l ON p.landlord_id = l.id
+       WHERE l.verified = 1 AND (p.listing_expires_at IS NULL OR p.listing_expires_at > NOW())
+       ORDER BY p.id DESC LIMIT 5000`
+    );
+    const [ups] = await dbPromise.query(`SELECT id, title, created_at FROM updates ORDER BY created_at DESC LIMIT 500`);
+
+    const lastmod = (d) => (d ? `<lastmod>${new Date(d).toISOString().slice(0, 10)}</lastmod>` : "");
+    const urls = [
+      `<url><loc>${escHtml(SITE_URL + "/home.html")}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      ...props.map((p) => `<url><loc>${escHtml(propertyPageUrl(p))}</loc>${lastmod(p.created_at)}<changefreq>weekly</changefreq><priority>0.8</priority></url>`),
+      ...ups.map((u) => `<url><loc>${escHtml(updatePageUrl(u))}</loc>${lastmod(u.created_at)}<changefreq>monthly</changefreq><priority>0.4</priority></url>`),
+    ];
+    res.set({ "Content-Type": "application/xml; charset=utf-8", "Cache-Control": "public, max-age=3600" });
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>`);
+  } catch (err) {
+    console.error("[SITEMAP]", err.message);
+    res.status(500).type("text/plain").send("Sitemap unavailable");
+  }
+});
+
+app.get("/robots.txt", (req, res) => {
+  res.type("text/plain").send(
+    `User-agent: *\nAllow: /p/\nAllow: /u/\nAllow: /sitemap.xml\nDisallow: /\n\nSitemap: ${PAGE_BASE_URL}/sitemap.xml\n`
+  );
+});
+
+// ── Landlord: views per property for the last N days ───────────
+app.get("/landlord-property-views/:landlordId", auth, async (req, res) => {
+  if (req.user.role !== "landlord" || String(req.user.id) !== String(req.params.landlordId)) {
+    return res.status(403).json({ success: false, message: "Forbidden" });
+  }
+  const days = Math.min(Math.max(parseInt(req.query.days, 10) || 7, 1), 90);
+
+  try {
+    const [[t]] = await dbPromise.query(`SELECT DATE_FORMAT(CURDATE(), '%Y-%m-%d') AS today`);
+    const [rows] = await dbPromise.query(
+      `SELECT v.property_id, DATE_FORMAT(v.view_date, '%Y-%m-%d') AS d, v.views
+       FROM property_views v
+       JOIN properties p ON p.id = v.property_id
+       WHERE p.landlord_id = ? AND v.view_date > DATE_SUB(CURDATE(), INTERVAL ? DAY)`,
+      [req.user.id, days]
+    );
+
+    // oldest → newest, always `days` entries, so the client can draw bars directly
+    const base  = new Date(t.today + "T00:00:00Z");
+    const dates = [];
+    for (let i = days - 1; i >= 0; i--) {
+      dates.push(new Date(base.getTime() - i * 86400000).toISOString().slice(0, 10));
+    }
+
+    const views = {};
+    for (const r of rows) {
+      const entry = views[r.property_id] || (views[r.property_id] = { total: 0, daily: dates.map(() => 0) });
+      const idx = dates.indexOf(r.d);
+      if (idx >= 0) { entry.daily[idx] += r.views; entry.total += r.views; }
+    }
+    res.json({ success: true, days, dates, views });
+  } catch (err) {
+    console.error("[PROPERTY VIEWS]", err.message);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+});
+
 // =========================
 // GET ALL PROPERTIES
 // =========================
@@ -1257,7 +1750,8 @@ app.get("/properties", (req, res) => {
   `;
   db.query(sql, (err, results) => {
     if (err) return res.status(500).json({ success: false, message: "Server error" });
-    res.json({ success: true, properties: results });
+    // page_url = the property's own SEO page (/p/:id-slug)
+    res.json({ success: true, properties: results.map((r) => ({ ...r, page_url: propertyPageUrl(r) })) });
   });
 });
 
@@ -1338,7 +1832,7 @@ app.get("/landlord-properties/:id", auth, (req, res) => {
   `;
   db.query(sql, [req.params.id], (err, results) => {
     if (err) return res.status(500).json({ success: false, message: "Server error" });
-    res.json({ success: true, properties: results });
+    res.json({ success: true, properties: results.map((r) => ({ ...r, page_url: propertyPageUrl(r) })) });
   });
 });
 
@@ -2607,7 +3101,8 @@ app.get("/updates", (req, res) => {
      FROM updates ORDER BY created_at DESC LIMIT 50`,
     (err, rows) => {
       if (err) return res.status(500).json({ success: false, message: "Server error" });
-      res.json({ success: true, updates: rows });
+      // page_url = the update's own SEO page (/u/:id-slug)
+      res.json({ success: true, updates: rows.map((u) => ({ ...u, page_url: updatePageUrl(u) })) });
     }
   );
 });
