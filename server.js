@@ -105,7 +105,14 @@ const generalLimiter = rateLimit({
   legacyHeaders:   false,
 });
 
-app.use(generalLimiter);
+// The public SEO pages (/p, /u, /sitemap.xml) are read-only and, when served
+// through the qejaconnect.co.ke proxy, every visitor arrives from Cloudflare's
+// addresses — so they skip the per-IP limiter (otherwise ~100 page loads per
+// 15 minutes would block everyone at once).
+app.use((req, res, next) => {
+  if (req.path.startsWith("/p/") || req.path.startsWith("/u/") || req.path === "/sitemap.xml") return next();
+  return generalLimiter(req, res, next);
+});
 
 // =========================
 // VALIDATION SCHEMAS
